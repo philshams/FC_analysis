@@ -13,3 +13,13 @@ https://www.notion.so/fclabbook/FC_analysis-User-Guide-02057df034d746e3b476da32f
 
 
 
+
+## Usage
+
+Brief description of steps to execute before running the analysis
+
+- Update datalog.csv
+- set saving option in config.py
+- select sessions to process in config.py
+- select processing steps and options in config.py
+- run start_analysis.py
