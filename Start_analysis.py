@@ -46,8 +46,8 @@ class Analysis():
 
             print('Processing session {}'.format(session_name))
 
-            # Create new class to store results and populate it (or loaded if already exists)
-            if not load_database:
+            # extract info from sessions videos [e.g. first frame, fps, videos lenth...]
+            if extract_background or track_mouse:
                 session = get_session_videodata(session)
 
             # Process background: get maze edges and user selected ROIs

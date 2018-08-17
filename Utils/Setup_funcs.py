@@ -93,6 +93,8 @@ def get_sessions_metadata_from_yaml(datalogpath, database=None):
                 print('           ... loading metadata from .tdms')
                 tdms = TdmsFile(tdmspath)
                 df_tdms = tdms.as_dataframe()
+                # save the stims from each recording as a separate list
+                visual_rec_stims, audio_rec_stims, digital_rec_stims = [], [], []
 
                 for idx in df_tdms.loc[0].index:
                     if 'Stimulis' in idx:
@@ -109,13 +111,16 @@ def get_sessions_metadata_from_yaml(datalogpath, database=None):
 
                         # store frame number in metadata
                         if 'Visual' in idx:
-                            session_metadata.stimuli['visual'].append(framen)
+                            visual_rec_stims.append(framen)
                         elif 'Audio' in idx:
-                            session_metadata.stimuli['audio'].append(framen)
+                            audio_rec_stims.append(framen)
                         elif 'Digital' in idx:
-                            session_metadata.stimuli['digital'].append(framen)
+                            digital_rec_stims.append(framen)
                         else:
                             print('                  ... couldnt load stim correctly')
+                session_metadata.stimuli['visual'].append(visual_rec_stims)
+                session_metadata.stimuli['audio'].append(audio_rec_stims)
+                session_metadata.stimuli['digital'].append(digital_rec_stims)
 
             except:
                 print('                  ... could not load .tdms ')
@@ -132,7 +137,7 @@ def get_session_videodata(session):
     # Get first frame of first video for future processing and number of frames in each video
     videos_data = {'Background': None, 'Frame rate': [], 'Number frames': []}
 
-    for idx, videofile in enumerate(session['Metadata'].video_file_path):
+    for idx, videofile in enumerate(session['Metadata'].video_file_paths):
         cap = cv2.VideoCapture(videofile)
         videos_data['Frame rate'].append(cap.get(cv2.CAP_PROP_FPS))
         videos_data['Number frames'].append(int(cap.get(cv2.CAP_PROP_FRAME_COUNT)))

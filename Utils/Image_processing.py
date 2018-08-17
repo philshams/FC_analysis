@@ -17,7 +17,7 @@ def process_background(background, track_options):
     # Get maze edges
     edges = cv2.Canny(blur, 25, 30)
 
-    if track_options['extract bg']:
+    if track_options['bg get rois']:
         # Get user to define Shelter ROI, Threat area ROI and the line between them or arena ROI
         print('\n\nPlease mark NEST ROI')
         shelter_roi = cv2.selectROI(gray, fromCenter=False)
