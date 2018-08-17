@@ -6,7 +6,9 @@ the different functionalities of the analysis scripts
 """
 # If loading a pre-existant database, specify name of the .h5 file it was saved to. otherwise db is generated from
 # scratch from the datalog.csv file
-load_database = True
+load_database = False  # This is False only if you are creating a new database, if you are working on a pre-existing
+# database it will be set as True
+
 # Specify if you want to update the database loading info from datalog.csv to add recently added sessions to database
 update_database = True
 load_name = 'DLCtest_completed'
@@ -45,7 +47,7 @@ Flags and params that control the execution of the different parts of the code
 startf = 6000  # Skip the first n frames when tracking
 
 extract_background = False
-track_mouse = True             # <----- !!!!!!!!!!
+track_mouse = False             # <----- !!!!!!!!!!
 track_options = {
     'bg get rois': True,         # allow user to define 3 ROIs when extracting background [threat, shelter and variable]
     'track whole session': False,  # Track the mouse for the entire session
@@ -95,7 +97,7 @@ get_trials_clips = False
 """ where to find the Datalog.csv file, where to save the results of the analysis"""
 
 if platform.system() == 'Windows':
-    datalog_path = 'D:\\Dropbox (UCL - SWC)\\Dropbox (UCL - SWC)\\Rotation_vte\\analysis\\Experiments_log.xls'
+    datalog_path = 'D:\\Dropbox (UCL - SWC)\\Dropbox (UCL - SWC)\\Rotation_vte\\analysis\\datalog.xls'
     savelogpath = 'D:\\Dropbox (UCL - SWC)\\Dropbox (UCL - SWC)\\Rotation_vte\\analysis'
 else:
     savelogpath = '/Users/federicoclaudi/Desktop'

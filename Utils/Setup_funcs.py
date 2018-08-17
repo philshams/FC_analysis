@@ -3,21 +3,16 @@ import cv2
 import numpy as np
 import pandas as pd
 import datetime
+import os
+from nptdms import TdmsFile
+
 
 from Utils.utils_classes import Session_metadata, DataBase
 
 
-def update_sessions_l(datalogpath):
-    def return_ordered_stims(stims_string):
-        stimuli = []
-        if stims_string and not isinstance(stims_string, int):
-            stimuli = [int(s) for s in stims_string.split(', ')]
-        elif stims_string:
-            stimuli = [int(stims_string)]
-
-        return stimuli
-
+def create_db_from_datalog(datalogpath):
     # Load excel spreadsheet
+    print('========================\nCreating database from datalog.csv')
     loaded_excel = pyexcel.get_records(file_name=datalogpath)
 
     sessions_dict = {}
@@ -25,26 +20,50 @@ def update_sessions_l(datalogpath):
     for line in loaded_excel:
         session_id = line['Sess.ID']
         session_name = '{}_{}_{}'.format(line['Sess.ID'], line['Date'], line['MouseID'])
+        print('------------------------\n     ... Session {}'.format(session_name))
 
-        if not session_name in sessions_dict.keys():
-            # Create a new entry in the sessions dictionary
-            session_metadata = Session_metadata()
-            session_metadata.session_id = session_id
-            session_metadata.experiment = line['Experiment']
-            session_metadata.date = line['Date']
-            session_metadata.mouse_id = line['MouseID']
-            session_metadata.created = datetime.datetime.now().strftime("%y-%m-%d-%H-%M")
-        else:
-            # Update pre-existing entry in the sessions dictionary
-            session_metadata = sessions_dict[session_name]
 
-        # Update the stimuli lists
-        session_metadata.stimuli['visual'].append(return_ordered_stims(line['VS']))
-        session_metadata.stimuli['audio'].append(return_ordered_stims(line['US']))
-        session_metadata.stimuli['digital'].append(return_ordered_stims(line['DS']))
+        # Create a new entry in the sessions dictionary
+        session_metadata = Session_metadata()
+        session_metadata.session_id = session_id
+        session_metadata.experiment = line['Experiment']
+        session_metadata.date = line['Date']
+        session_metadata.mouse_id = line['MouseID']
+        session_metadata.created = datetime.datetime.now().strftime("%y-%m-%d-%H-%M")
 
-        # Add video file path
-        session_metadata.video_file_path.append(line['VideoPath'])
+        # Get stims from .tdms file
+        recordings = line['Sub Folders'].split('; ')
+        for recording in recordings:
+            path = os.path.join(line['Base fld'], line['Exp fld'], recording)
+            for f in os.listdir(path):
+                if '.avi' in f:
+                    videopath = os.path.join(path, f)
+                elif '.tdms' == f[-5:]:
+                    tdmspath = os.path.join(path, f)
+            # add file paths to metadata
+            session_metadata.video_file_paths.append(videopath)
+            session_metadata.tdms_file_paths.append(tdmspath)
+
+            # load tdms and get stimuli
+            try:
+                print('           ... loading metadata from .tdms')
+                tdms = TdmsFile(tdmspath)
+                df_tdms = tdms.as_dataframe()
+
+                for idx in df_tdms.loc[0].index:
+                    if 'Stimulis' in idx:
+                        framn = int(idx.split('  ')[1].split('-')[0])
+                        if 'Visual' in idx:
+                            session_metadata.stimuli['visual'].append(framn)
+                        elif 'Audio' in idx:
+                            session_metadata.stimuli['audio'].append(framn)
+                        elif 'Digital' in idx:
+                            session_metadata.stimuli['digital'].append(framn)
+                        else:
+                            print('couldnt load stim correctly')
+
+            except:
+                print('                   ... could not load .tdms')
 
         # Add to dictionary (or update entry)
         sessions_dict[session_name] = session_metadata
