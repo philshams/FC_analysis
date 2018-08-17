@@ -6,7 +6,6 @@ the different functionalities of the analysis scripts
 """
 # If loading a pre-existant database, specify name of the .h5 file it was saved to. otherwise db is generated from
 # scratch from the datalog.csv file
-load_database = False  # This is False only if you are creating a new database, if you are working on a pre-existing
 # database it will be set as True
 
 # Specify if you want to update the database loading info from datalog.csv to add recently added sessions to database

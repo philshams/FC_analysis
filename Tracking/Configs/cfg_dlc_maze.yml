@@ -1,6 +1,6 @@
-'clips': {'visual': {}, 'audio': {},'digital': {}},
-'clips_folder': 'C:\\Users\\Federico\\Documents\\GitHub\\DeepLabCut\\videos',
-'dlc_network_path': 'C:\\Users\\Federico\\Documents\\GitHub\\BrancoLab_RandomCode\\Analysis_V2\\Tracking',
-'dlc_network_snapshot': 'C:\\Users\\Federico\\Documents\\GitHub\\DeepLabCut\\pose-tensorflow\\models\\mazeAug01-trainset95shuffle1\\train\\snapshot-350000',
-'scorer': 'DeepCut_resnet50_FC_50000',
+'clips': ''
+'clips_folder': 'C:\\Users\\Federico\\Documents\\GitHub\\DeepLabCut\\videos'
+'dlc_network_path': 'C:\\Users\\Federico\\Documents\\GitHub\\BrancoLab_RandomCode\\Analysis_V2\\Tracking'
+'dlc_network_snapshot': 'C:\\Users\\Federico\\Documents\\GitHub\\DeepLabCut\\pose-tensorflow\\models\\mazeAug01-trainset95shuffle1\\train\\snapshot-350000'
+'scorer': 'DeepCut_resnet50_FC_50000'
 'store trial videos': True

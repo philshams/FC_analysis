@@ -16,7 +16,7 @@ def save_data(savelogpath, save_name, object=None, name_modifier=''):
             indexes = object.__dict__.keys()
             data_to_save = pd.DataFrame([x for x in object.__dict__.values()], index=indexes)
             data_to_save.to_pickle(save_name)
-    print('Data saved succefully')
+    print('         ... data saved succefully')
 
 
 def load_data(savelogpath, load_name):

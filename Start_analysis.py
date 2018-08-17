@@ -12,7 +12,7 @@ from Utils.loadsave_funcs import save_data, load_data
 from Utils.Setup_funcs import get_sessions_metadata_from_yaml, get_session_videodata, generate_database_from_metadatas
 from Plotting import Plotting_main
 from Tracking.Tracking_main import Tracking
-from Utils.Data_rearrange_funcs import collate_cohort_trials
+from Utils.Data_rearrange_funcs import create_cohort
 
 from Config import load_database, update_database, datalog_path, load_name, save_name,\
     savelogpath, selector_type, selector, extract_background, track_mouse, plotting, track_options, Cohort
@@ -44,7 +44,7 @@ class Analysis():
                 elif selector_type == 'session' and session.Metadata.session_id not in selector:
                     continue
 
-            print('Processing session {}'.format(session_name))
+            print('---------------\nProcessing session {}'.format(session_name))
 
             # extract info from sessions videos [e.g. first frame, fps, videos lenth...]
             if extract_background or track_mouse:
@@ -64,15 +64,14 @@ class Analysis():
                 db = tracked.database
                 save_data(savelogpath, save_name, name_modifier='_tracking', object=db)
 
-            # Create a list with all the trial data for the whole cohort
-            if Cohort:
-                db = collate_cohort_trials(db, session)   # Get all the trial data in one place
-
             # Plot for individual mice
             if plotting:
                 Plotting_main.setup_plotting(session, db)
 
         if Cohort:
+            # Create a cohort and store it in database
+            db = create_cohort(db)  # Get all the trial data in one place
+
             print('Processing Cohort')
             # Plot for a cohort
             if plotting:

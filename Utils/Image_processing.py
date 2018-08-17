@@ -2,6 +2,8 @@ import cv2
 
 
 def process_background(background, track_options):
+    print('     ... extracting background')
+
     cv2.startWindowThread()
     # cv2.namedWindow('Raw background')
     # cv2.namedWindow('edges')
