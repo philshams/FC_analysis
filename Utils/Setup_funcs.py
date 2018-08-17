@@ -62,18 +62,29 @@ def get_sessions_metadata_from_yaml(datalogpath, database=None):
 
                 for idx in df_tdms.loc[0].index:
                     if 'Stimulis' in idx:
-                        framn = int(idx.split('  ')[1].split('-')[0])
+                        # get frame number
+                        try:
+                            if '  ' in idx:
+                                framen = int(idx.split('  ')[1].split('-')[0])
+                            else:
+                                framen = int(idx.split(' ')[2].split('-')[0])
+                        except:
+                            print('                  ... Something went wrong while trying'
+                                  ' to extract stimulus frame from tdms')
+                            a = 1
+
+                        # store frame number in metadata
                         if 'Visual' in idx:
-                            session_metadata.stimuli['visual'].append(framn)
+                            session_metadata.stimuli['visual'].append(framen)
                         elif 'Audio' in idx:
-                            session_metadata.stimuli['audio'].append(framn)
+                            session_metadata.stimuli['audio'].append(framen)
                         elif 'Digital' in idx:
-                            session_metadata.stimuli['digital'].append(framn)
+                            session_metadata.stimuli['digital'].append(framen)
                         else:
-                            print('couldnt load stim correctly')
+                            print('                  ... couldnt load stim correctly')
 
             except:
-                print('                  ... could not load .tdms  [buggggg need to check why sometimes it breaks')
+                print('                  ... could not load .tdms ')
 
         # Add to dictionary (or update entry)
         sessions_dict[session_name] = session_metadata
@@ -111,6 +122,8 @@ def generate_database(session_dict):  # may be obsolete?
     # Fill in metadata
     for sessname, metadata in sorted(session_dict.items()):
         database['Metadata'][sessname] = metadata
+
+    print('==========================\n==========================\n\nDatabase initialised succesfully')
 
     return database
 
