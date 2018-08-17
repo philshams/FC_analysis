@@ -8,7 +8,7 @@ sys.path.append(os.path.join(subfolder, "pose-tensorflow"))
 sys.path.append(os.path.join(subfolder, "Generating_a_Training_Set"))
 
 from Tracking.dlc_analysis_config import cropping, Task, date, \
-    trainingsFraction, resnet, snapshotindex, shuffle,x1, x2, y1, y2, videotype, storedata_as_csv
+    trainingsFraction, resnet, snapshotindex, shuffle, x1, x2, y1, y2, videotype, storedata_as_csv
 from Utils.loadsave_funcs import load_yaml
 
 # Deep-cut dependencies

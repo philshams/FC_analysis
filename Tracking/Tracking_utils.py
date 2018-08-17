@@ -264,6 +264,7 @@ def dlc_retreive_data(datafolder, database):
                 print('Found Pandas dataframe: {}'.format(fname))
                 sessid = fname.split('-')[0]
                 trial_name = fname.split('_')[0] + "_" + fname.split('_')[1]
+                trial_name = trial_name.split('D')[0]
                 stim_type = fname.split('-')[:-2]
 
                 if not sessid in sessions_data.keys():

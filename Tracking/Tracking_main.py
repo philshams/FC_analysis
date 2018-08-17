@@ -152,16 +152,16 @@ class Tracking():
             # Process trial clips if we are using dlc_tracking
             if track_options['use_deeplabcut']:
                 if dlc_config_settings['clips']['visual'] or dlc_config_settings['clips']['audio']:
-                    print('Extracting trials video clips')
+                    print('        ... extracting trials video clips')
                     save_trial_clips(dlc_config_settings['clips'], dlc_config_settings['clips_folder'])
 
-                    print('Extracting pose from clips')
+                    print('        ... extracting pose from clips')
                     dlc_analyseVideos.analyse()
 
-                    print('Integrating results in database')
+                    print('        ... integrating results in database')
                     database = dlc_retreive_data(dlc_config_settings['clips_folder'], database)
 
-                    print('Cleaning up')
+                    print('        ... cleaning up')
                     dlc_clear_folder(dlc_config_settings['clips_folder'], dlc_config_settings['store trial videos'])
 
         self.database = database
