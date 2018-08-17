@@ -11,7 +11,7 @@ from Tracking.dlc_analysis_config import cropping, Task, date, \
     trainingsFraction, resnet, snapshotindex, shuffle,x1, x2, y1, y2, videotype, storedata_as_csv
 
 # Deep-cut dependencies
-from Tracking.dlc_config import load_config
+from Tracking.dlc_loadconfig import load_config
 from nnet import predict
 from dataset.pose_dataset import data_to_input
 

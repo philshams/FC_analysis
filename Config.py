@@ -53,7 +53,9 @@ track_options = {
     'use_stdtracking': True,      # Use standard tracking (written by FC)
     'stdtracking_justCoM': True,  # When using the standard tracking just extract the Centre of Mass and
                                   # not other variables. This is TRUE by default
-    'use_deeplabcut': True       # Use deepLabCut to track the mouse
+    'use_deeplabcut': True,       # Use deepLabCut to track the mouse
+    'cfg_std': 'Tracking/Configs/cfg_std_fearcond.yml',
+    'cfg_dlc': 'Tracking/Configs/cfg_std_fearcond.yml'
     }
 
 

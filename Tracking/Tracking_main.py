@@ -7,12 +7,12 @@ imageio.plugins.ffmpeg.download()
 
 # Import functions and params from other scripts
 from Tracking import dlc_analyseVideos
-from Tracking.Tracking_config import maze_config, fearcond_config, dlc_config_settings
 from Tracking.Tracking_functions import get_body_orientation, get_mvmt_direction, get_velocity
 from Tracking.Tracking_utils import *
 from Utils.Custom_funcs import cut_crop_video
 from Utils import Data_rearrange_funcs
 from Utils.utils_classes import Trial
+from Utils.loadsave_funcs import load_yaml
 
 from Config import startf, exp_type, track_options
 
@@ -25,17 +25,19 @@ from Config import startf, exp_type, track_options
 ########################################################################################################################
 ########################################################################################################################
 
+
 class Tracking():
     def __init__(self, session, database):
         # params for contour extraction
         if exp_type == 'maze':
-            cfg = maze_config
             self.arena_floor = False
         else:
-            cfg = fearcond_config
             self.arena_floor = session['Video']['User ROIs']['Tsk']
 
         # Load settings from config
+        cfg = load_yaml(track_options['cfg_std'])
+        dlc_config_settings = load_yaml(track_options['dlc_std'])
+
         self.stopframe = cfg['stopframe']
         self.fps = session['Video']['Frame rate']
         self.num_exp_cnts = cfg['num mice']
@@ -154,7 +156,7 @@ class Tracking():
                     save_trial_clips(dlc_config_settings['clips'], dlc_config_settings['clips_folder'])
 
                     print('Extracting pose from clips')
-                    # dlc_analyseVideos.analyse()
+                    dlc_analyseVideos.analyse()
 
                     print('Integrating results in database')
                     database = dlc_retreive_data(dlc_config_settings['clips_folder'], database)

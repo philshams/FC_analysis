@@ -1,7 +1,6 @@
-import pickle
 import platform
-import json
 import pandas as pd
+import yaml
 
 def save_data(savelogpath, save_name, object=None, name_modifier=''):
     # Get full file name and save to pickel file
@@ -27,5 +26,11 @@ def load_data(savelogpath, load_name):
 
     db = pd.read_pickle(filename)
     return db
+
+
+def load_yaml(fpath):
+    with open(fpath, 'r') as f:
+        settings = yaml.load(f)
+    return settings
 
 
