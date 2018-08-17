@@ -5,9 +5,28 @@ import pandas as pd
 import datetime
 import os
 from nptdms import TdmsFile
-
+import sys
 
 from Utils.utils_classes import Session_metadata, DataBase
+from Utils.loadsave_funcs import save_data
+
+from Config import save_name, savelogpath
+
+
+def generate_database_from_metadatas(session_dict):  # may be obsolete?
+    indexes = sorted(session_dict.keys())
+    database_template = DataBase()
+
+    # Create empty database
+    database = pd.DataFrame(index=indexes, columns=database_template.sessions.keys())
+
+    # Fill in metadata
+    for sessname, metadata in sorted(session_dict.items()):
+        database['Metadata'][sessname] = metadata
+
+    print('==========================\n==========================\n\nDatabase initialised succesfully')
+
+    return database
 
 
 def get_sessions_metadata_from_yaml(datalogpath, database=None):
@@ -45,6 +64,21 @@ def get_sessions_metadata_from_yaml(datalogpath, database=None):
         recordings = line['Sub Folders'].split('; ')
         for recording in recordings:
             path = os.path.join(line['Base fld'], line['Exp fld'], recording)
+
+            # if the path we got doesn't exist, save the results as they are now so that we don't loose everything
+            if not os.path.exists(path):
+                print('-- !! Something went wrong!\nThis path doesnt exist: {}'.format(path))
+                print('Saving the database created so far as {}'.format(os.path.join(savelogpath,
+                                                                                     save_name+'_emergency_save')))
+                if database is None:
+                    db = generate_database_from_metadatas(sessions_dict)
+                else:
+                    justaddedd = generate_database_from_metadatas(sessions_dict)
+                    db = pd.concat(database, justaddedd)
+
+                save_data(savelogpath, save_name, name_modifier='_emergency_save', object=db)
+                sys.exit('Closing application....')
+
             for f in os.listdir(path):
                 if '.avi' in f:
                     videopath = os.path.join(path, f)
@@ -112,19 +146,5 @@ def get_session_videodata(session):
     return session
 
 
-def generate_database(session_dict):  # may be obsolete?
-    indexes = sorted(session_dict.keys())
-    database_template = DataBase()
-
-    # Create empty database
-    database = pd.DataFrame(index=indexes, columns=database_template.sessions.keys())
-
-    # Fill in metadata
-    for sessname, metadata in sorted(session_dict.items()):
-        database['Metadata'][sessname] = metadata
-
-    print('==========================\n==========================\n\nDatabase initialised succesfully')
-
-    return database
 
 
