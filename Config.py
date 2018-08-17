@@ -47,6 +47,7 @@ startf = 6000  # Skip the first n frames when tracking
 extract_background = False
 track_mouse = True             # <----- !!!!!!!!!!
 track_options = {
+    'bg get rois': True,         # allow user to define 3 ROIs when extracting background [threat, shelter and variable]
     'track whole session': False,  # Track the mouse for the entire session
     'track_exploration': False,  # Track the mouse during the exploration using the standard tracking
     'track_mouse_fast': True,    # if true only track segments of videos around the stimuli

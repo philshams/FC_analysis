@@ -52,7 +52,8 @@ class Analysis():
 
             # Process background: get maze edges and user selected ROIs
             if extract_background:
-                maze_edges, user_rois = Image_processing.process_background(session['Video']['Background'])
+                maze_edges, user_rois = Image_processing.process_background(session['Video']['Background'],
+                                                                            track_options)
                 session['Video']['Maze Edges'] = maze_edges
                 session['Video']['User ROIs'] = user_rois
                 save_data(savelogpath, save_name, name_modifier='_background', object=db)
