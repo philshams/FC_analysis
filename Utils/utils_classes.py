@@ -7,6 +7,8 @@ class Session_metadata():
         self.stimuli = {'visual': [], 'audio': [], 'digital': []}
         self.video_file_path = []
         self.trials_id_list = []
+        self.last_modified = None
+        self.created = None
 
 
 class DataBase():
