@@ -2,6 +2,7 @@ import pyexcel
 import cv2
 import numpy as np
 import pandas as pd
+import datetime
 
 from Utils.utils_classes import Session_metadata, DataBase
 
@@ -32,6 +33,7 @@ def update_sessions_l(datalogpath):
             session_metadata.experiment = line['Experiment']
             session_metadata.date = line['Date']
             session_metadata.mouse_id = line['MouseID']
+            session_metadata.created = datetime.datetime.now().strftime("%y-%m-%d-%H-%M")
         else:
             # Update pre-existing entry in the sessions dictionary
             session_metadata = sessions_dict[session_name]

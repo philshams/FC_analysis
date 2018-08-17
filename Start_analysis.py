@@ -14,7 +14,7 @@ from Plotting import Plotting_main
 from Tracking.Tracking_main import Tracking
 from Utils.Data_rearrange_funcs import collate_cohort_trials
 
-from Config import load_database, update_sessions_dict, datalog_path, load_name, save_name,\
+from Config import load_database, update_database, datalog_path, load_name, save_name,\
     savelogpath, selector_type, selector, extract_background, track_mouse, plotting, track_options, Cohort
 
 # The analysis is all contained within this class
@@ -24,13 +24,13 @@ class Analysis():
         # Load database
         if load_database:
             db = load_data(savelogpath, load_name)
+            # Update database with recently added sessions
+            if update_database:
+                db.sessions = update_sessions_l(datalog_path)
         else:
+            # Create database from scratch
             sessions_metadata = update_sessions_l(datalog_path)
             db = generate_database(sessions_metadata)
-
-        # Update the list of of sessions
-        if load_database and update_sessions_dict:
-            db.sessions = update_sessions_l(datalog_path)
 
         # Loop over all the sessions and call all the relevant functions [ For the sessions that need to be processed]
         for session_name in sorted(db.index):

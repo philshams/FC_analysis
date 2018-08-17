@@ -9,13 +9,15 @@ sys.path.append(os.path.join(subfolder, "Generating_a_Training_Set"))
 
 from Tracking.dlc_analysis_config import cropping, Task, date, \
     trainingsFraction, resnet, snapshotindex, shuffle,x1, x2, y1, y2, videotype, storedata_as_csv
+from Utils.loadsave_funcs import load_yaml
 
 # Deep-cut dependencies
 from Tracking.dlc_loadconfig import load_config
 from nnet import predict
 from dataset.pose_dataset import data_to_input
 
-from Tracking.Tracking_config import dlc_config_settings
+
+from Config import track_options
 
 
 # Dependencies for video:
@@ -50,6 +52,7 @@ def analyse():
     ####################################################
     # Loading data, and defining model folder
     ####################################################
+    dlc_config_settings = load_yaml(track_options['cfg_dlc'])
     cfg = load_config(dlc_config_settings['dlc_network_path'])
     cfg['init_weights'] = dlc_config_settings['dlc_network_snapshot']
 

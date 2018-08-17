@@ -4,11 +4,11 @@ import platform
 Script to set up the analysis of behavioural data: defines relevant parameters and flags to control
 the different functionalities of the analysis scripts
 """
-# Specify if you want to update the database loading info from datalog.csv
-update_sessions_dict = True
-
-# If loading a pre-existant database, specify name of the .h5 file it was saved to
+# If loading a pre-existant database, specify name of the .h5 file it was saved to. otherwise db is generated from
+# scratch from the datalog.csv file
 load_database = True
+# Specify if you want to update the database loading info from datalog.csv to add recently added sessions to database
+update_database = True
 load_name = 'DLCtest_completed'
 
 # Specify name with which to save the results of the analysis
