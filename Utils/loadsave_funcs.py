@@ -2,6 +2,7 @@ import platform
 import pandas as pd
 import yaml
 
+
 def save_data(savelogpath, save_name, object=None, name_modifier=''):
     # Get full file name and save to pickel file
     if platform.system() == 'Windows':
@@ -19,6 +20,7 @@ def save_data(savelogpath, save_name, object=None, name_modifier=''):
 
 
 def load_data(savelogpath, load_name):
+    print('==================\nLoading database from: {}'.format(load_name))
     if platform.system() == 'Windows':
         filename = '{}\\{}.pkl'.format(savelogpath, load_name)
     else:

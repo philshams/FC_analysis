@@ -9,7 +9,7 @@ sys.path.append(os.path.join(subfolder, "Generating_a_Training_Set"))
 
 from Utils import Image_processing
 from Utils.loadsave_funcs import save_data, load_data
-from Utils.Setup_funcs import create_db_from_datalog, get_session_videodata, generate_database
+from Utils.Setup_funcs import get_sessions_metadata_from_yaml, get_session_videodata, generate_database
 from Plotting import Plotting_main
 from Tracking.Tracking_main import Tracking
 from Utils.Data_rearrange_funcs import collate_cohort_trials
@@ -26,10 +26,10 @@ class Analysis():
             db = load_data(savelogpath, load_name)
             # Update database with recently added sessions
             if update_database:
-                db.sessions = create_db_from_datalog(datalog_path)
+                db.sessions = get_sessions_metadata_from_yaml(datalog_path, database=db)
         else:
             # Create database from scratch
-            sessions_metadata = create_db_from_datalog(datalog_path)
+            sessions_metadata = get_sessions_metadata_from_yaml(datalog_path)
             db = generate_database(sessions_metadata)
 
         # Loop over all the sessions and call all the relevant functions [ For the sessions that need to be processed]

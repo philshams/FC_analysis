@@ -10,9 +10,13 @@ from nptdms import TdmsFile
 from Utils.utils_classes import Session_metadata, DataBase
 
 
-def create_db_from_datalog(datalogpath):
+def get_sessions_metadata_from_yaml(datalogpath, database=None):
     # Load excel spreadsheet
-    print('========================\nCreating database from datalog.csv')
+    if database is None:
+        print('========================\nCreating database from datalog.csv')
+    else:
+        print('========================\nUpdating database from datalog.csv')
+
     loaded_excel = pyexcel.get_records(file_name=datalogpath)
 
     sessions_dict = {}
@@ -20,8 +24,14 @@ def create_db_from_datalog(datalogpath):
     for line in loaded_excel:
         session_id = line['Sess.ID']
         session_name = '{}_{}_{}'.format(line['Sess.ID'], line['Date'], line['MouseID'])
-        print('------------------------\n     ... Session {}'.format(session_name))
 
+        # if we are updating a pre-existing database, check if the session corrisponding to this line
+        # already exists in the database. If so, skip the line
+        print('------------------------\n     ... Session {}'.format(session_name))
+        if database is not None:
+            if session_name in database.index:
+                print('           ... session already in database')
+                continue
 
         # Create a new entry in the sessions dictionary
         session_metadata = Session_metadata()
@@ -63,7 +73,7 @@ def create_db_from_datalog(datalogpath):
                             print('couldnt load stim correctly')
 
             except:
-                print('                   ... could not load .tdms')
+                print('                  ... could not load .tdms  [buggggg need to check why sometimes it breaks')
 
         # Add to dictionary (or update entry)
         sessions_dict[session_name] = session_metadata
@@ -91,7 +101,7 @@ def get_session_videodata(session):
     return session
 
 
-def generate_database(session_dict):
+def generate_database(session_dict):  # may be obsolete?
     indexes = sorted(session_dict.keys())
     database_template = DataBase()
 
