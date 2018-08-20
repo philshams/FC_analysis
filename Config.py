@@ -11,10 +11,10 @@ load_database = True  # This is False only if you are creating a new database, i
 
 # Specify if you want to update the database loading info from datalog.csv to add recently added sessions to database
 update_database = False
-load_name = 'REFACTORING_tracking'
+load_name = 'Cohort test_tracking'
 
 # Specify name with which to save the results of the analysis
-save_name = 'Cohort test'
+save_name = 'processing test'
 
 """
 Specify set of sessions to analyse 
@@ -33,7 +33,7 @@ might behave differently depending on the type of experiment
 
 """
 selector_type = 'session'  # selects which session to an 'new', 'experiment', 'session', 'date'
-selector = [62, 63, 64]  # ['180607', '180603', '180604', '180605', '180606']
+selector = [62]  # ['180607', '180603', '180604', '180605', '180606']
 exp_type = 'maze'
 
 
@@ -41,20 +41,20 @@ exp_type = 'maze'
 Flags and params that control the execution of the different parts of the code
 """
 #######################
-#  IMG PROCESS        #
+#  TRACKING           #
 #######################
 # analysis start frame: beginning of videos is usually empty, we can skip that
 startf = 6000  # Skip the first n frames when tracking
 
 extract_background = False
 
-track_mouse = True             # <----- !!!!!!!!!!
+track_mouse = False             # <----- !!!!!!!!!!
 track_options = {
     'bg get rois': False,         # allow user to define 3 ROIs when extracting background [threat, shelter variable]
     'track whole session': False,  # Track the mouse for the entire session
     'track_exploration': False,  # Track the mouse during the exploration using the standard tracking
     'track_mouse_fast': True,    # if true only track segments of videos around the stimuli
-    'use_stdtracking': False,      # Use standard tracking (written by FC)
+    'use_stdtracking': True,      # Use standard tracking (written by FC)
     'stdtracking_justCoM': True,  # When using the standard tracking just extract the Centre of Mass and
                                   # not other variables. This is TRUE by default
     'use_deeplabcut': True,       # Use deepLabCut to track the mouse
