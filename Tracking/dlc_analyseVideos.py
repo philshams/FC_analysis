@@ -48,7 +48,7 @@ def getpose(sess, inputs, image, cfg, outputs, outall=False):
         return pose
 
 
-def analyse():
+def analyse(videofolder):
     ####################################################
     # Loading data, and defining model folder
     ####################################################
@@ -65,7 +65,6 @@ def analyse():
         [[scorer], cfg['all_joints_names'], ['x', 'y', 'likelihood']],
         names=['scorer', 'bodyparts', 'coords'])
 
-    videofolder = os.path.join(subfolder, 'videos')
     frame_buffer = 10
 
     os.chdir(videofolder)
