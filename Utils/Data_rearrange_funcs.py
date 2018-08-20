@@ -85,3 +85,12 @@ def create_cohort(db):
     print('       Cohort created. Got Tracking data from sessions {}'.format(ch.metadata['sessions in cohort']))
 
     return db
+
+
+def arrange_dlc_data(df):
+    scorer = df.keys()[0][0]
+    bodyparts = df[scorer].columns.levels[0]
+    data = {}
+    for bp in bodyparts:
+        data[bp] = df[scorer][bp]
+    return data
