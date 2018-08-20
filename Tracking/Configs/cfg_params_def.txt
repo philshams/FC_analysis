@@ -1,0 +1,25 @@
+Parameters for std tracking
+{
+    'Experiment name': Name of the experiment --> used to select the settings based on experiment_type setting in config.py
+    'arena_roi: string --> name of the 3d ROI specified in background extraction
+    ' preview': Bool --> Display online the results of the tracking. For debugging
+    'stop frame': int --> frame at which to stop the tracking. -1 = don't stop
+    'th_scaling': float --> changes threshold
+    'tail_th_scaling: float --> changes threshold for tail detection (to extract mouse orientation)
+    'num mice: int --> number of mice being tracked
+    'min cnt area': int --> minimal area of a mouse
+    'max cnt area': int --> max area covered by a mouse
+    'fast track wnd': int --> number of seconds before and after stimulus to track the mouse for when fast stracking
+}
+
+
+
+Parameters for dlc tracking
+{
+    'clips': None --> empty container for extracted cliips
+    'clips_folder': path --> where to save clips
+    'dlc_network_path': path --> need to check what this does
+    'dlc_network_snapshot': where the trained network is
+    'scorer': stirng --> name of the scorer
+    'store trial videos': Bool --> save the trial videos as .avi if True. 
+}

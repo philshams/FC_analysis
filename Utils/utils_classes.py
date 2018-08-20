@@ -5,8 +5,11 @@ class Session_metadata():
         self.date = None
         self.mouse_id = None
         self.stimuli = {'visual': [], 'audio': [], 'digital': []}
-        self.video_file_path = []
+        self.video_file_paths = []
+        self.tdms_file_paths = []
         self.trials_id_list = []
+        self.last_modified = None
+        self.created = None
 
 
 class DataBase():
@@ -28,5 +31,17 @@ class All_trials():
         self.visual = []
         self.audio = []
         self.digital = []
+
+
+class Cohort():
+    def __init__(self):
+        self.name = None
+        self.metadata = {
+            'created':None,
+            'selector type':None,
+            'selector':None,
+            'sessions in cohort':None
+        }
+        self.tracking_data = {'explorations': [], 'whole sessions': [], 'trials': {}}
 
 

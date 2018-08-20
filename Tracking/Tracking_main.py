@@ -7,12 +7,12 @@ imageio.plugins.ffmpeg.download()
 
 # Import functions and params from other scripts
 from Tracking import dlc_analyseVideos
-from Tracking.Tracking_config import maze_config, fearcond_config, dlc_config_settings
 from Tracking.Tracking_functions import get_body_orientation, get_mvmt_direction, get_velocity
 from Tracking.Tracking_utils import *
 from Utils.Custom_funcs import cut_crop_video
 from Utils import Data_rearrange_funcs
 from Utils.utils_classes import Trial
+from Utils.loadsave_funcs import load_yaml
 
 from Config import startf, exp_type, track_options
 
@@ -25,17 +25,20 @@ from Config import startf, exp_type, track_options
 ########################################################################################################################
 ########################################################################################################################
 
+
 class Tracking():
     def __init__(self, session, database):
         # params for contour extraction
         if exp_type == 'maze':
-            cfg = maze_config
             self.arena_floor = False
         else:
-            cfg = fearcond_config
             self.arena_floor = session['Video']['User ROIs']['Tsk']
 
         # Load settings from config
+        cfg = load_yaml(track_options['cfg_std'])
+        dlc_config_settings = load_yaml(track_options['cfg_dlc'])
+        dlc_config_settings['clips'] = {'visual': {}, 'audio': {}, 'digital': {}}
+
         self.stopframe = cfg['stopframe']
         self.fps = session['Video']['Frame rate']
         self.num_exp_cnts = cfg['num mice']
@@ -66,7 +69,7 @@ class Tracking():
                 # the exploration data from there
                 pass
             else:
-                print('Tracking Exploration')
+                print('     ... tracking Exploration')
                 all_stims = session['Metadata'].stimuli.values()
                 all_stims = [item for sublist in all_stims for item in sublist]
                 all_stims = [item for sublist in all_stims for item in sublist]
@@ -83,7 +86,7 @@ class Tracking():
 
         # Check if tracking the whole session
         if track_options['track whole session']:
-            print('Tracking the whole session')
+            print('     ... tracking the whole session')
             for idx, vid in enumerate(session['Metadata'].video_file_path):
                 if idx == 0:
                     start_frame = startf
@@ -98,7 +101,7 @@ class Tracking():
                     pass
 
         if track_options['track_mouse_fast']:  # Track the individual trials
-            print('Tracking individual trials')
+            print('     ... tracking individual trials')
             # Process only chunks of videos around the trials
             for stim_type, stims in session['Metadata'].stimuli.items():  # For each stim type get the list of stim frames
                 if not stims:
@@ -112,7 +115,7 @@ class Tracking():
 
                         # Generate empty trial object and put it into the database
                         trial_metadata = create_trial_metadata(self.videoname, stim_type, start_frame, stop_frame,
-                                              session['Metadata'].video_file_path[vid_num])
+                                              session['Metadata'].video_file_paths[vid_num])
                         empty_trial = Trial()
                         empty_trial.metadata = trial_metadata
                         empty_trial.name = trial_metadata['Name']
@@ -120,10 +123,10 @@ class Tracking():
 
                         # STD TRACKING
                         if track_options['use_stdtracking']:
-                            print('     Processing trial {}'.format(self.videoname))
+                            print('     ... processing trial {}'.format(self.videoname))
 
                             trial = self.tracking(session['Video']['Background'],
-                                                  session['Metadata'].video_file_path[vid_num],
+                                                  session['Metadata'].video_file_paths[vid_num],
                                                   start_frame=start_frame, stop_frame=stop_frame, video_fps=self.fps)
 
                             trial = Data_rearrange_funcs.restructure_trial_data(trial, start_frame, stop_frame,
@@ -141,26 +144,24 @@ class Tracking():
                             stop_sec = stop_frame * (1 / session['Video']['Frame rate'][vid_num])
 
                             # Extract trial clip and store it so that we can save all trials at the same time
-                            trial_clip = cut_crop_video(session['Metadata'].video_file_path[vid_num],
+                            trial_clip = cut_crop_video(session['Metadata'].video_file_paths[vid_num],
                                                         cut=True, starts=start_sec, fins=stop_sec,
                                                         save_format=None, ret=True)
                             dlc_config_settings['clips'][stim_type][self.videoname] = trial_clip
-                            # dlc_config_settings['clips'][stim_type][self.videoname+'_'] = trial_clip
 
             # Process trial clips if we are using dlc_tracking
             if track_options['use_deeplabcut']:
                 if dlc_config_settings['clips']['visual'] or dlc_config_settings['clips']['audio']:
-                    print('Extracting trials video clips')
+                    print('        ... extracting trials video clips')
                     save_trial_clips(dlc_config_settings['clips'], dlc_config_settings['clips_folder'])
 
-                    print('Extracting pose from clips')
-                    #dlc_analyseVideos.analyse()
-                    dlc_AnalyzeABunchofPictures().analyse()
+                    print('        ... extracting pose from clips')
+                    dlc_analyseVideos.analyse()
 
-                    print('Integrating results in database')
+                    print('        ... integrating results in database')
                     database = dlc_retreive_data(dlc_config_settings['clips_folder'], database)
 
-                    print('Cleaning up')
+                    print('        ... cleaning up')
                     dlc_clear_folder(dlc_config_settings['clips_folder'], dlc_config_settings['store trial videos'])
 
         self.database = database
@@ -200,9 +201,9 @@ class Tracking():
             f += 1
             if f % 1000 == 0:
                 if not stop_frame == -1:
-                    print('         Processing frame {} of {}'.format(f, stop_frame))
+                    print('             ... processing frame {} of {}'.format(f, stop_frame))
                 else:
-                    print('         Processing frame {} of {}'.format(f, video_duration_frames))
+                    print('             ... processing frame {} of {}'.format(f, video_duration_frames))
 
             if not stop_frame == -1 and f > stop_frame:
                 return self

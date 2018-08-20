@@ -5,9 +5,12 @@ from moviepy.editor import VideoFileClip
 import os
 import shutil
 import pandas as pd
+import datetime
+
 
 from Utils.utils_classes import Trial
-
+from Utils.loadsave_funcs import load_yaml
+from Config import track_options
 
 ########################################################################################################################
 ########################################################################################################################
@@ -15,13 +18,18 @@ from Utils.utils_classes import Trial
 ########################################################################################################################
 ########################################################################################################################
 
+
 def create_trial_metadata(trial_name, stim_type, start_frame, stop_frame, video_path):
     tr_metadata = {
         'Name': trial_name,
         'Stim type': stim_type,
         'Start frame': start_frame,
         'Stop frame': stop_frame,
-        'Video path': video_path
+        'Video path': video_path,
+        'Created': datetime.datetime.now().strftime("%y-%m-%d-%H-%M"),
+        'Last modified': datetime.datetime.now().strftime("%y-%m-%d-%H-%M"),
+        'std tracking settings': load_yaml(track_options['cfg_std']),
+        'dlc tracking settings': load_yaml(track_options['cfg_dlc'])
     }
     return tr_metadata
 
@@ -256,6 +264,7 @@ def dlc_retreive_data(datafolder, database):
                 print('Found Pandas dataframe: {}'.format(fname))
                 sessid = fname.split('-')[0]
                 trial_name = fname.split('_')[0] + "_" + fname.split('_')[1]
+                trial_name = trial_name.split('D')[0]
                 stim_type = fname.split('-')[:-2]
 
                 if not sessid in sessions_data.keys():

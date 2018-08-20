@@ -1,7 +1,10 @@
 import pandas as pd
 import numpy as np
+import datetime
 
-from Utils.utils_classes import Trial, All_trials
+from Utils.utils_classes import Trial, All_trials, Cohort
+
+from Config import cohort_options
 
 
 def restructure_trial_data(trial, start_frame, stop_frame, stim_type, idx, vid_num):
@@ -18,37 +21,67 @@ def restructure_trial_data(trial, start_frame, stop_frame, stim_type, idx, vid_n
     return new_trial
 
 
-def collate_cohort_trials(db, processed_session):
-    # If we don't have an All_trials column in the database, create it
-    if not 'All_trials' in db.keys():
-        sLen = len(db[db.keys()[0]])
-        db = db.assign(All_trials=pd.Series(np.random.randn(sLen)).values)
+def create_cohort(db):
+    # Check if we are overwriting a pre-existing cohort in the dabatase
+    if cohort_options['name'] in db.index:
+        overwrite = input('A cohort with this name already exists in the database.'
+                          '\nOverwrite? [y/n]')
+        if overwrite != 'y':
+            print('Process interrupted to avoid overwriting data')
+            return
 
-    # Add all trials to
-    trials_d = db['All_trials']['processed']
+    # Create a pandas DF to append to the database
+    tempDF = pd.DataFrame(index=[cohort_options['name']], columns=db.keys())
 
-    if isinstance(trials_d, float):
-        # Initialise dictionary
-        trials_d = All_trials()
+    # Create a cohort class instantiation and fill in metadata
+    ch = Cohort()
+    ch.name = cohort_options['name']
+    ch.metadata = {
+        'created': datetime.datetime.now().strftime("%y-%m-%d-%H-%M"),
+        'selector type': cohort_options['selector type'],
+        'selector': cohort_options['selector'],
+        'sessions in cohort': []
+    }
+    print('=======================\n=======================')
+    print('Creating cohort: {}\nSelecting: {} - {}\n'.format(ch.name, ch.metadata['selector type'],
+                                                            ch.metadata['selector']))
 
-    for stim_type, trials_l in trials_d.__dict__.items():
-        augmented_trials = []
+    # Extract data: loop over all sessions in db and get data from selected ones
+    for sess_name, session in db.iterrows():
 
-        if isinstance(processed_session.tracking_data[stim_type], list):  # Trials tracked by traditional tracking
-            for trial in processed_session.tracking_data[stim_type]:
-                trial.rois = processed_session.video_data['User ROIs']
-                augmented_trials.append(trial)
-        else:
-            for trial_name, trial in processed_session.tracking_data[stim_type].items():
-                tr = {
-                    'dlc data':trial,
-                    'rois':processed_session.video_data['User ROIs']
-                }
-                augmented_trials.append(tr)
+        sel, seltype = ch.metadata['selector'], ch.metadata['selector type']
+        # If we don't want to add the session to the cohort just skip it
+        if seltype == 'experiment' and session.Metadata.experiment not in sel:
+            continue
+        elif seltype == 'date' and str(session.Metadata.date) not in sel:
+            continue
+        elif seltype == 'session' and session.Metadata.session_id not in sel:
+            continue
 
-        [trials_l.append(x) for x in augmented_trials]  # store all the trials
+        print('-----------------\n  ... adding session {}'.format(sess_name))
+        ch.metadata['sessions in cohort'].append(sess_name)
+        for data_modality in cohort_options['data to pool']:
+            if data_modality == 'tracking':
+                print('         ... getting tracking data')
+                try:
+                    for k, val  in session['Tracking']:
+                        if k == 'Exploration':
+                            ch.tracking_data['explorations'].append(val)
+                        elif k == 'Whole Session':
+                            ch.tracking_data['whole sessions'].append(val)
+                        else:
+                            # tracking data from a trial
+                            ch.tracking_data['trials'].append(val)
+                except:
+                    print('           ... no tracking data was found. Make sure you are loading the correct database!')
 
-    db['All_trials'] = db['All_trials'].replace(['processed'], trials_d, inplace=True)  # Not sure why but this line is necessary
-    db['All_trials']['processed'] = trials_d
+    # Now fill in the temp dataframe with the cohort data
+    tempDF.iloc[0]['Metadata'] = ch.metadata
+    tempDF.iloc[0]['Tracking'] = ch.tracking_data
 
-    return
+    # Now append the temp DF to the database
+    db = pd.concat([db, tempDF])
+
+    print('       Cohort created. Got Tracking data from sessions {}'.format(ch.metadata['sessions in cohort']))
+
+    return db
