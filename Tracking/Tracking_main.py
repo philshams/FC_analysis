@@ -123,10 +123,10 @@ class Tracking():
 
                         # STD TRACKING
                         if track_options['use_stdtracking']:
-                            print('     Processing trial {}'.format(self.videoname))
+                            print('     ... processing trial {}'.format(self.videoname))
 
                             trial = self.tracking(session['Video']['Background'],
-                                                  session['Metadata'].video_file_path[vid_num],
+                                                  session['Metadata'].video_file_paths[vid_num],
                                                   start_frame=start_frame, stop_frame=stop_frame, video_fps=self.fps)
 
                             trial = Data_rearrange_funcs.restructure_trial_data(trial, start_frame, stop_frame,
@@ -201,9 +201,9 @@ class Tracking():
             f += 1
             if f % 1000 == 0:
                 if not stop_frame == -1:
-                    print('         Processing frame {} of {}'.format(f, stop_frame))
+                    print('             ... processing frame {} of {}'.format(f, stop_frame))
                 else:
-                    print('         Processing frame {} of {}'.format(f, video_duration_frames))
+                    print('             ... processing frame {} of {}'.format(f, video_duration_frames))
 
             if not stop_frame == -1 and f > stop_frame:
                 return self

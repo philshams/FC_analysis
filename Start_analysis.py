@@ -13,9 +13,10 @@ from Utils.Setup_funcs import get_sessions_metadata_from_yaml, get_session_video
 from Plotting import Plotting_main
 from Tracking.Tracking_main import Tracking
 from Utils.Data_rearrange_funcs import create_cohort
+from Processing import stim_responses
 
 from Config import load_database, update_database, datalog_path, load_name, save_name,\
-    savelogpath, selector_type, selector, extract_background, track_mouse, plotting, track_options, Cohort
+    savelogpath, selector_type, selector, extract_background, track_mouse, plotting, track_options, Cohort, processing
 
 # The analysis is all contained within this class
 class Analysis():
@@ -63,6 +64,10 @@ class Analysis():
                 tracked = Tracking(session, db)
                 db = tracked.database
                 save_data(savelogpath, save_name, name_modifier='_tracking', object=db)
+
+            # Prepare data for plotting
+            if processing:
+                stim_responses.get_session_stim_responses(session)
 
             # Plot for individual mice
             if plotting:

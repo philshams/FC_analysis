@@ -65,12 +65,18 @@ track_options = {
 
 
 #######################
+#  PROCESSING         #
+#######################
+processing = True
+
+
+#######################
 #  COHORT #
 #######################
 """
 Cohort gives the otpion to pool the data from all the sessions analysed for group analysis
 """
-Cohort = True
+Cohort = False
 cohort_options = {
     'name': 'CH_ThreeSessions',   # Name of the cohort
     'selector type': 'session',  # what to select the sessions to pool by [e.g. by experiment, by date...]
