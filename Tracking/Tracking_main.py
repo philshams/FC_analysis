@@ -154,7 +154,8 @@ class Tracking():
                     save_trial_clips(dlc_config_settings['clips'], dlc_config_settings['clips_folder'])
 
                     print('Extracting pose from clips')
-                    # dlc_analyseVideos.analyse()
+                    #dlc_analyseVideos.analyse()
+                    dlc_AnalyzeABunchofPictures().analyse()
 
                     print('Integrating results in database')
                     database = dlc_retreive_data(dlc_config_settings['clips_folder'], database)

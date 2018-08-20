@@ -92,10 +92,10 @@ get_trials_clips = False
 """ where to find the Datalog.csv file, where to save the results of the analysis"""
 
 if platform.system() == 'Windows':
-    datalog_path = 'D:\\Dropbox (UCL - SWC)\\Dropbox (UCL - SWC)\\Rotation_vte\\analysis\\Experiments_log.xls'
-    savelogpath = 'D:\\Dropbox (UCL - SWC)\\Dropbox (UCL - SWC)\\Rotation_vte\\analysis'
+    datalog_path = 'C:\\Users\\annaL\\Documents\\branco\\datalog.csv'
+    savelogpath = 'C:\\Users\\annaL\\Documents\\branco\\analysis'
 else:
-    savelogpath = '/Users/federicoclaudi/Desktop'
+    savelogpath = '/Users/annal/Desktop'
     
 
 

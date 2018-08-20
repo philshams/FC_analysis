@@ -10,9 +10,9 @@
 #########################################################################################
 
 # Filename and path to behavioral video (for labeling)
-videofolder = '../videos/'
+videofolder = '../videos2/20180730_mouse1/'
 cropping = False
-videotype='.avi' #type of videos to analyze 
+videotype='.tif' #type of videos to analyze
 
 #Note: under the hood there is moviepy, which can handle many types of videos:
 #See: https://zulko.github.io/moviepy/_modules/moviepy/video/io/VideoFileClip.html
@@ -45,7 +45,7 @@ storedata_as_csv=False #if true then the time series of poses will (also) be sav
 #########################################################################################
 ## For plotting (MakingLabeledVideo.py)
 #########################################################################################
-trainingsiterations = 100000  # type the number listed in the h5 file containing the pose estimation data.
+trainingsiterations = 50000  # type the number listed in the h5 file containing the pose estimation data.
 #  The video will be generated
 #based on the labels for this network state.
 pcutoff = 0.05  # likelihood cutoff for body part in image
@@ -53,5 +53,5 @@ pcutoff = 0.05  # likelihood cutoff for body part in image
 # delete individual (labeled) frames after making video? (note there could be many...)
 deleteindividualframes = False
 alphavalue=.6 # "strength/transparency level of makers" in individual frames (Vary from 0 to 1. / not working in "MakingLabeledVideo_fast.py")
-dotsize = 4
+dotsize = 7
 colormap='cool' #other colorschemes: 'cool' and see https://matplotlib.org/examples/color/colormaps_reference.html
