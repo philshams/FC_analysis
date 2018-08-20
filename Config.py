@@ -68,6 +68,10 @@ track_options = {
 #  PROCESSING         #
 #######################
 processing = True
+processing_options = {
+    'cfg': 'C:\\Users\\Federico\\Documents\\GitHub\\FC_analysis\\Processing\\processing_cfg.yml'
+
+}
 
 
 #######################
