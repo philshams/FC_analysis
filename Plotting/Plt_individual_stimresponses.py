@@ -16,7 +16,7 @@ def plotter(data, smoothed=True, padding=[30, 120]):
     midpoint = int(len(data[0]['x']) / 2)
     padding = [midpoint - padding[0], midpoint + padding[1]]  # zoom on X axis
 
-    titles = ['Position', 'velocity']
+    titles = ['Position', 'velocity', 'headbodyangle']
 
     f, axarr = plt.subplots(2, len(titles))
     axarr = axarr.flatten()
@@ -31,6 +31,10 @@ def plotter(data, smoothed=True, padding=[30, 120]):
     vel_ax.set(title=titles[1], xlim=padding, ylim=[-0.75, 0.75])
     vel_ax.xaxis.set_major_locator(ticker.MultipleLocator(150))
 
+    # Hba plot
+    hba_ax = axarr[2]
+    hba_ax.set(title=titles[2], xlim=padding)
+
     # Plot individual trials
     vel_l = []
     for trial in data:
@@ -41,15 +45,18 @@ def plotter(data, smoothed=True, padding=[30, 120]):
             vel = trial['Velocity'].values
             vel = line_smoother(vel, 51, 3)
         vel_l.append(vel[0:padding[1]])
+        XX = np.linspace(0, len(vel), len(vel))
 
         # Plot position
         pos_ax.plot(trial['x'], trial['y'], color=[0.4, 0.4, 0.4])
 
         # Plot velocity
-        XX = np.linspace(0, len(vel), len(vel))
         vel_ax.plot(XX, vel, color=[0.4, 0.4, 0.4])
-
         vel_ax.axvline(x=midpoint, color='k')
+
+        # Plot Head Body angle
+        hba_ax.plot(XX, trial['HeadBodyAngle'].values, color=[0.4, 0.4, 0.4])
+        hba_ax.axvline(x=midpoint, color='k')
 
     # plot means
     vel_ax.plot(np.mean(vel_l, 0), color='r')

@@ -1,6 +1,6 @@
 from scipy.spatial import distance
 import numpy as np
-from math import factorial
+from math import factorial, atan2, degrees
 
 
 def twod_distance(data, vectors = True):
@@ -31,6 +31,14 @@ def twod_distance(data, vectors = True):
 def calc_velocity(d):
     return np.insert(np.diff(d), 0, 0)
 
+
+def calc_angle_2d(p1, p2):
+    radang = atan2(p2[1] - p1[1], p2[0] - p1[0])
+    degang = degrees(radang)
+    if degang < 0:
+        return 360+degang
+    else:
+        return degang
 
 def line_smoother(y, window_size, order, deriv=0, rate=1):
     # Apply a Savitzy-Golay filter to smooth traces

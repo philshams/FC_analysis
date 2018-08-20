@@ -65,7 +65,7 @@ class Analysis():
                 db = tracked.database
                 save_data(savelogpath, save_name, name_modifier='_tracking', object=db)
 
-            # Prepare data for plotting
+            # Processing
             if processing:
                 Processing_main.Processing(session, db)
 

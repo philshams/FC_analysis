@@ -1,9 +1,12 @@
+import matplotlib.pyplot as plt
 import numpy as np
+import math
+import time
 
-from Utils.maths import twod_distance, calc_velocity
+from Utils.maths import twod_distance, calc_velocity, calc_angle_2d
 
 
-def from_dlc_to_single_bp(session, settings):
+def from_dlc_to_single_bp(session, bp_tag):
     """
     Currently it extracts position of velocity of the mouse given a user defined tag for a body part
 
@@ -11,9 +14,6 @@ def from_dlc_to_single_bp(session, settings):
     :param settings:
     :return:
     """
-    # Body part to use
-    bp_tag = settings['center of mass bodypart']
-
     data = []
     for tr_name, tr_data in session['Tracking'].items():
         if tr_name == 'Exploration' or tr_name == 'Whole Session':
@@ -49,3 +49,51 @@ def single_bp_calc_stuff(data):
 
     return data
 
+
+def pose_reconstruction(head, body, tail, debug=False):
+    """
+    Give DLC data for head, body and tail features reconstructs the body and head absolute and relative angles
+
+    :param head:
+    :param body:
+    :param tail:
+    :return:
+    """
+
+    if debug:
+        f, axarr = plt.subplots(2,1)
+        pol = plt.subplot(2, 1, 1, projection='polar')
+        plt.ion()
+
+    for tr_num, trial in enumerate(zip(head, body, tail)):
+        head_body_angle = []
+
+        tr_head = (trial[0]['x'].values, trial[0]['y'].values)
+        tr_body = (trial[1]['x'].values, trial[1]['y'].values)
+        tr_tail = (trial[2]['x'].values, trial[2]['y'].values)
+
+        for idx in np.arange(0, len(tr_body[0])):
+            hp = (tr_head[0][idx], tr_head[1][idx])
+            bp = (tr_body[0][idx], tr_body[1][idx])
+            tp = (tr_tail[0][idx], tr_tail[1][idx])
+
+            head_angle = calc_angle_2d(bp, hp)
+            body_angle = calc_angle_2d(bp, tp)
+
+            head_body_angle.append(abs(int(head_angle-body_angle)))
+
+            if debug:
+                axarr[1].scatter(hp[0], hp[1], color='r')
+                axarr[1].scatter(bp[0], bp[1], color='b')
+                axarr[1].scatter(tp[0], tp[1], color='g')
+
+                pol.scatter(math.radians(head_angle), 1, color='r')
+                pol.scatter(math.radians(body_angle), 1.25, color='g')
+
+                time.sleep(0.5)
+                axarr[1].cla()
+                pol.cla()
+
+        body[tr_num]['HeadBodyAngle'] = head_body_angle
+
+    return body
