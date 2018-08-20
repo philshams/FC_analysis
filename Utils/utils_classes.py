@@ -33,3 +33,15 @@ class All_trials():
         self.digital = []
 
 
+class Cohort():
+    def __init__(self):
+        self.name = None
+        self.metadata = {
+            'created':None,
+            'selector type':None,
+            'selector':None,
+            'sessions in cohort':None
+        }
+        self.tracking_data = {'explorations': [], 'whole sessions': [], 'trials': {}}
+
+

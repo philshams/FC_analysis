@@ -6,14 +6,15 @@ the different functionalities of the analysis scripts
 """
 # If loading a pre-existant database, specify name of the .h5 file it was saved to. otherwise db is generated from
 # scratch from the datalog.csv file
+load_database = True  # This is False only if you are creating a new database, if you are working on a pre-existing
 # database it will be set as True
 
 # Specify if you want to update the database loading info from datalog.csv to add recently added sessions to database
-update_database = True
-load_name = 'DLCtest_completed'
+update_database = False
+load_name = 'REFACTORING_tracking'
 
 # Specify name with which to save the results of the analysis
-save_name = 'DLCtest'
+save_name = 'Cohort test'
 
 """
 Specify set of sessions to analyse 
@@ -32,7 +33,7 @@ might behave differently depending on the type of experiment
 
 """
 selector_type = 'session'  # selects which session to an 'new', 'experiment', 'session', 'date'
-selector = [48, 49, 50]  # ['180607', '180603', '180604', '180605', '180606']
+selector = [62, 63, 64]  # ['180607', '180603', '180604', '180605', '180606']
 exp_type = 'maze'
 
 
@@ -46,18 +47,20 @@ Flags and params that control the execution of the different parts of the code
 startf = 6000  # Skip the first n frames when tracking
 
 extract_background = False
-track_mouse = False             # <----- !!!!!!!!!!
+
+track_mouse = True             # <----- !!!!!!!!!!
 track_options = {
-    'bg get rois': True,         # allow user to define 3 ROIs when extracting background [threat, shelter and variable]
+    'bg get rois': False,         # allow user to define 3 ROIs when extracting background [threat, shelter variable]
     'track whole session': False,  # Track the mouse for the entire session
     'track_exploration': False,  # Track the mouse during the exploration using the standard tracking
     'track_mouse_fast': True,    # if true only track segments of videos around the stimuli
-    'use_stdtracking': True,      # Use standard tracking (written by FC)
+    'use_stdtracking': False,      # Use standard tracking (written by FC)
     'stdtracking_justCoM': True,  # When using the standard tracking just extract the Centre of Mass and
                                   # not other variables. This is TRUE by default
     'use_deeplabcut': True,       # Use deepLabCut to track the mouse
-    'cfg_std': 'Tracking/Configs/cfg_std_fearcond.yml',
-    'cfg_dlc': 'Tracking/Configs/cfg_std_fearcond.yml'
+    'cfg_std': 'C:\\Users\\Federico\\Documents\\GitHub\\FC_analysis\\Tracking\\Configs\\cfg_std_maze.yml',
+    # configure yaml files for std and dlc tracking
+    'cfg_dlc': 'C:\\Users\\Federico\\Documents\\GitHub\\FC_analysis\\Tracking\\Configs\\cfg_dlc_maze.yml'
     }
 
 
@@ -67,7 +70,13 @@ track_options = {
 """
 Cohort gives the otpion to pool the data from all the sessions analysed for group analysis
 """
-Cohort = False
+Cohort = True
+cohort_options = {
+    'name': 'CH_ThreeSessions',   # Name of the cohort
+    'selector type': 'session',  # what to select the sessions to pool by [e.g. by experiment, by date...]
+    'selector': [62, 63, 64],  # actual values to select by {e.g. session ID number]
+    'data to pool': ['tracking']  # what data from the sessions you want to pool in the cohort (e.g. tracking)
+}
 
 
 #######################
