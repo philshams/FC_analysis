@@ -1,4 +1,3 @@
-from Plotting.Plotting_individuals_maze import plot_individuals_maze
 from Plotting.Plotting_cohort_maze import  plot_status_at_timepoint
 
 from Config import plotting_individuals, exp_type, plotting_cohort

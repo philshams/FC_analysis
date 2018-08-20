@@ -156,13 +156,14 @@ class Tracking():
                     save_trial_clips(dlc_config_settings['clips'], dlc_config_settings['clips_folder'])
 
                     print('        ... extracting pose from clips')
-                    dlc_analyseVideos.analyse()
+                    dlc_analyseVideos.analyse(dlc_config_settings['clips_folder'])
 
                     print('        ... integrating results in database')
                     database = dlc_retreive_data(dlc_config_settings['clips_folder'], database)
 
                     print('        ... cleaning up')
-                    dlc_clear_folder(dlc_config_settings['clips_folder'], dlc_config_settings['store trial videos'])
+                    if not dlc_config_settings['store trial videos']:
+                        dlc_clear_folder(dlc_config_settings['clips_folder'], dlc_config_settings['store trial videos'])
 
         self.database = database
 

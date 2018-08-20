@@ -10,6 +10,8 @@ import datetime
 
 from Utils.utils_classes import Trial
 from Utils.loadsave_funcs import load_yaml
+from Utils.Data_rearrange_funcs import arrange_dlc_data
+
 from Config import track_options
 
 ########################################################################################################################
@@ -270,14 +272,15 @@ def dlc_retreive_data(datafolder, database):
                 if not sessid in sessions_data.keys():
                     sessions_data[sessid] = {}  # For each session create a dict to hold the DF for each trial
 
-                # read pandas dataframe (DLC output)
+                # read pandas dataframe (DLC output) and rearrange them for easier access
                 Dataframe = pd.read_hdf(os.path.join(datafolder, fname))
+                dlc_data = arrange_dlc_data(Dataframe)
 
                 # create trial object
                 trial = Trial()
                 trial_metadata = create_trial_metadata(trial_name, None, None, None, None)
                 trial.metadata = trial_metadata
-                trial.dlc_tracking['Posture'] = Dataframe
+                trial.dlc_tracking['Posture'] = dlc_data
                 sessions_data[sessid][trial_name] = trial
 
     # Return the list of trials for each session
