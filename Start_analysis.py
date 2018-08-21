@@ -21,6 +21,9 @@ from Config import load_database, update_database, datalog_path, load_name, save
 # The analysis is all contained within this class
 class Analysis():
     def __init__(self):
+        # Keep track if TF is set up for DLC analysis
+        self.TF_setup = False
+        self.TF_sttings = None
 
         # Load database
         if load_database:
@@ -61,8 +64,10 @@ class Analysis():
 
             # Track animal on videos   <---!!!!
             if track_mouse:
-                tracked = Tracking(session, db)
+                tracked = Tracking(session, db, self.TF_setup, self.TF_sttings)
                 db = tracked.database
+                self.TF_setup = tracked.TF_setup
+                self.TF_sttings = tracked.TF_settings
                 save_data(savelogpath, save_name, name_modifier='_tracking', object=db)
 
             # Processing

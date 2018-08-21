@@ -12,7 +12,6 @@ from Tracking.dlc_analysis_config import cropping, Task, date, \
 from Utils.loadsave_funcs import load_yaml
 
 # Deep-cut dependencies
-from Tracking.dlc_loadconfig import load_config
 from nnet import predict
 from dataset.pose_dataset import data_to_input
 
@@ -48,19 +47,13 @@ def getpose(sess, inputs, image, cfg, outputs, outall=False):
         return pose
 
 
-def analyse(videofolder):
-    ####################################################
-    # Loading data, and defining model folder
-    ####################################################
-    dlc_config_settings = load_yaml(track_options['cfg_dlc'])
-    cfg = load_config(dlc_config_settings['dlc_network_path'])
-    cfg['init_weights'] = dlc_config_settings['dlc_network_snapshot']
+def analyse(tf_setting, videofolder, clips_l):
+    cfg = tf_setting['cfg']
+    scorer = tf_setting['scorer']
+    sess = tf_setting['sess']
+    inputs = tf_setting['inputs']
+    outputs = tf_setting['outputs']
 
-    ##################################################
-    # Compute predictions over images
-    ##################################################
-    scorer = dlc_config_settings['scorer']
-    sess, inputs, outputs = predict.setup_pose_prediction(cfg)
     pdindex = pd.MultiIndex.from_product(
         [[scorer], cfg['all_joints_names'], ['x', 'y', 'likelihood']],
         names=['scorer', 'bodyparts', 'coords'])
@@ -71,6 +64,10 @@ def analyse(videofolder):
     videos = np.sort([fn for fn in os.listdir(os.curdir) if (videotype in fn)])
     print("Starting ", videofolder, videos)
     for video in videos:
+
+        if not video.split('.')[0] in clips_l:
+            continue
+
         dataname = video.split('.')[0] + scorer + '.h5'
         try:
             # Attempt to load data...

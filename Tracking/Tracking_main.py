@@ -27,7 +27,11 @@ from Config import startf, exp_type, track_options
 
 
 class Tracking():
-    def __init__(self, session, database):
+    def __init__(self, session, database, TF_setup, TF_settings):
+        # TF set up
+        self.TF_setup = TF_setup
+        self.TF_settings = TF_settings
+
         # params for contour extraction
         if exp_type == 'maze':
             self.arena_floor = False
@@ -153,10 +157,14 @@ class Tracking():
             if track_options['use_deeplabcut']:
                 if dlc_config_settings['clips']['visual'] or dlc_config_settings['clips']['audio']:
                     print('        ... extracting trials video clips')
-                    save_trial_clips(dlc_config_settings['clips'], dlc_config_settings['clips_folder'])
+                    clips_l = save_trial_clips(dlc_config_settings['clips'], dlc_config_settings['clips_folder'])
 
                     print('        ... extracting pose from clips')
-                    dlc_analyseVideos.analyse(dlc_config_settings['clips_folder'])
+                    if not TF_setup:
+                        self.TF_settings = dlc_setupTF(track_options)
+                        self.TF_setup = True
+
+                    dlc_analyseVideos.analyse(self.TF_settings, dlc_config_settings['clips_folder'], clips_l)
 
                     print('        ... integrating results in database')
                     database = dlc_retreive_data(dlc_config_settings['clips_folder'], database)

@@ -7,7 +7,8 @@ import shutil
 import pandas as pd
 import datetime
 
-
+from Tracking.dlc_loadconfig import load_config
+from nnet import predict
 from Utils.utils_classes import Trial
 from Utils.loadsave_funcs import load_yaml
 from Utils.Data_rearrange_funcs import arrange_dlc_data
@@ -226,30 +227,15 @@ def display_results(f, frame, threshold, magnif_factor, tracking):
 
 
 def save_trial_clips(clips, dlc_videos_folder):
-    # Check if there are files in save folder, if so move them to a temp folder
-    files_to_move = []
-    if not 'working.txt' in os.listdir(dlc_videos_folder):
-        for fname in os.listdir(dlc_videos_folder):
-            if '.' in fname:
-                files_to_move.append(fname)
-
-        file = open(os.path.join(dlc_videos_folder, 'working.txt'), 'w')
-        file.write('Work in progess')
-        file.close()
-
-    if files_to_move:
-        if not 'temp_files' in os.listdir(dlc_videos_folder):
-            os.mkdir(os.path.join(dlc_videos_folder, 'temp_files'))
-
-        for f in files_to_move:
-            f_name = os.path.join(dlc_videos_folder, f)
-            shutil.move(f_name, os.path.join(dlc_videos_folder, 'temp_files', f))
-
+    clips_names = []
     # save clips
     for stim_type in clips.keys():
         for clip_name, clip in clips[stim_type].items():
+            clips_names.append(clip_name)
             if not clip_name + '.avi' in os.listdir(dlc_videos_folder):
                 clip.write_videofile(os.path.join(dlc_videos_folder, clip_name + '.avi'), codec='png')
+
+    return clips_names
 
 
 def dlc_retreive_data(datafolder, database):
@@ -319,6 +305,21 @@ def dlc_clear_folder(datafolder, keepvids=True):
                 os.remove(os.path.join(datafolder, fname))
 
 
+def dlc_setupTF(options):
+    ####################################################
+    # Loading data, and defining model folder
+    ####################################################
+    dlc_config_settings = load_yaml(options['cfg_dlc'])
+    cfg = load_config(dlc_config_settings['dlc_network_path'])
+    cfg['init_weights'] = dlc_config_settings['dlc_network_snapshot']
+
+    ##################################################
+    # Compute predictions over images
+    ##################################################
+    scorer = dlc_config_settings['scorer']
+    sess, inputs, outputs = predict.setup_pose_prediction(cfg)
+
+    return {'scorer': scorer, 'sess': sess, 'inputs': inputs, 'outputs': outputs, 'cfg': cfg}
 
 
 
