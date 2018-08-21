@@ -1,6 +1,6 @@
 'clips': ''
 'clips_folder': 'D:\\Dropbox (UCL - SWC)\\Dropbox (UCL - SWC)\\Rotation_vte\\data\\dlc_trialVids'
-'dlc_network_path': 'C:\\Users\\Federico\\Documents\\GitHub\\BrancoLab_RandomCode\\Analysis_V2\\Tracking'
-'dlc_network_snapshot': 'C:\Users\Federico\Documents\GitHub\DeepLabCut\pose-tensorflow\models\mazeAug01-trainset95shuffle1\train\snapshot-350000'
+dlc_network_posecfg: 'C:\Users\Federico\Documents\GitHub\DeepLabCut\pose-tensorflow\models\Maze21Aug-trainset95shuffle1\test'
+'dlc_network_snapshot': 'C:\Users\Federico\Documents\GitHub\DeepLabCut\pose-tensorflow\models\maze21Aug-trainset95shuffle1\train\snapshot-50000'
 'scorer': 'DeepCut_resnet50_FC_50000'
 'store trial videos': True

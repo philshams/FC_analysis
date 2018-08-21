@@ -310,7 +310,7 @@ def dlc_setupTF(options):
     # Loading data, and defining model folder
     ####################################################
     dlc_config_settings = load_yaml(options['cfg_dlc'])
-    cfg = load_config(dlc_config_settings['dlc_network_path'])
+    cfg = load_config(dlc_config_settings['dlc_network_posecfg'])
     cfg['init_weights'] = dlc_config_settings['dlc_network_snapshot']
 
     ##################################################
