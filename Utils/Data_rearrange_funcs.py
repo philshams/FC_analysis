@@ -7,6 +7,17 @@ from Utils.utils_classes import Trial, All_trials, Cohort
 from Config import cohort_options
 
 
+def check_session_selected(metadata, selector_type, selector):
+    if selector_type == 'experiment' and metadata.experiment not in selector:
+        return False
+    elif selector_type == 'date' and str(metadata.date) not in selector:
+        return False
+    elif selector_type == 'session' and metadata.session_id not in selector:
+        return False
+    else:
+        return True
+
+
 def restructure_trial_data(trial, start_frame, stop_frame, stim_type, idx, vid_num):
     new_trial = Trial()
 
@@ -48,14 +59,9 @@ def create_cohort(db):
 
     # Extract data: loop over all sessions in db and get data from selected ones
     for sess_name, session in db.iterrows():
-
-        sel, seltype = ch.metadata['selector'], ch.metadata['selector type']
-        # If we don't want to add the session to the cohort just skip it
-        if seltype == 'experiment' and session.Metadata.experiment not in sel:
-            continue
-        elif seltype == 'date' and str(session.Metadata.date) not in sel:
-            continue
-        elif seltype == 'session' and session.Metadata.session_id not in sel:
+        # Check if we should add the session to the cohort
+        selected = check_session_selected(session.Metadata, ch.metadata['selector type'], ch.metadata['selector'])
+        if not selected:
             continue
 
         print('-----------------\n  ... adding session {}'.format(sess_name))
