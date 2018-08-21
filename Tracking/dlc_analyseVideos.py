@@ -9,15 +9,10 @@ sys.path.append(os.path.join(subfolder, "Generating_a_Training_Set"))
 
 from Tracking.dlc_analysis_config import cropping, Task, date, \
     trainingsFraction, resnet, snapshotindex, shuffle, x1, x2, y1, y2, videotype, storedata_as_csv
-from Utils.loadsave_funcs import load_yaml
 
 # Deep-cut dependencies
 from nnet import predict
 from dataset.pose_dataset import data_to_input
-
-
-from Config import track_options
-
 
 # Dependencies for video:
 import pickle
@@ -62,7 +57,6 @@ def analyse(tf_setting, videofolder, clips_l):
 
     os.chdir(videofolder)
     videos = np.sort([fn for fn in os.listdir(os.curdir) if (videotype in fn)])
-    print("Starting ", videofolder, videos)
     for video in videos:
 
         if not video.split('.')[0] in clips_l:
@@ -72,24 +66,17 @@ def analyse(tf_setting, videofolder, clips_l):
         try:
             # Attempt to load data...
             pd.read_hdf(dataname)
-            print("Video already analyzed!", dataname)
+            print("                 ... video already analyzed!", dataname)
         except FileNotFoundError:
-            print("Loading ", video)
+            print("                 ... loading ", video)
             clip = VideoFileClip(video)
             ny, nx = clip.size  # dimensions of frame (height, width)
             fps = clip.fps
-            # nframes = np.sum(1 for j in clip.iter_frames()) #this is slow (but accurate)
             nframes_approx = int(np.ceil(clip.duration * clip.fps) + frame_buffer)
-            # this will overestimage number of frames (see https://github.com/AlexEMG/DeepLabCut/issues/9) This is especially a problem
-            # for high frame rates and long durations due to rounding errors (as Rich Warren found). Later we crop the result (line 187)
 
             if cropping:
                 clip = clip.crop(
                     y1=y1, y2=y2, x1=x1, x2=x2)  # one might want to adjust
-
-            print("Duration of video [s]: ", clip.duration, ", recorded with ", fps,
-                  "fps!")
-            print("Overall # of frames: ", nframes_approx, "with cropped frame dimensions: ", clip.size)
 
             start = time.time()
             PredicteData = np.zeros((nframes_approx, 3 * len(cfg['all_joints_names'])))
@@ -98,14 +85,9 @@ def analyse(tf_setting, videofolder, clips_l):
             scmap, locref, pose = getpose(sess, inputs, temp_image, cfg, outputs, outall=True)
             PredictedScmap = np.zeros((nframes_approx, scmap.shape[0], scmap.shape[1], len(cfg['all_joints_names'])))
 
-            print("Starting to extract posture")
             for index in tqdm(range(nframes_approx)):
-                # image = img_as_ubyte(clip.get_frame(index * 1. / fps))
                 image = img_as_ubyte(clip.reader.read_frame())
-                # Thanks to Rick Warren for the  following snipplet:
-                # if close to end of video, start checking whether two adjacent frames are identical
-                # this should only happen when moviepy has reached the final frame
-                # if two adjacent frames are identical, terminate the loop
+
                 if index == int(nframes_approx - frame_buffer * 2):
                     last_image = image
                 elif index > int(nframes_approx - frame_buffer * 2):
@@ -142,10 +124,7 @@ def analyse(tf_setting, videofolder, clips_l):
                                        index=range(nframes))  # slice pose data to have same # as # of frames.
             DataMachine.to_hdf(dataname, 'df_with_missing', format='table', mode='w')
 
-            np.save(dataname.split('.')[0] + 'scmap', PredictedScmap)
-
-            if storedata_as_csv:
-                DataMachine.to_csv(video.split('.')[0] + scorer + '.csv')
+            # np.save(dataname.split('.')[0] + 'scmap', PredictedScmap)
 
             with open(dataname.split('.')[0] + 'includingmetadata.pickle',
                       'wb') as f:

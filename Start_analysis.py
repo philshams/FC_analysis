@@ -1,33 +1,31 @@
-import os.path
-import sys
-
-subfolder = 'C:\\Users\\Federico\\Documents\\GitHub\\DeepLabCut'
-
-# add parent directory: (where nnet & config are!)
-sys.path.append(os.path.join(subfolder, "pose-tensorflow"))
-sys.path.append(os.path.join(subfolder, "Generating_a_Training_Set"))
-
 from Utils import Image_processing
-from Utils.loadsave_funcs import save_data, load_data
+from Utils.loadsave_funcs import save_data, load_data, load_paths
 from Utils.Setup_funcs import get_sessions_metadata_from_yaml, get_session_videodata, generate_database_from_metadatas
 from Plotting import Plotting_main
 from Tracking.Tracking_main import Tracking
 from Utils.Data_rearrange_funcs import create_cohort
 from Processing import Processing_main
 
-from Config import load_database, update_database, datalog_path, load_name, save_name,\
-    savelogpath, selector_type, selector, extract_background, track_mouse, plotting, track_options, Cohort, processing
+from Config import load_database, update_database, load_name, save_name\
+    , selector_type, selector,\
+    extract_background, track_mouse, track_options, \
+    plotting, Cohort, processing
 
 # The analysis is all contained within this class
 class Analysis():
     def __init__(self):
+        # Get the paths for folder where to load and save stuff
+        paths = load_paths()
+        save_fld = paths['save fld']
+        datalog_path = paths['datalog']
+
         # Keep track if TF is set up for DLC analysis
         self.TF_setup = False
         self.TF_sttings = None
 
         # Load database
         if load_database:
-            db = load_data(savelogpath, load_name)
+            db = load_data(save_fld, load_name)
             # Update database with recently added sessions
             if update_database:
                 db.sessions = get_sessions_metadata_from_yaml(datalog_path, database=db)
@@ -60,7 +58,7 @@ class Analysis():
                                                                             track_options)
                 session['Video']['Maze Edges'] = maze_edges
                 session['Video']['User ROIs'] = user_rois
-                save_data(savelogpath, save_name, name_modifier='_background', object=db)
+                save_data(save_fld, save_name, name_modifier='_background', object=db)
 
             # Track animal on videos   <---!!!!
             if track_mouse:
@@ -68,7 +66,7 @@ class Analysis():
                 db = tracked.database
                 self.TF_setup = tracked.TF_setup
                 self.TF_sttings = tracked.TF_settings
-                save_data(savelogpath, save_name, name_modifier='_tracking', object=db)
+                save_data(save_fld, save_name, name_modifier='_tracking', object=db)
 
             # Processing
             if processing:
@@ -88,7 +86,7 @@ class Analysis():
                 Plotting_main.setup_plotting(None, db, selector='cohort')
 
         # Save results at the end of the analysis
-        save_data(savelogpath, save_name, object=db, name_modifier='_completed')
+        save_data(save_fld, save_name, object=db, name_modifier='_completed')
 
 
 #######################

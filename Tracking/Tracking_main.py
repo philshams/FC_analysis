@@ -107,7 +107,8 @@ class Tracking():
         if track_options['track_mouse_fast']:  # Track the individual trials
             print('     ... tracking individual trials')
             # Process only chunks of videos around the trials
-            for stim_type, stims in session['Metadata'].stimuli.items():  # For each stim type get the list of stim frames
+            for stim_type, stims in session['Metadata'].stimuli.items():
+                # For each stim type get the list of stim frames
                 if not stims:
                     continue
 

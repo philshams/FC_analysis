@@ -40,3 +40,9 @@ def load_yaml(fpath):
     return settings
 
 
+def load_paths():
+    """ load PATHS.yml to set all the user-specific paths correctly"""
+    filename = './PATHS.yml'
+    return load_yaml(filename)
+
+
