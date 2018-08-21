@@ -24,7 +24,7 @@ class Tracking():
     Tracks position or posture from video data based on the user selected parameters
     The results are saved in self.database
     """
-    def __init__(self, session, database, TF_setup, TF_settings):
+    def __init__(self, session, database, TF_setup, TF_settings, clips_l):
         # set up class variables
         self.session = session
         self.database = database
@@ -32,6 +32,7 @@ class Tracking():
         # TF set up -- check if TF is running already
         self.TF_setup = TF_setup
         self.TF_settings = TF_settings
+        self.clips_l = clips_l
 
         # Load settings from config
         self.cfg = load_yaml(track_options['cfg_std'])
@@ -134,6 +135,9 @@ class Tracking():
                     self.session['Tracking'][empty_trial.metadata['Name']] = empty_trial
 
                     # STD TRACKING - ######################################
+                    """
+                    For STD tracking extract the position of the mouse contour using self.tracking()
+                    """
                     if track_options['use_stdtracking']:
                         print('     ... processing trial {} - Standard tracking'.format(self.videoname))
 
@@ -150,6 +154,10 @@ class Tracking():
                         self.session['Tracking'][trial.metadata['Name']] = merge_std_dlc_trials(old_trial, trial)
 
                     # DLC TRACKING - PREPARE CLIPS - ######################################
+                    """
+                    for DLC tracking, extract videoclips for the peri-stimulus time which will be analysed using
+                    DeepLabCut in a second moment
+                    """
                     if track_options['use_deeplabcut']:
                         # set up
                         start_sec = start_frame * (1 / fps)
@@ -161,25 +169,18 @@ class Tracking():
                                                     save_format=None, ret=True)
                         self.dlc_config_settings['clips'][stim_type][self.videoname] = trial_clip
 
-        # DLC TRACKING - ANALYSIS - ######################################
+        # DLC TRACKING - SAVE CLIPS - ######################################
         if track_options['use_deeplabcut']:
             if self.dlc_config_settings['clips']['visual'] or self.dlc_config_settings['clips']['audio']:
                 print('        ... extracting trials video clips')
-                clips_l = save_trial_clips(self.dlc_config_settings['clips'], self.dlc_config_settings['clips_folder'])
+                # Update a list of sessions whose clips have been saved
+                # These are the sessions that will be processed using DLC
+                # If there are other videos from other sessions in the target folder, DLC
+                # will ignore them
+                session_clips_l = save_trial_clips(self.dlc_config_settings['clips'],
+                                                self.dlc_config_settings['clips_folder'])
+                self.clips_l.append(session_clips_l)
 
-                print('        ... extracting pose from clips')
-                if not self.TF_setup:
-                    self.TF_settings = dlc_setupTF(track_options)
-                    self.TF_setup = True
-
-                dlc_analyseVideos.analyse(self.TF_settings, self.dlc_config_settings['clips_folder'], clips_l)
-
-                print('        ... integrating results in database')
-                database = dlc_retreive_data(self.dlc_config_settings['clips_folder'], self.database)
-
-                print('        ... cleaning up')
-                if not self.dlc_config_settings['store trial videos']:
-                    dlc_clear_folder(self.dlc_config_settings['clips_folder'], self.dlc_config_settings['store trial videos'])
 
 ########################################################################################################################
 ########################################################################################################################
@@ -265,8 +266,21 @@ class Tracking():
             # need to adjust this so that it waits for the correct amount to match fps
             key = cv2.waitKey(10) & 0xFF
 
+    @staticmethod
+    def tracking_use_dlc(database, clips_l):
+        print('====================================\nExtracting Pose using DeepLabCut')
 
+        dlc_config_settings = load_yaml(track_options['cfg_dlc'])
 
+        print('        ... extracting pose from clips')
+        TF_settings = dlc_setupTF(track_options)
+        dlc_analyseVideos.analyse(TF_settings, dlc_config_settings['clips_folder'], clips_l)
 
+        print('        ... integrating results in database')
+        database = dlc_retreive_data(dlc_config_settings['clips_folder'], database, clips_l)
 
+        print('        ... cleaning up')
+        if not dlc_config_settings['store trial videos']:
+            dlc_clear_folder(dlc_config_settings['clips_folder'], dlc_config_settings['store trial videos'])
 
+        return database

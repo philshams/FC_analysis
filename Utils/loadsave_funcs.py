@@ -24,11 +24,12 @@ def save_data(savelogpath, save_name, object=None, name_modifier='', saveas='pkl
             else:
                 object.to_hdf(save_name, key='df', mode='a')
 
-    print('         ... data saved succefully ')
+    print('           ... data saved succefully ')
 
 
 def load_data(savelogpath, load_name, loadas='.pkl'):
-    print('==================\nLoading database from: {}'.format(load_name))
+    print('====================================\n====================================\n'
+          'Loading database from: {}'.format(load_name))
     filename = os.path.join(savelogpath, load_name+loadas)
     db = pd.read_pickle(filename)
     return db

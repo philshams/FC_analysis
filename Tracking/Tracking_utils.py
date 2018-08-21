@@ -238,19 +238,29 @@ def save_trial_clips(clips, dlc_videos_folder):
     return clips_names
 
 
-def dlc_retreive_data(datafolder, database):
+def dlc_retreive_data(datafolder, database, clips_l):
     """
     Get the data saved as a result of dlc_analyseVideos.py and save them as trial data into the database
 
+
+    From the .h5 file get to which session the belong to and load the DLC data into the database
+    Loop over all .h5 files, create a container for each session, load and rearrange .h5 into a pandas DF and then
+    put that into the database
     """
 
     # Organise the data generated from DLC
     sessions_data = {}  # Dict holding the pandas DF for each trial in each processed session
+    clips_l = [item for sublist in clips_l for item in sublist]
+    sessions_to_analyse = set([int(x.split('-')[0]) for x in clips_l])
     for fname in os.listdir(datafolder):
         if '.' in fname:
             if fname.split('.')[1] == 'h5':
-                print('Found Pandas dataframe: {}'.format(fname))
+                # Check if the .h5 file belongs to one of the sessions we are analysing
                 sessid = fname.split('-')[0]
+                if not int(sessid) in sessions_to_analyse:
+                    continue
+
+                print('            ... found Pandas dataframe: {}'.format(fname))
                 trial_name = fname.split('_')[0] + "_" + fname.split('_')[1]
                 trial_name = trial_name.split('D')[0]
                 stim_type = fname.split('-')[:-2]

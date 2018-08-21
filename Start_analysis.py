@@ -20,7 +20,7 @@ class Analysis():
     def __init__(self):
         """
         Set up the analysis:
-        - get global vars
+        - get or define global vars
         - load database
         - call relevant functions [e.g. tracking, plotting...]
         """
@@ -32,6 +32,7 @@ class Analysis():
         # Flags to keep track if TF is set up for DLC analysis
         self.TF_setup = False
         self.TF_sttings = None
+        self.clips_l = []
 
         # Load the database
         self.load_database()
@@ -61,7 +62,7 @@ class Analysis():
                 # Process the session, appply the selected subprocesses
                 print('---------------\nProcessing session {}'.format(session_name))
 
-                # BACKGROUD EXTRACTION / TRACKING
+                # TRACKING #######################################
                 if extract_background or track_mouse:
                     self.video_analysis(session)
 
@@ -72,6 +73,9 @@ class Analysis():
                 # PLOTTING INDIVIDUAL
                 if plotting:  # individuals - work in progress
                     self.plotting_session(session)
+
+            # Finish DLC tracking [extract pose on saved clips]
+            self.db = Tracking.tracking_use_dlc(self.db, self.clips_l)
 
         ################################################
         ## WORK ON COHORTS
@@ -86,27 +90,28 @@ class Analysis():
 ########################################################################################################################
     # WORK ON SINGLE SESSIONS
     def video_analysis(self, session):
-            # extract info from sessions videos [e.g. first frame, fps, videos lenth...]
-            session = get_session_videodata(session)
+        # extract info from sessions videos [e.g. first frame, fps, videos lenth...]
+        session = get_session_videodata(session)
 
-            # Process background: get maze edges and user selected ROIs
-            if extract_background:
-                # Get bg and save
-                maze_edges, user_rois = Image_processing.process_background(session['Video']['Background'],
-                                                                            track_options)
-                session['Video']['Maze Edges'] = maze_edges
-                session['Video']['User ROIs'] = user_rois
+        # Process background: get maze edges and user selected ROIs
+        if extract_background:
+            # Get bg and save
+            maze_edges, user_rois = Image_processing.process_background(session['Video']['Background'],
+                                                                        track_options)
+            session['Video']['Maze Edges'] = maze_edges
+            session['Video']['User ROIs'] = user_rois
 
-                self.save_results(obj=self.db, mod='_bg')
+            self.save_results(obj=self.db, mod='_bg')
 
-            # Track animal on videos   <---!!!!
-            if track_mouse:
-                tracked = Tracking(session, self.db, self.TF_setup, self.TF_sttings)
-                self.db = tracked.database
-                self.TF_setup = tracked.TF_setup
-                self.TF_sttings = tracked.TF_settings
+        # Track animal on videos   <---!!!!
+        if track_mouse:
+            tracked = Tracking(session, self.db, self.TF_setup, self.TF_sttings, self.clips_l)
+            self.db = tracked.database
+            self.TF_setup = tracked.TF_setup
+            self.TF_sttings = tracked.TF_settings
+            self.clips_l = tracked.clips_l
 
-                self.save_results(obj=self.db, mod='_tracking')
+            self.save_results(obj=self.db, mod='_tracking')
 
     def processing_session(self, session):
             # Processing

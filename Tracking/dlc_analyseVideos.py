@@ -58,7 +58,7 @@ def analyse(tf_setting, videofolder, clips_l):
     os.chdir(videofolder)
     videos = np.sort([fn for fn in os.listdir(os.curdir) if (videotype in fn)])
     for video in videos:
-
+        clips_l = [item for sublist in clips_l for item in sublist]
         if not video.split('.')[0] in clips_l:
             continue
 
@@ -66,7 +66,7 @@ def analyse(tf_setting, videofolder, clips_l):
         try:
             # Attempt to load data...
             pd.read_hdf(dataname)
-            print("                 ... video already analyzed!", dataname)
+            print("            ... video already analyzed!", dataname)
         except FileNotFoundError:
             print("                 ... loading ", video)
             clip = VideoFileClip(video)
