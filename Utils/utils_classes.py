@@ -11,6 +11,7 @@ class Session_metadata():
         self.last_modified = None
         self.created = None
         self.software = None
+        self.videodata = []
 
 
 class DataBase():

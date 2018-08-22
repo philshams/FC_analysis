@@ -125,18 +125,19 @@ def get_sessions_metadata_from_yaml(datalogpath, database=None):
                 sys.exit('Closing application....')
 
             # If the program exists, get all .avi and .tdms files in the folder
+            videopaths = []
             for f in os.listdir(path):
                 if '.avi' in f:
-                    videopath = os.path.join(path, f)
+                    videopaths.append(os.path.join(path, f))
                 elif '.tdms' == f[-5:]:
                     tdmspath = os.path.join(path, f)
 
             # add file paths to metadata
-            session_metadata.video_file_paths.append(videopath)
+            session_metadata.video_file_paths.append(videopaths)
             session_metadata.tdms_file_paths.append(tdmspath)
 
             # Loop over each video and get the relevant data [e.g., number of frames, fps...]
-            session_metadata.video_data = get_session_videodata(session_metadata.video_file_paths)
+            session_metadata.videodata.append(get_session_videodata(videopaths))
 
             # Loop over each .tdms file and extract stimuli frames
             """
