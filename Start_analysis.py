@@ -90,9 +90,6 @@ class Analysis():
 ########################################################################################################################
     # WORK ON SINGLE SESSIONS
     def video_analysis(self, session):
-        # extract info from sessions videos [e.g. first frame, fps, videos lenth...]
-        session = get_session_videodata(session)
-
         # Process background: get maze edges and user selected ROIs
         if extract_background:
             # Get bg and save
@@ -149,10 +146,12 @@ class Analysis():
             # Update database with recently added sessions
             if update_database:
                 self.db.sessions = get_sessions_metadata_from_yaml(self.datalog_path, database=self.db)
+
         else:
             # Create database from scratch
             sessions_metadata = get_sessions_metadata_from_yaml(self.datalog_path)
             self.db = generate_database_from_metadatas(sessions_metadata)
+
 
 #######################
 #  START              #
