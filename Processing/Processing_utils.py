@@ -3,7 +3,7 @@ import numpy as np
 import math
 import time
 
-from Utils.maths import twod_distance, calc_velocity, calc_angle_2d
+from Utils.maths import calc_distance_2d, calc_velocity, calc_angle_2d
 
 
 def from_dlc_to_single_bp(data, bp_tag):
@@ -32,51 +32,24 @@ def from_dlc_to_single_bp(data, bp_tag):
     return output, bp_tag
 
 
-def get_tracking_velocity(session, settings, std=False, dlc=False, dlc_single_bp=True):
-    """
-    Calculates the velocity of the mouse from tracking data.
-    Get get std tracking (i.e. center of mass) or DLC tracking (many bodyparts)
-    Can give the velocity in px/frame, px/sec or bodylengths/s
+def get_average_bodylength(data, tail_tag='', head_tag=''):
+    if not tail_tag or not head_tag:
+        print('Need to have the name of the head and tail bodyparts to extract bodylength from DLC data')
+        return False
+    else:
+        # Calculate the average length
+        head_position, _ = from_dlc_to_single_bp(data, head_tag)
+        tail_position, _ = from_dlc_to_single_bp(data, tail_tag)
 
-    :param session: session entry of the database
-    :param std - extract velocity from STD data
-    :param dlc - extract velocity from DLC data
-    :param dlc_single_bp - use only center of mass bodypart
+        numframes = head_position.shape[0]
+        lengths = np.zeros((numframes, 1))
+        for idx in range(numframes):
+            headpoint = (head_position['x'][idx], head_position['y'][idx])
+            tailpoint = (tail_position['x'][idx], tail_position['y'][idx])
 
-    :return:
-    """
+            lengths[idx] = calc_distance_2d((headpoint, tailpoint), vectors=False)
 
-    # Prepare DLC data
-
-
-    # Loop over each trial
-    for tr_name, tr_data in session.Tracking.items():
-        if tr_name == 'Exploration' or tr_name == 'Whole Session':
-            continue  # we only care about the trials here
-
-        if std:
-            coordinates = [c for c in zip(tr_data.std_tracking['x'], tr_data.std_tracking['y'])]
-            distance = twod_distance((tr_data.std_tracking['x'], tr_data.std_tracking['y']))
-            velocity = calc_velocity(distance)
-
-        if dlc:
-            if dlc_single_bp:
-                body_data = from_dlc_to_single_bp(session, settings['center of mass bodypart'])
-
-    a = 1
-
-
-def single_bp_calc_stuff(data):
-    for trial in data:
-        # Calculate
-        trial_distance = twod_distance((trial['x'].values, trial['y'].values))
-        trial_velocity = calc_velocity(trial_distance)
-
-        # Add to dataframe
-        trial['Distance'] = trial_distance
-        trial['Velocity'] = trial_velocity
-
-    return data
+        return np.mean(lengths)
 
 
 def pose_reconstruction(head, body, tail, debug=False):

@@ -2,15 +2,15 @@
 # Names of the DLC bodyparts tags for the different bodyparts
 'body': 'body'
 'head': 'snout'
-'tail': 'tail1'
+'tail': 'tail'
 
 
 # Settings relative to the extraction of velocity
-'velocity unit': 'pxperframe'  # How the velocity is computed: pixel per frame [pxperframe], pixel per second [pxpersec]
-                          # or bodylength per second [blpersec]
-'std': true               # Extract velocity from STD tracking data
-'dlc': true               # Extract velocity from DLC tracking data
-'dlc single bp': 'body'   # Extract velocity from DLC for just one body part or for all bodyparts
-                          # can either be false [calc velocity for ALL body parts] or the name of the body part to be used
+'velocity unit': 'blpersec'  # How the velocity is computed: pixel per frame [pxperframe], pixel per second [pxpersec]
+                             # or bodylength per second [blpersec]
+'std': true                  # Extract velocity from STD tracking data
+'dlc': true                  # Extract velocity from DLC tracking data
+'dlc single bp': 'body'      # Extract velocity from DLC for just one body part or for all bodyparts
+                             # can either be false [calc velocity for ALL body parts] or the name of the body part to be used
 
 

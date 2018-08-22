@@ -3,7 +3,7 @@ import numpy as np
 from math import factorial, atan2, degrees
 
 
-def twod_distance(data, vectors = True):
+def calc_distance_2d(data, vectors = True):
     """
     Calculates the euclidean distance between each consecutive pair point in two points or vectors
     """
@@ -25,11 +25,35 @@ def twod_distance(data, vectors = True):
 
                 # Prepare for next iteration
                 p0 = p1
-        return  dist
+        return dist
 
 
-def calc_velocity(d):
-    return np.insert(np.diff(d), 0, 0)
+def calc_velocity(d, unit=False, fps=False, bodylength=False):
+    if not unit or unit == 'pxperframe':
+        # Return the velocity in px per frame
+        return np.insert(np.diff(d), 0, 0)
+    else:
+        # Scale the velocity from px per frame depending on the unit used
+        velocity = np.insert(np.diff(d), 0, 0)
+
+        if not fps:
+            print('No FPS was available when calculating velocity\n FPS set as 30 frames per second')
+            fps = 30
+        else:
+            fps = fps[0]
+
+        if unit == 'pxpersec':
+            return velocity*fps
+
+        if unit =='blpersec':
+            if not bodylength:
+                print('No body length was found when calculating velocity as bodylengths per second\nUsing px per second'
+                      'instead')
+                return velocity*fps
+            else:
+                velocity = velocity * fps
+                velocity = velocity / bodylength
+    return velocity
 
 
 def calc_angle_2d(p1, p2):
