@@ -1,6 +1,6 @@
 from Utils import Image_processing
 from Utils.loadsave_funcs import save_data, load_data, load_paths
-from Utils.Setup_funcs import get_sessions_metadata_from_yaml, get_session_videodata, generate_database_from_metadatas
+from Utils.Setup_funcs import create_database
 from Plotting import Plotting_main
 from Tracking.Tracking_main import Tracking
 from Utils.Data_rearrange_funcs import create_cohort, check_session_selected
@@ -145,12 +145,11 @@ class Analysis():
             self.db = load_data(self.save_fld, load_name)
             # Update database with recently added sessions
             if update_database:
-                self.db.sessions = get_sessions_metadata_from_yaml(self.datalog_path, database=self.db)
+                self.db = create_database(self.datalog_path, database=self.db)
 
         else:
             # Create database from scratch
-            sessions_metadata = get_sessions_metadata_from_yaml(self.datalog_path)
-            self.db = generate_database_from_metadatas(sessions_metadata)
+            self.db = create_database(self.datalog_path,)
 
 
 #######################

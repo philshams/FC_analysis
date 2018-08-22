@@ -13,9 +13,7 @@ from Utils.loadsave_funcs import save_data
 from Config import save_name, savelogpath
 
 
-
-
-def get_sessions_metadata_from_yaml(datalogpath, database=None):
+def create_database(datalogpath, database=None):
     """
     Creates a new database from scratch loading the info from datalog.csv
     If a pre-existing database is passed to it it will simply updated it adding the sessions that are in
@@ -192,7 +190,9 @@ def get_sessions_metadata_from_yaml(datalogpath, database=None):
 
         # Add to dictionary (or update entry)
         sessions_dict[session_name] = session_metadata
-    return sessions_dict
+
+    database = generate_database_from_metadatas(sessions_dict)
+    return database
 
 
 
