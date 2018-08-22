@@ -1,4 +1,6 @@
 # Import packages
+import pandas as pd
+import numpy as np
 import imageio
 imageio.plugins.ffmpeg.download()
 
@@ -91,7 +93,7 @@ class Tracking():
                 stop_frame = -1
             tracked = self.tracking(self.session['Video']['Background'], 0,
                                     start_frame=start_frame, stop_frame=stop_frame, video_fps=self.fps)
-            self.session['Tracking']['Exploration'] = tracked
+            self.session['Tracking']['Exploration'] = tracked.data
 
     def track_wholesession(self):
         # Check if tracking the whole session
@@ -104,7 +106,7 @@ class Tracking():
                     start_frame = 0
                 tracked = self.tracking(self.session['Video']['Background'], vid,
                                         start_frame=start_frame, stop_frame=self.stopframe, video_fps=self.fps)
-                self.session['Tracking']['Whole Session'] = tracked
+                self.session['Tracking']['Whole Session'] = tracked.data
 
                 if track_options['track_exploration']:
                     print('Need to write a function to extract the exploration data from the whole session data')
@@ -145,8 +147,7 @@ class Tracking():
                                               self.session['Metadata'].video_file_paths[vid_num],
                                               start_frame=start_frame, stop_frame=stop_frame, video_fps=fps)
 
-                        trial = Data_rearrange_funcs.restructure_trial_data(trial, start_frame, stop_frame,
-                                                                            stim_type, idx, vid_num)
+                        trial = Data_rearrange_funcs.restructure_trial_data(trial, stim_type, idx, vid_num)
                         trial.metadata = trial_metadata
 
                         # Merge into database
@@ -197,11 +198,14 @@ class Tracking():
 
         # Initialise empty arrays to store tracking data and other variables
         video_duration_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-        setattr(self, 'x', np.zeros((1, video_duration_frames)))
-        setattr(self, 'y', np.zeros((1, video_duration_frames)))
-        setattr(self, 'orientation', np.zeros((1, video_duration_frames)))
-        setattr(self, 'velocity', np.zeros((1, video_duration_frames)))
-        setattr(self, 'direction', np.zeros((1, video_duration_frames)))
+
+        indexes = ['x', 'y', 'orientation']
+        if stop_frame == -1:
+            array = np.full((video_duration_frames, len(indexes)), np.nan)
+        else:
+            array = np.full((stop_frame-start_frame, len(indexes)), np.nan)
+
+        self.data = pd.DataFrame(array, columns=indexes)
 
         # Display background
         if self.cfg['preview']:
@@ -236,8 +240,8 @@ class Tracking():
                 (x, y), radius = cv2.minEnclosingCircle(cnt[0])
                 centeroid = (int(x), int(y))
                 self.coord_l.append(centeroid)
-                self.x[0, f - 1] = centeroid[0]
-                self.y[0, f - 1] = centeroid[1]
+                self.data.loc[f-start_frame-1]['x'] = centeroid[0]
+                self.data.loc[f-start_frame-1]['y'] = centeroid[1]
 
                 # draw contours and trace and ROI
                 if self.cfg['preview']:
@@ -246,25 +250,16 @@ class Tracking():
 
                 if not justCoM:
                     # get mouse orientation
-                    orientation = get_body_orientation(f, cnt[0], bg, display, frame, start_frame, self.orientation,
-                                                       self.arena_floor, self.cfg['tail_th_scaling'])
-
-                    # Get mouse velocity
-                    velocity = get_velocity(video_fps, self.coord_l)
-
-                    # Get direction of movement
-                    direction = get_mvmt_direction(self.coord_l)
-
-                    self.orientation[0, f - 1] = orientation
-                    self.velocity[0, f - 1] = velocity
-                    self.direction[0, f - 1] = direction
+                    self.data.loc[f-start_frame-1]['orientation']  = get_body_orientation(
+                                                        f, cnt[0], bg, display, frame, start_frame,
+                                                        self.data['orientation'].values(),
+                                                        self.arena_floor, self.cfg['tail_th_scaling'])
 
             if self.cfg['preview']:
                 display_results(f, frame, display, self.magnif_factor, self)
-
-            #  Control framerate and exit
-            # need to adjust this so that it waits for the correct amount to match fps
-            key = cv2.waitKey(10) & 0xFF
+                #  Control framerate and exit
+                # need to adjust this so that it waits for the correct amount to match fps
+                key = cv2.waitKey(10) & 0xFF
 
     @staticmethod
     def tracking_use_dlc(database, clips_l):

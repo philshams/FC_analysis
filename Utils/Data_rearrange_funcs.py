@@ -18,14 +18,10 @@ def check_session_selected(metadata, selector_type, selector):
         return True
 
 
-def restructure_trial_data(trial, start_frame, stop_frame, stim_type, idx, vid_num):
+def restructure_trial_data(trial, stim_type, idx, vid_num):
     new_trial = Trial()
 
-    new_trial.std_tracking['x'] = trial.x[0][start_frame:stop_frame-1]
-    new_trial.std_tracking['y'] = trial.y[0][start_frame:stop_frame-1]
-    new_trial.std_tracking['orientation'] = trial.orientation[0][start_frame:stop_frame-1]
-    new_trial.std_tracking['direction'] = trial.direction[0][start_frame:stop_frame-1]
-    new_trial.std_tracking['velocity'] = trial.velocity[0][start_frame:stop_frame-1]
+    new_trial.std_tracking = trial.data
 
     new_trial.name = '{}_{}_{}'.format(stim_type, vid_num, idx)
 
