@@ -47,10 +47,13 @@ class Processing():
 
         if self.settings['std']:
             # Extract velocity using std tracking data
-            distance = twod_distance((data.std_tracking['x'], data.std_tracking['y']))
-            data.processing.velocity['std'] = calc_velocity(distance)
+            distance = twod_distance((data.std_tracking['x'].values, data.std_tracking['y'].values))
+            data.std_tracking['Velocity'] = calc_velocity(distance)
 
         if self.settings['dlc']:
+            if not data.dlc_tracking:
+                return
+
             for bp in data.dlc_tracking['Posture'].keys():
                 if self.settings['dlc single bp']:
                     if bp != self.settings['dlc single bp']:

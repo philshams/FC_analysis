@@ -115,7 +115,7 @@ class Analysis():
             self.db = tracked.database
             self.TF_setup = tracked.TF_setup
             self.TF_sttings = tracked.TF_settings
-            self.clips_l = tracked.clips_l[0]
+            self.clips_l = tracked.clips_l
 
         self.save_results(obj=self.db, mod='_tracking')
 
