@@ -47,3 +47,8 @@ class Cohort():
         self.tracking_data = {'explorations': [], 'whole sessions': [], 'trials': {}}
 
 
+class Processing_class():
+    def __init__(self):
+        self.velocity = {}
+
+

@@ -108,7 +108,7 @@ class Analysis():
             self.TF_sttings = tracked.TF_settings
             self.clips_l = tracked.clips_l
 
-            self.save_results(obj=self.db, mod='_tracking')
+        self.save_results(obj=self.db, mod='_tracking')
 
     def processing_session(self, session):
             # Processing

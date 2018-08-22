@@ -1,3 +1,12 @@
+# Setting relative to Pose reconstruction
 'center of mass bodypart': 'body'
 'head': 'snout'
 'tail': 'tail1'
+
+
+# Settings relative to the extraction of velocity
+'std': true
+'dlc': true
+'dlc single bp': 'body'  # can either be false or the name of the body part to be used
+
+
