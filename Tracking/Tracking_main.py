@@ -252,7 +252,7 @@ class Tracking():
                     # get mouse orientation
                     self.data.loc[f-start_frame-1]['orientation']  = get_body_orientation(
                                                         f, cnt[0], bg, display, frame, start_frame,
-                                                        self.data['orientation'].values(),
+                                                        self.data['orientation'].values,
                                                         self.arena_floor, self.cfg['tail_th_scaling'])
 
             if self.cfg['preview']:

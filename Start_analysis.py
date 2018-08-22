@@ -51,20 +51,32 @@ class Analysis():
         ## WORK ON SINGLE COHORTS
         ################################################
         if not selector_type == 'cohort':
-            # Loop over all the sessions
+            # Loop over all the sessions - Tracking ========================================================
+            if track_mouse:
+                for session_name in sorted(self.db.index):
+                    session = self.db.loc[session_name]
+                    # Check if this is one of th sessions we should be processing
+                    selected = check_session_selected(session.Metadata, selector_type, selector)
+                    if not selected:
+                        continue
+
+                    # Process the session, appply the selected subprocesses
+                    print('---------------\nProcessing session {}'.format(session_name))
+
+                    # TRACKING #######################################
+                    if extract_background or track_mouse:
+                        self.video_analysis(session)
+
+                # Finish DLC tracking [extract pose on saved clips]
+                self.db = Tracking.tracking_use_dlc(self.db, self.clips_l)
+
+            # Loop over all the sessions - Other processes ================================================
             for session_name in sorted(self.db.index):
                 session = self.db.loc[session_name]
                 # Check if this is one of th sessions we should be processing
                 selected = check_session_selected(session.Metadata, selector_type, selector)
                 if not selected:
                     continue
-
-                # Process the session, appply the selected subprocesses
-                print('---------------\nProcessing session {}'.format(session_name))
-
-                # TRACKING #######################################
-                if extract_background or track_mouse:
-                    self.video_analysis(session)
 
                 # PROCESSING
                 if processing:
@@ -73,9 +85,6 @@ class Analysis():
                 # PLOTTING INDIVIDUAL
                 if plotting:  # individuals - work in progress
                     self.plotting_session(session)
-
-            # Finish DLC tracking [extract pose on saved clips]
-            self.db = Tracking.tracking_use_dlc(self.db, self.clips_l)
 
         ################################################
         ## WORK ON COHORTS
@@ -106,7 +115,7 @@ class Analysis():
             self.db = tracked.database
             self.TF_setup = tracked.TF_setup
             self.TF_sttings = tracked.TF_settings
-            self.clips_l = tracked.clips_l
+            self.clips_l = tracked.clips_l[0]
 
         self.save_results(obj=self.db, mod='_tracking')
 
