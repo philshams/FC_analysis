@@ -45,6 +45,10 @@ class Processing():
             :return:
             """
 
+        # Get the unit velocity will be calculated as and save it in the metadata
+        unit = self.settings['velocity unit']
+        data.metadata['Velocity unit'] = unit
+
         if self.settings['std']:
             # Extract velocity using std tracking data
             distance = twod_distance((data.std_tracking['x'].values, data.std_tracking['y'].values))
