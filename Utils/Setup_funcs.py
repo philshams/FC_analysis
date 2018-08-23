@@ -88,6 +88,7 @@ def create_database(datalogpath, database=None):
         if database is not None:
             if session_name in database.index:
                 print('           ... session already in database')
+
                 continue
 
         # Create the metadata
@@ -191,8 +192,12 @@ def create_database(datalogpath, database=None):
         # Add to dictionary (or update entry)
         sessions_dict[session_name] = session_metadata
 
-    database = generate_database_from_metadatas(sessions_dict)
-    return database
+    if database is None:
+        return generate_database_from_metadatas(sessions_dict)
+    else:
+        new_database = generate_database_from_metadatas(sessions_dict)
+        frames = [database, new_database]
+        return pd.concat(frames, sort=True)
 
 
 
