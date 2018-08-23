@@ -80,6 +80,10 @@ def create_database(datalogpath, database=None):
     # Read each line in the excel spreadsheet and load data accordingly
     for line in loaded_excel:
         session_id = line['Sess.ID']
+        # If we loaded and empty line, stop
+        if not session_id:
+            continue
+
         session_name = '{}_{}_{}'.format(line['Sess.ID'], line['Date'], line['MouseID'])
 
         # if we are updating a pre-existing database, check if the session corrisponding to this line
