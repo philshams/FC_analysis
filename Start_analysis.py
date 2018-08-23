@@ -5,11 +5,12 @@ from Plotting import Plotting_main
 from Tracking.Tracking_main import Tracking
 from Utils.Data_rearrange_funcs import create_cohort, check_session_selected
 from Processing import Processing_main
+from Debug.DebugTrack_GUI_Main import start_gui
 
 from Config import load_database, update_database, load_name, save_name\
     , selector_type, selector,\
     extract_background, track_mouse, track_options, \
-    plotting, cohort, processing
+    plotting, cohort, processing, debug
 
 
 ########################################################################################################################
@@ -77,6 +78,10 @@ class Analysis():
                 selected = check_session_selected(session.Metadata, selector_type, selector)
                 if not selected:
                     continue
+
+                # Debug
+                if debug:
+                    start_gui(session)
 
                 # PROCESSING
                 if processing:

@@ -145,7 +145,7 @@ class Tracking():
                     if track_options['use_stdtracking']:
                         print('     ... processing trial {} - Standard tracking'.format(self.videoname))
 
-                        trial = self.tracking(self.background, self.session['Metadata'].video_file_paths[vid_num],
+                        trial = self.tracking(self.background, self.session['Metadata'].video_file_paths[vid_num][0],
                                               start_frame=start_frame, stop_frame=stop_frame, video_fps=self.fps)
 
                         trial = Data_rearrange_funcs.restructure_trial_data(trial, stim_type, idx, vid_num)
@@ -166,7 +166,7 @@ class Tracking():
                         stop_sec = stop_frame * (1 / self.fps)
 
                         # Extract trial clip and store it so that we can save all trials at the same time
-                        trial_clip = cut_crop_video(self.session['Metadata'].video_file_paths[vid_num],
+                        trial_clip = cut_crop_video(self.session['Metadata'].video_file_paths[vid_num][0],
                                                     cut=True, starts=start_sec, fins=stop_sec,
                                                     save_format=None, ret=True)
                         self.dlc_config_settings['clips'][stim_type][self.videoname] = trial_clip
