@@ -13,6 +13,7 @@ def plotter(data, smoothed=True, padding=[30, 120]):
     :param data:
     :return:
     """
+    data = data.Tracking
     midpoint = int(len(data[0]['x']) / 2)
     padding = [midpoint - padding[0], midpoint + padding[1]]  # zoom on X axis
 

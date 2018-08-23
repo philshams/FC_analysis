@@ -42,6 +42,8 @@ class Tracking():
         self.dlc_config_settings['clips'] = {'visual': {}, 'audio': {}, 'digital': {}}
 
         # params for contour extraction
+        self.fps = self.session['Metadata'].videodata[0]['Frame rate'][0]
+        self.background = self.session['Metadata'].videodata[0]['Background']
         self.arena_floor = False
 
         # params from showing tracing results in preview
@@ -91,7 +93,7 @@ class Tracking():
             else:
                 start_frame = 0
                 stop_frame = -1
-            tracked = self.tracking(self.session['Video']['Background'], 0,
+            tracked = self.tracking(self.background, self.session['Metadata'].video_file_paths[0][0],
                                     start_frame=start_frame, stop_frame=stop_frame, video_fps=self.fps)
             self.session['Tracking']['Exploration'] = tracked.data
 
@@ -99,13 +101,13 @@ class Tracking():
         # Check if tracking the whole session
         if track_options['track whole session']:
             print('     ... tracking the whole session')
-            for idx, vid in enumerate(self.session['Metadata'].video_file_path):
+            for idx, vid in enumerate(self.session['Metadata'].video_file_paths):
                 if idx == 0:
                     start_frame = startf
                 else:
                     start_frame = 0
-                tracked = self.tracking(self.session['Video']['Background'], vid,
-                                        start_frame=start_frame, stop_frame=self.stopframe, video_fps=self.fps)
+                tracked = self.tracking(self.background, vid,
+                                        start_frame=start_frame, stop_frame=self.stop_frame, video_fps=self.fps)
                 self.session['Tracking']['Whole Session'] = tracked.data
 
                 if track_options['track_exploration']:
@@ -124,9 +126,9 @@ class Tracking():
                 for idx, stim in enumerate(stims_video):  # Loop over each stim for each video
                     # SET UP - ######################################
                     self.videoname = '{}-{}_{}-{}'.format(self.session['Metadata'].session_id, stim_type, vid_num, idx)
-                    fps = self.session['Video']['Frame rate'][vid_num]
-                    start_frame = int(stim-(cfg['fast track wnd']*fps))
-                    stop_frame = int(stim+(cfg['fast track wnd']*fps))
+
+                    start_frame = int(stim-(cfg['fast track wnd']*self.fps))
+                    stop_frame = int(stim+(cfg['fast track wnd']*self.fps))
 
                     # Generate empty trial object and add it into the database
                     trial_metadata = create_trial_metadata(self.videoname, stim_type, start_frame, stop_frame,
@@ -143,9 +145,8 @@ class Tracking():
                     if track_options['use_stdtracking']:
                         print('     ... processing trial {} - Standard tracking'.format(self.videoname))
 
-                        trial = self.tracking(self.session['Video']['Background'],
-                                              self.session['Metadata'].video_file_paths[vid_num],
-                                              start_frame=start_frame, stop_frame=stop_frame, video_fps=fps)
+                        trial = self.tracking(self.background, self.session['Metadata'].video_file_paths[vid_num],
+                                              start_frame=start_frame, stop_frame=stop_frame, video_fps=self.fps)
 
                         trial = Data_rearrange_funcs.restructure_trial_data(trial, stim_type, idx, vid_num)
                         trial.metadata = trial_metadata
@@ -161,8 +162,8 @@ class Tracking():
                     """
                     if track_options['use_deeplabcut']:
                         # set up
-                        start_sec = start_frame * (1 / fps)
-                        stop_sec = stop_frame * (1 / fps)
+                        start_sec = start_frame * (1 / self.fps)
+                        stop_sec = stop_frame * (1 / self.fps)
 
                         # Extract trial clip and store it so that we can save all trials at the same time
                         trial_clip = cut_crop_video(self.session['Metadata'].video_file_paths[vid_num],

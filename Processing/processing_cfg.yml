@@ -1,16 +1,21 @@
-# Setting relative to Pose reconstruction
+# Setting for POSE reconstruction
 # Names of the DLC bodyparts tags for the different bodyparts
-'body': 'body'
+'body': 'body'              # BODY and TAIL are also used for ORIENTATION extraction
 'head': 'snout'
 'tail': 'tail'
 
 
-# Settings relative to the extraction of velocity
+# Settings for VELOCITY extraction
 'velocity unit': 'blpersec'  # How the velocity is computed: pixel per frame [pxperframe], pixel per second [pxpersec]
                              # or bodylength per second [blpersec]
-'std': true                  # Extract velocity from STD tracking data
+'std': true                  # Extract velocity from STD tracking data - STD and DLC are also used for extraction of position relative to shelter
 'dlc': true                  # Extract velocity from DLC tracking data
 'dlc single bp': 'body'      # Extract velocity from DLC for just one body part or for all bodyparts
                              # can either be false [calc velocity for ALL body parts] or the name of the body part to be used
+
+# Settings for ORIENTATION extraction
+'shelter location': 'roi'    # 'roi' if the shelter position is defined using a ROI or the name of the DLC bodypart for the shelter
+                             # Shelter location is also used for extraction of position relative to shelter
+'relative to': 'shelter'     # if 'shelter', the position is given relative to the shelter, if 'absolute' it is relative to the frame
 
 

@@ -104,8 +104,8 @@ class Analysis():
             # Get bg and save
             maze_edges, user_rois = Image_processing.process_background(session['Video']['Background'],
                                                                         track_options)
-            session['Video']['Maze Edges'] = maze_edges
-            session['Video']['User ROIs'] = user_rois
+            session['Metadata']['Maze Edges'] = maze_edges
+            session['Metadata']['User ROIs'] = user_rois
 
             self.save_results(obj=self.db, mod='_bg')
 

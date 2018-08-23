@@ -56,13 +56,30 @@ def calc_velocity(d, unit=False, fps=False, bodylength=False):
     return velocity
 
 
-def calc_angle_2d(p1, p2):
-    radang = atan2(p2[1] - p1[1], p2[0] - p1[0])
-    degang = degrees(radang)
-    if degang < 0:
-        return 360+degang
+def calc_angle_2d(p1, p2, vectors=False):
+    if not vectors:
+        # Calc for just two points
+        radang = atan2(p2[1] - p1[1], p2[0] - p1[0])
+        degang = degrees(radang)
+        if degang < 0:
+            return 360+degang
+        else:
+            return degang
     else:
-        return degang
+        # calc for two vectors of points
+        angles = []
+        frames = len(p1['x'])
+        for idx in range(frames):
+            pp1 = (p1['x'][idx], p1['y'][idx])
+            pp2 = (p2['x'][idx], p2['y'][idx])
+            radang = atan2(pp2[1] - pp1[1], pp2[0] - pp1[0])
+            degang = degrees(radang)
+            if degang < 0:
+                angles.append(360+degang)
+            else:
+                angles.append(degang)
+        return angles
+
 
 def line_smoother(y, window_size, order, deriv=0, rate=1):
     # Apply a Savitzy-Golay filter to smooth traces
