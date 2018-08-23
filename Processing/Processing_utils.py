@@ -99,3 +99,31 @@ def pose_reconstruction(head, body, tail, debug=False):
         body[tr_num]['HeadBodyAngle'] = head_body_angle
 
     return body
+
+
+def get_shelter_location(tag, data):
+    # Get the position of the centre of the shelter
+    if tag == 'roi':
+        # Get centre of shelter roi
+        roi = data['Metdata']['User ROIs']['shelter']
+        shelter_location = (int(roi[0] + (roi[2] / 2)),
+                                int(roi[1] + (roi[3] / 2)))
+    else:
+        # Get it from DLC tracking
+        shelter_location, _ = from_dlc_to_single_bp(data, tag)
+        shelter_location = (int(np.mean(shelter_location['x'].values)),
+                            int(np.mean(shelter_location['y'].values)))
+    return shelter_location
+
+
+def calc_position_relative_point(data, point):
+    """
+    Gets touple of vectors as DATA and returns a touple of vectors with the position relative to the given point
+    """
+    numframe = len(data[0])
+    x_adj, y_adj = np.zeros((numframe, 1)), np.zeros((numframe, 1))
+    for idx in range(numframe):
+        x,y = data[0][idx], data[1][idx]
+        x_adj[idx] = point[0] - x
+        y_adj[idx] = point[1] - y
+    return x_adj, y_adj

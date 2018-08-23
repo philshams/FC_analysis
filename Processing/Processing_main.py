@@ -1,9 +1,10 @@
-import yaml
+import numpy as np
 
 from Utils.loadsave_funcs import load_yaml
 from Utils.utils_classes import Processing_class
-from Processing.Processing_utils import calc_distance_2d, calc_velocity, from_dlc_to_single_bp, get_average_bodylength
+from Processing.Processing_utils import *
 from Plotting import Plt_individual_stimresponses
+from Utils.maths import calc_angle_2d
 
 from Config import processing_options
 
@@ -26,7 +27,75 @@ class Processing():
             # Get velocity
             self.extract_velocity(tracking_data)
 
-        a = 1
+    def extract_location_relative_shelter(self, data):
+        """
+        This function extracts the mouse position relative to the shelter
+
+
+        :param data:
+        :return:
+        """
+        # Get the position of the centre of the shelter
+        if not data.metadata['shelter location']:
+            if self.settings['shelter location'] == 'roi':
+                # Get centre of shelter roi
+                shelter_location = get_shelter_location(self.settings['shelter location'], self.session)
+            else:
+                # Get it from DLC tracking
+                shelter_location = get_shelter_location(self.settings['shelter location'], data)
+            data.metadata['shelter location'] = shelter_location
+        else:
+            shelter_location = data.metadata['shelter location']
+
+        # Get position relative to shelter from STD data
+        if self.settings['std']:
+            adjusted_pos = calc_position_relative_point(data.std_tracking['x'].values, data.std_tracking['y'].values)
+            data.std_tracking['adjusted x'], data.std_tracking['adjusted y'] = adjusted_pos[0], adjusted_pos[1]
+
+        # Get position relative to shelter from DLC data
+        if self.settings['dlc']:
+            for bp in data.dlc_tracking['Posture'].keys():
+                if self.settings['dlc single bp']:
+                    if bp != self.settings['dlc single bp']:
+                        continue
+
+                # Extract velocity for a single bodypart as determined by the user
+                bp_data, _ = from_dlc_to_single_bp(data, bp)
+                adjusted_pos = calc_position_relative_point(bp_data['x'].values, bp_data.values)
+                bp_data['adjusted x'], bp_data['adjusted y'] = adjusted_pos[0], adjusted_pos[1]
+
+    def extract_orientation(self, data):
+        """
+        This function extracts the mouse' orientation from the angle of two body parts [DLC tracking] and the
+        position of the shelter.
+
+        These bodyparts can be any tracked with DLC, but ideally they should be the centre of the body and the start of
+        the tail. Other body parts might result in incorrect estimation of the orientation.
+        The shelter position can either be given by the position of a user-defined ROI [during background extraction
+        in video processing] or by landmarks tracked with DLC.
+
+        :param data:
+        :return:
+        """
+
+        # Get the position of the centre of the shelter
+        if not data.metadata['shelter location']:
+            if self.settings['shelter location'] == 'roi':
+                # Get centre of shelter roi
+                shelter_location = get_shelter_location(self.settings['shelter location'], self.session)
+            else:
+                # Get it from DLC tracking
+                shelter_location = get_shelter_location(self.settings['shelter location'], data)
+            data.metadata['shelter location'] = shelter_location
+        else:
+            shelter_location = data.metadata['shelter location']
+
+        # Get the position of the two bodyparts
+        body, _ = from_dlc_to_single_bp(data, self.settings['body'])
+        tail, _ = from_dlc_to_single_bp(data, self.settings['tail'])
+
+        # Get angle relative to frame
+        absolute_angle = calc_angle_2d(body, tail)
 
     def extract_velocity(self, data):
         """
@@ -91,7 +160,7 @@ class Processing():
                 vel = calc_velocity(distance, unit=unit, fps=self.session.Video['Frame rate'], bodylength=bodylength)
                 bp_data['Velocity'] = vel
 
-        def extract_posture(self):
+    def extract_posture(self):
             """
             Reconstruct posture from DLC data
 
