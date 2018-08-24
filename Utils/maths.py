@@ -28,7 +28,7 @@ def calc_distance_2d(data, vectors = True):
         return dist
 
 
-def calc_velocity(d, unit=False, fps=False, bodylength=False):
+def calc_acceleration(d, unit=False, fps=False, bodylength=False):
     if not unit or unit == 'pxperframe':
         # Return the velocity in px per frame
         return np.insert(np.diff(d), 0, 0)

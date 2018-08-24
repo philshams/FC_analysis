@@ -26,12 +26,9 @@ class Processing():
         """
         This function extracts the mouse position relative to the shelter
 
-
-        :param data:
-        :return:
         """
         # Get the position of the centre of the shelter
-        if not data.metadata['shelter location']:
+        if not 'shelter location' in data.metadata.keys():
             if self.settings['shelter location'] == 'roi':
                 # Get centre of shelter roi
                 shelter_location = get_shelter_location(self.settings['shelter location'], self.session)
@@ -44,7 +41,8 @@ class Processing():
 
         # Get position relative to shelter from STD data
         if self.settings['std']:
-            adjusted_pos = calc_position_relative_point(data.std_tracking['x'].values, data.std_tracking['y'].values)
+            adjusted_pos = calc_position_relative_point((data.std_tracking['x'].values,
+                                                         data.std_tracking['y'].values), shelter_location)
             data.std_tracking['adjusted x'], data.std_tracking['adjusted y'] = adjusted_pos[0], adjusted_pos[1]
 
         # Get position relative to shelter from DLC data
@@ -56,7 +54,8 @@ class Processing():
 
                 # Extract velocity for a single bodypart as determined by the user
                 bp_data, _ = from_dlc_to_single_bp(data, bp)
-                adjusted_pos = calc_position_relative_point(bp_data['x'].values, bp_data.values)
+                adjusted_pos = calc_position_relative_point((bp_data['x'].values,
+                                                             bp_data['y'].values), shelter_location)
                 bp_data['adjusted x'], bp_data['adjusted y'] = adjusted_pos[0], adjusted_pos[1]
 
     def extract_orientation(self, data):
@@ -134,8 +133,9 @@ class Processing():
         if self.settings['std']:
             # Extract velocity using std tracking data
             distance = calc_distance_2d((data.std_tracking['x'].values, data.std_tracking['y'].values))
-            data.std_tracking['Velocity'] = calc_velocity(distance, unit=unit, fps=fps,
-                                                          bodylength=bodylength)
+            data.std_tracking['Velocity'] = distance
+            data.std_tracking['Acceleration'] = calc_acceleration(distance, unit=unit, fps=fps,
+                                                                  bodylength=bodylength)
 
         if self.settings['dlc']:
             if not data.dlc_tracking:
@@ -154,8 +154,8 @@ class Processing():
                         self.settings['dlc single bp'] = bodypart
 
                 distance = calc_distance_2d((bp_data['x'], bp_data['y']))
-                vel = calc_velocity(distance, unit=unit, fps=fps, bodylength=bodylength)
-                bp_data['Velocity'] = vel
+                bp_data['Velocity'] = distance
+                bp_data['Accelearation'] = calc_acceleration(distance, unit=unit, fps=fps, bodylength=bodylength)
 
     def extract_posture(self):
             """

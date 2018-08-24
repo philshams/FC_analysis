@@ -3,7 +3,7 @@ import numpy as np
 import math
 import time
 
-from Utils.maths import calc_distance_2d, calc_velocity, calc_angle_2d
+from Utils.maths import calc_distance_2d, calc_acceleration, calc_angle_2d
 
 
 def from_dlc_to_single_bp(data, bp_tag):
@@ -105,7 +105,7 @@ def get_shelter_location(tag, data):
     # Get the position of the centre of the shelter
     if tag == 'roi':
         # Get centre of shelter roi
-        roi = data['Metdata']['User ROIs']['shelter']
+        roi = data['Metadata'].videodata[0]['User ROIs']['Shelter']
         shelter_location = (int(roi[0] + (roi[2] / 2)),
                                 int(roi[1] + (roi[3] / 2)))
     else:
