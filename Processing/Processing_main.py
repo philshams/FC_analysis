@@ -21,6 +21,7 @@ class Processing():
             # Get velocity
             self.extract_velocity(tracking_data)
             self.extract_location_relative_shelter(tracking_data)
+            self.extract_orientation(tracking_data)
 
     def extract_location_relative_shelter(self, data):
         """
@@ -89,7 +90,8 @@ class Processing():
         tail, _ = from_dlc_to_single_bp(data, self.settings['tail'])
 
         # Get angle relative to frame
-        absolute_angle = calc_angle_2d(body, tail)
+        absolute_angle = calc_angle_2d(body, tail, vectors=True)
+        data.dlc_tracking['Posture']['body']['Orientation'] = absolute_angle
 
     def extract_velocity(self, data):
         """
