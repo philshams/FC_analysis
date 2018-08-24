@@ -35,12 +35,12 @@ def calc_velocity(d, unit=False, fps=False, bodylength=False):
     else:
         # Scale the velocity from px per frame depending on the unit used
         velocity = np.insert(np.diff(d), 0, 0)
-
         if not fps:
             print('No FPS was available when calculating velocity\n FPS set as 30 frames per second')
             fps = 30
         else:
-            fps = fps[0]
+            if isinstance(fps, list):
+                fps = fps[0]
 
         if unit == 'pxpersec':
             return velocity*fps

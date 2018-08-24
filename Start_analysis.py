@@ -1,7 +1,7 @@
 from Utils import Image_processing
 from Utils.loadsave_funcs import save_data, load_data, load_paths
 from Utils.Setup_funcs import create_database
-from Plotting import Plotting_main
+from Plotting import Plotting_main, Single_trial_summary
 from Tracking.Tracking_main import Tracking
 from Utils.Data_rearrange_funcs import create_cohort, check_session_selected
 from Processing import Processing_main
@@ -53,7 +53,7 @@ class Analysis():
         ################################################
         if not selector_type == 'cohort':
             # Loop over all the sessions - Tracking ========================================================
-            if track_mouse:
+            if track_mouse or extract_background:
                 for session_name in sorted(self.db.index):
                     session = self.db.loc[session_name]
                     # Check if this is one of th sessions we should be processing
@@ -62,7 +62,7 @@ class Analysis():
                         continue
 
                     # Process the session, appply the selected subprocesses
-                    print('---------------\nProcessing session {}'.format(session_name))
+                    print('---------------\nTracking session {}'.format(session_name))
 
                     # TRACKING #######################################
                     if extract_background or track_mouse:
@@ -81,13 +81,15 @@ class Analysis():
                 if not selected:
                     continue
 
-                # Debug
-                if debug:
-                    start_gui(session)
+                print('---------------\nProcessing session {}'.format(session_name))
 
                 # PROCESSING
                 if processing:
                     self.processing_session(session)
+
+                # Debug
+                if debug:
+                    start_gui(session)
 
                 # PLOTTING INDIVIDUAL
                 if plotting:  # individuals - work in progress
@@ -111,8 +113,8 @@ class Analysis():
             # Get bg and save
             maze_edges, user_rois = Image_processing.process_background(session['Metadata'].videodata[0]['Background'],
                                                                         track_options)
-            session['Metadata']['Maze Edges'] = maze_edges
-            session['Metadata']['User ROIs'] = user_rois
+            session.Metadata.videodata[0]['Maze Edges'] = maze_edges
+            session.Metadata.videodata[0]['User ROIs'] = user_rois
 
             self.save_results(obj=self.db, mod='_bg')
 
@@ -134,7 +136,9 @@ class Analysis():
 
     def plotting_session(self, session):
             # Plot for individual mice
-            Plotting_main.setup_plotting(session, self.db)
+            # Plotting_main.setup_plotting(session, self.db)
+            Single_trial_summary.Plotter(session)
+
 
 ########################################################################################################################
 ########################################################################################################################

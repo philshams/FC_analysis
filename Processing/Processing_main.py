@@ -1,10 +1,8 @@
-import numpy as np
-
 from Utils.loadsave_funcs import load_yaml
-from Utils.utils_classes import Processing_class
 from Processing.Processing_utils import *
 from Plotting import Plt_individual_stimresponses
 from Utils.maths import calc_angle_2d
+import matplotlib.pyplot as plt
 
 from Config import processing_options
 
@@ -20,12 +18,9 @@ class Processing():
 
         # Apply stuff to tracking data
         for tracking_data in list(self.session.Tracking.values()):
-            # Check if .processing is already part of the session's tracking
-            if not 'processing' in tracking_data.__dict__.keys():
-                tracking_data.processing = Processing_class()
-
             # Get velocity
             self.extract_velocity(tracking_data)
+            self.extract_location_relative_shelter(tracking_data)
 
     def extract_location_relative_shelter(self, data):
         """
@@ -122,6 +117,7 @@ class Processing():
                 print('Could not calculate velocity in bodylength per second as there are no DLC data\n'
                       'to extract the length of the body from.\nCalculating velocity as pixel per second instead')
                 unit = 'pxpersec'
+                bodylength = False
             else:
                 if 'body length' in data.metadata.keys():
                     bodylength = data.metadata['body length']
@@ -134,10 +130,11 @@ class Processing():
 
         data.metadata['Velocity unit'] = unit
 
+        fps = self.session.Metadata.videodata[0]['Frame rate'][0]
         if self.settings['std']:
             # Extract velocity using std tracking data
             distance = calc_distance_2d((data.std_tracking['x'].values, data.std_tracking['y'].values))
-            data.std_tracking['Velocity'] = calc_velocity(distance, unit=unit, fps=self.session.Video['Frame rate'],
+            data.std_tracking['Velocity'] = calc_velocity(distance, unit=unit, fps=fps,
                                                           bodylength=bodylength)
 
         if self.settings['dlc']:
@@ -157,7 +154,7 @@ class Processing():
                         self.settings['dlc single bp'] = bodypart
 
                 distance = calc_distance_2d((bp_data['x'], bp_data['y']))
-                vel = calc_velocity(distance, unit=unit, fps=self.session.Video['Frame rate'], bodylength=bodylength)
+                vel = calc_velocity(distance, unit=unit, fps=fps, bodylength=bodylength)
                 bp_data['Velocity'] = vel
 
     def extract_posture(self):
