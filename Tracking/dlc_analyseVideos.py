@@ -57,8 +57,9 @@ def analyse(tf_setting, videofolder, clips_l):
 
     os.chdir(videofolder)
     videos = np.sort([fn for fn in os.listdir(os.curdir) if (videotype in fn)])
+    clips_l = [item for sublist in clips_l for item in sublist]
+
     for video in videos:
-        clips_l = [item for sublist in clips_l for item in sublist]
         if not video.split('.')[0] in clips_l:
             continue
 
