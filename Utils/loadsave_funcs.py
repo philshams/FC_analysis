@@ -10,19 +10,32 @@ def save_data(savelogpath, save_name, object=None, name_modifier='', saveas='pkl
         save_name = '{}\\{}{}.pkl'.format(savelogpath, save_name, name_modifier)
     else:
         save_name = '{}/{}{}.pkl'.format(savelogpath, save_name, name_modifier)
-    with open(save_name, 'ab') as output:
-        if isinstance(object, pd.DataFrame):
-            if not saveas == 'h5':
-                object.to_pickle(save_name)
+    try:
+        with open(save_name, 'ab') as output:
+            if isinstance(object, pd.DataFrame):
+                if not saveas == 'h5':
+                    object.to_pickle(save_name)
+                else:
+                    object.to_hdf(save_name, key='df', mode='a')
             else:
-                object.to_hdf(save_name, key='df', mode='a')
-        else:
-            indexes = object.__dict__.keys()
-            data_to_save = pd.DataFrame([x for x in object.__dict__.values()], index=indexes)
-            if not saveas == 'h5':
-                object.to_pickle(save_name)
-            else:
-                object.to_hdf(save_name, key='df', mode='a')
+                indexes = object.__dict__.keys()
+                data_to_save = pd.DataFrame([x for x in object.__dict__.values()], index=indexes)
+                if not saveas == 'h5':
+                    object.to_pickle(save_name)
+                else:
+                    object.to_hdf(save_name, key='df', mode='a')
+    except:
+        print('           ... something went wrong with saving')
+        """
+        I think that this happens when save_data is called twice with very little time in between. If the database
+        hasn't been completely saved when this function is called again there will be an error. 
+        
+        This might happen during tracking if one session has no trials: the db will be saved at the end of a session, 
+        then the session with no trials will be processed very quickly and the code will try to save db again. But if
+        this happens too quickly the previous save operation hasn't terminated yet. 
+        
+        If this is the case then we can just ignore this error
+        """
 
     print('           ... data saved succefully ')
 

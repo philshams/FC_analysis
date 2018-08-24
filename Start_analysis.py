@@ -71,6 +71,8 @@ class Analysis():
                 # Finish DLC tracking [extract pose on saved clips]
                 self.db = Tracking.tracking_use_dlc(self.db, self.clips_l)
 
+            self.save_results(obj=self.db, mod='_backupsave')
+
             # Loop over all the sessions - Other processes ================================================
             for session_name in sorted(self.db.index):
                 session = self.db.loc[session_name]
@@ -107,7 +109,7 @@ class Analysis():
         # Process background: get maze edges and user selected ROIs
         if extract_background:
             # Get bg and save
-            maze_edges, user_rois = Image_processing.process_background(session['Video']['Background'],
+            maze_edges, user_rois = Image_processing.process_background(session['Metadata'].videodata[0]['Background'],
                                                                         track_options)
             session['Metadata']['Maze Edges'] = maze_edges
             session['Metadata']['User ROIs'] = user_rois
