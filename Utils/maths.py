@@ -70,14 +70,11 @@ def calc_angle_2d(p1, p2, vectors=False):
         angles = []
         frames = len(p1['x'])
         for idx in range(frames):
-            pp1 = (p1['x'][idx], p1['y'][idx])
-            pp2 = (p2['x'][idx], p2['y'][idx])
-            radang = atan2(pp2[1] - pp1[1], pp2[0] - pp1[0])
-            degang = degrees(radang)
-            if degang < 0:
-                angles.append(360+degang)
-            else:
-                angles.append(degang)
+            dx = p2['x'][idx]-p1['x'][idx]
+            dy = p2['y'][idx]-p1['y'][idx]
+
+            degang = np.angle(dx+dy*1j, deg=True)
+            angles.append(degang-90)
         return angles
 
 
