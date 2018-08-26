@@ -7,6 +7,9 @@ matplotlib.rcParams['axes.labelcolor'] = [0.8, 0.8, 0.8]
 matplotlib.rcParams['axes.labelcolor'] = [0.8, 0.8, 0.8]
 matplotlib.rcParams['xtick.color'] = [0.8, 0.8, 0.8]
 matplotlib.rcParams['ytick.color'] = [0.8, 0.8, 0.8]
+params = {'legend.fontsize': 20,
+          'legend.handlelength': 2}
+plt.rcParams.update(params)
 
 import numpy as np
 import math
@@ -26,6 +29,8 @@ class Plotter():
         """
         plt.ion()
         if not session is None:
+
+            self.exploration_maxmin = 10
 
             self.plot_pose = True
             self.save_figs = True
@@ -95,12 +100,11 @@ class Plotter():
         self.pose = plt.subplot2grid(grid, (4, 0), rowspan=2, colspan=9)
         self.pose.set(title='Pose reconstruction', facecolor=[0.2, 0.2, 0.2], ylim=[600, -150])
 
+        self.exploration_plot = plt.subplot2grid(grid, (0, 7), rowspan=2, colspan=2)
+        self.exploration_plot.set(title='Eploration', facecolor=[0.2, 0.2, 0.2], xlim=[0, 600], ylim=[600, 0])
+
         self.f.tight_layout()
 
-
-        # Set up figure for trials
-        # if self.sel_trial == 0:
-        #     self.f_trials, self.tr_axarr = plt.subplots(len(self.trials), 1, figsize=(15, 10))
 
 ########################################################################################################################
 
@@ -127,7 +131,21 @@ class Plotter():
                 self.dlc_y = trial.dlc_tracking['Posture'][bp]['y'].values[stim - wnd:stim + wnd]
                 self.dlc_vel = trial.dlc_tracking['Posture'][bp]['Velocity'].values[stim - wnd:stim + wnd]
                 self.dlc_ori = trial.dlc_tracking['Posture'][bp]['Orientation'].values[stim - wnd:stim + wnd]
+                self.dlc_bodylength = trial.dlc_tracking['Posture'][bp]['Body length'].values[stim - wnd:stim + wnd]
                 break
+        avgbdlength = trial.metadata['avg body length']
+        self.dlc_bodylength = np.array([x-avgbdlength for x in self.dlc_bodylength])
+
+        # Exploration
+        fps = self.session.Metadata.videodata[0]['Frame rate'][0]
+        exploration_maxfr = int(self.exploration_maxmin*60*fps)
+        expl_len = int(len(self.session.Tracking['Exploration']))
+
+        if expl_len>exploration_maxfr:
+            self.exploration = self.session.Tracking['Exploration'][expl_len-exploration_maxfr:]
+        else:
+            self.exploration = self.session.Tracking['Exploration']
+
 
     def get_dlc_pose(self, trial, stim):
         frames = np.linspace(stim-self.prestim_frames, stim+self.poststim_frames,
@@ -152,8 +170,7 @@ class Plotter():
         pre_peak = pre[np.where(np.abs(pre)==np.max(np.abs(pre)))]
         post_peak = post[np.where(np.abs(post)==np.max(np.abs(post)))]
 
-        self.at_shelter = np.where(post_y>30)[0][0]
-
+        # Show the results
         text_x, text_y, text_bg_col = -280, 75, [0.6, 0.6, 0.6]
 
         if pre_peak<0:
@@ -204,22 +221,23 @@ class Plotter():
                 if shift:
                     continue
                 else:
-                    ax.plot(bp['x'], bp['y'], 'o', markersize=7, color=[0.8, 0.8, 0.8])
+                    ax.plot(bp['x'], bp['y'], 'o', markersize=7, color=[0.8, 0.8, 0.8], label=None)
             else:
                 if shift:
-                    ax.plot(bp['x'] + shift - pose['zero'], bp['y'], 'o', markersize=7, color=self.colors[bpname])
+                    ax.plot(bp['x'] + shift - pose['zero'], bp['y'], 'o', markersize=7, color=self.colors[bpname],
+                            label=None)
                 else:
-                    ax.plot(bp['x'], bp['y'], 'o', markersize=15, color=self.colors[bpname], alpha=0.5)
+                    ax.plot(bp['x'], bp['y'], 'o', markersize=15, color=self.colors[bpname], alpha=0.5, label=None)
 
     def plot_skeleton_lines(self, ax, pose, colors, fr):
         def plot_line_skeleton(ax, p1, p2, pose, colors, shift):
             if shift:
                 ax.plot([pose[p1]['x'] + shift - pose['zero'], pose[p2]['x'] + shift - pose['zero']],
                         [pose[p1]['y'], pose[p2]['y']],
-                        color=colors[p1], linewidth=4)
+                        color=colors[p1], linewidth=4, label=None)
             else:
                 ax.plot([pose[p1]['x'], pose[p2]['x']], [pose[p1]['y'], pose[p2]['y']],
-                        color=colors[p1], linewidth=6)
+                        color=colors[p1], linewidth=6, label=None)
 
         # Plot body
         p1, p2 = 'body', 'tail'
@@ -242,16 +260,26 @@ class Plotter():
         plot_line_skeleton(ax, p1, p2, pose, colors, fr)
 
 ########################################################################################################################
+    def make_legend(self, ax, c1, c2):
+        legend = ax.legend(frameon=True)
+        frame = legend.get_frame()
+        frame.set_facecolor(c1)
+        frame.set_edgecolor(c2)
+
 
     def plot_trial(self, trialidx):
         """
         plot stuff for a single trial
         """
 
+        trialname = list(self.trials.keys())[trialidx]
+        if 'Exploration' in trialname or 'Whole Session' in trialname:
+            return
+
         self.setup_figure()
 
         print('         ... plotting trial {} of {}: {}'.format(
-            trialidx, len(list(self.trials.keys()))-1, list(self.trials.keys())[trialidx]))
+            trialidx, len(list(self.trials.keys()))-1, trialname))
 
         trial = self.trials[list(self.trials.keys())[trialidx]]
 
@@ -269,33 +297,46 @@ class Plotter():
         self.twod_track.add_artist(shelter)
         # self.twod_track.plot(std_x_adj, std_y_adj, '-o', color='g')
         self.twod_track.plot(self.dlc_x_adj[0:self.wnd], self.dlc_y_adj[0:self.wnd],
-                             '-', color=[0.4, 0.4, 0.4], linewidth=2)
+                             '-', color=[0.4, 0.4, 0.4], linewidth=2, label='Outward')
         self.twod_track.plot(self.dlc_x_adj[self.wnd:], self.dlc_y_adj[self.wnd:],
-                             '-', color=[0.6, 0.6, 0.6], linewidth=4)
+                             '-', color=[0.6, 0.6, 0.6], linewidth=4, label='Escape')
         self.twod_track.plot(self.dlc_x_adj[self.wnd], self.dlc_y_adj[self.wnd],
-                             'o', color=[0.8, 0.2, 0.2], markersize=20, alpha = 0.75)
+                             'o', color=[0.8, 0.2, 0.2], markersize=20, alpha = 0.75, label='Stim location')
+        self.make_legend(self.twod_track, [0.1, .1, .1], [0.8, 0.8, 0.8])
 
         # Plot 1D stuff for std [x, y, velocity...]
-        self.std.plot(self.std_x_adj, color=[0.2, 0.8, 0.2], linewidth=3)
-        self.std.plot(self.std_y_adj, color=[0.2, 0.6, 0.2], linewidth=3)
-        self.std.axvline(self.wnd, color='w', linewidth=1)
+        self.std.plot(self.std_x_adj, color=[0.2, 0.8, 0.2], linewidth=3, label='X pos')
+        self.std.plot(self.std_y_adj, color=[0.2, 0.6, 0.2], linewidth=3, label='Y pos')
+        self.std.axvline(self.wnd, color='w', linewidth=1, label=None)
+        self.make_legend(self.std, [0.1, .1, .1], [0.8, 0.8, 0.8])
 
-        self.std_vel_plot.plot(self.std_vel, color=[0.4, 0.4, 0.4], linewidth=3)
-        self.std_vel_plot.plot(line_smoother(self.std_vel, 51, 3), color=[0.4, 0.8, 0.4], linewidth=5)
-        self.std_vel_plot.axvline(self.wnd, color='w', linewidth=1)
+        self.std_vel_plot.plot(self.std_vel, color=[0.4, 0.4, 0.4], linewidth=3, label='Vel')
+        self.std_vel_plot.plot(line_smoother(self.std_vel, 51, 3), color=[0.4, 0.8, 0.4], linewidth=5,
+                               label='Smoothed')
+        self.std_vel_plot.axvline(self.wnd, color='w', linewidth=1, label=None)
+        self.make_legend(self.std_vel_plot, [0.1, .1, .1], [0.8, 0.8, 0.8])
 
         # Plot 1D stuff for dlc [x, y, velocity...]
-        self.dlc.plot(self.dlc_x_adj, color=[0.8, 0.2, 0.2], linewidth=3)
-        self.dlc.plot(self.dlc_y_adj, color=[0.6, 0.2, 0.2], linewidth=3)
-        self.dlc.axvline(self.wnd, color='w', linewidth=1)
+        self.dlc.plot(self.dlc_x_adj, color=[0.8, 0.2, 0.2], linewidth=3, label='X pos')
+        self.dlc.plot(self.dlc_y_adj, color=[0.6, 0.2, 0.2], linewidth=3, label='Y pos')
+        self.dlc.axvline(self.wnd, color='w', linewidth=1, label=None)
+        self.make_legend(self.dlc, [0.1, .1, .1], [0.8, 0.8, 0.8])
 
-        self.dlc_vel_plot.plot(self.dlc_vel, color=[0.4, 0.4, 0.4], linewidth=5)
-        self.dlc_vel_plot.plot(line_smoother(self.dlc_vel, 51, 3), color=[0.8, 0.4, 0.4], linewidth=3)
-        self.dlc_vel_plot.axvline(self.wnd, color='w', linewidth=1)
+        self.dlc_vel_plot.plot(self.dlc_vel, color=[0.4, 0.4, 0.4], linewidth=5, label='Vel')
+        self.dlc_vel_plot.plot(line_smoother(self.dlc_vel, 51, 3), color=[0.8, 0.4, 0.4], linewidth=3,
+                               label='Smoothed')
+        self.dlc_vel_plot.axvline(self.wnd, color='w', linewidth=1, label=None)
+        self.make_legend(self.dlc_vel_plot, [0.1, .1, .1], [0.8, 0.8, 0.8])
 
         # Show mouse tracking over the maze
         self.tracking_on_maze.imshow(self.session.Metadata.videodata[0]['Background'], cmap='Greys')
         self.tracking_on_maze.plot(self.dlc_x, self.dlc_y, '-', color='r')
+
+        # Show exploration heatmap
+        cmap = plt.cm.bone
+        cmap.set_under(color=[.1, .1, .1])
+        self.exploration_plot.hexbin(self.exploration['x'].values, self.exploration['y'].values,
+                                     bins='log', gridsize=50, cmap=cmap, vmin=0.0005)
 
         # Plot orientation at reaction
         yy = np.linspace(self.prestim_frames, self.poststim_frames, self.prestim_frames+self.poststim_frames)
@@ -303,17 +344,26 @@ class Plotter():
         theta = [math.radians(x) for x in theta]
         self.reaction_polar.scatter(theta, yy, c=yy, cmap='Oranges', s=50)
 
-        # Show pose reconstruction
-        if self.plot_pose:
-            # TIME pose reconstruction
-            self.pose.axhline(0, color='w', linewidth=1, alpha=0.75)
-            x = self.plot_skeleton_time(poses, self.pose)
+        try:
+            # Show pose reconstruction
+            if self.plot_pose:
+                # TIME pose reconstruction
+                self.pose.axhline(0, color='w', linewidth=1, alpha=0.75)
+                x = self.plot_skeleton_time(poses, self.pose)
 
-            # Plot stuff over pose reconstruction
-            self.pose.fill_between(x, 0, self.std_x_adj[self.wnd-5:self.wnd+self.poststim_frames+2],
-                                   facecolor=[0.8, 0.8, 0.8], alpha=0.5)
-            self.pose.fill_between(x, 0, self.std_vel[self.wnd-5:self.wnd+self.poststim_frames+2]*10,
-                                   facecolor=[0.6, 0.6, 0.6], alpha=0.5)
+                # Plot stuff over pose reconstruction
+                self.pose.fill_between(x, 0, self.std_x_adj[self.wnd-5:self.wnd+self.poststim_frames+2],
+                                       facecolor=[0.8, 0.8, 0.8], alpha=0.5, label='X position')
+                self.pose.fill_between(x, 0, self.std_vel[self.wnd-5:self.wnd+self.poststim_frames+2]*10,
+                                       facecolor=[0.8, 0.4, 0.4], alpha=0.5, label='Velocity')
+
+                self.pose.plot(x, self.dlc_bodylength[self.wnd - 5:self.wnd + self.poststim_frames + 2] * 10,
+                                       color=[0.4, 0.4, 0.8], alpha=0.5, linewidth=4, label='Body length')
+
+                self.make_legend(self.pose, [0.1, .1, .1], [0.8, 0.8, 0.8])
+
+        except:
+            pass
 
         if self.save_figs:
             path = 'D:\\Dropbox (UCL - SWC)\\Dropbox (UCL - SWC)\\Rotation_vte\\data\\dlc_trialImgs'
