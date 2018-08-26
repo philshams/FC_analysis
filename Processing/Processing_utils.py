@@ -49,7 +49,7 @@ def get_average_bodylength(data, tail_tag='', head_tag=''):
 
             lengths[idx] = calc_distance_2d((headpoint, tailpoint), vectors=False)
 
-        return np.mean(lengths)
+        return np.mean(lengths), lengths
 
 
 def pose_reconstruction(head, body, tail, debug=False):

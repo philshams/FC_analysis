@@ -17,8 +17,12 @@ class Processing():
         self.database = database
 
         # Apply stuff to tracking data
-        for tracking_data in list(self.session.Tracking.values()):
-            # Get velocity
+        for data_name, tracking_data in list(self.session.Tracking.items()):
+            if data_name == 'Exploration' or data_name == 'Whole Session':
+                continue
+
+            # Process stuff
+            self.extract_bodylength(tracking_data)
             self.extract_velocity(tracking_data)
             self.extract_location_relative_shelter(tracking_data)
             self.extract_orientation(tracking_data)
@@ -93,6 +97,23 @@ class Processing():
         absolute_angle = calc_angle_2d(body, tail, vectors=True)
         data.dlc_tracking['Posture']['body']['Orientation'] = absolute_angle
 
+    def extract_bodylength(self, data):
+        # Get bodylength
+        avg_bodylength, bodylength = get_average_bodylength(data, head_tag=self.settings['head'],
+                                                            tail_tag=self.settings['tail'])
+
+        # Store results
+        data.metadata['avg body length'] = avg_bodylength
+
+        for bp in data.dlc_tracking['Posture'].keys():
+            if self.settings['dlc single bp']:
+                if bp != self.settings['dlc single bp']:
+                    continue
+
+            # Extract velocity for a single bodypart as determined by the user
+            bp_data, bodypart = from_dlc_to_single_bp(data, bp)
+            bp_data['Body length'] = bodylength
+
     def extract_velocity(self, data):
         """
             Calculates the velocity of the mouse from tracking data.
@@ -121,11 +142,11 @@ class Processing():
                 bodylength = False
             else:
                 if 'body length' in data.metadata.keys():
-                    bodylength = data.metadata['body length']
+                    bodylength = data.metadata['avg body length']
                 else:
                     # Extract body length from DLC data
-                    bodylength = get_average_bodylength(data, head_tag=self.settings['head'], tail_tag=self.settings['tail'])
-                    data.metadata['body length'] = bodylength
+                    bodylength, _ = get_average_bodylength(data, head_tag=self.settings['head'],
+                                                            tail_tag=self.settings['tail'])
         else:
             bodylength=False
 
