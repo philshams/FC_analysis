@@ -7,7 +7,7 @@ matplotlib.rcParams['axes.labelcolor'] = [0.8, 0.8, 0.8]
 matplotlib.rcParams['axes.labelcolor'] = [0.8, 0.8, 0.8]
 matplotlib.rcParams['xtick.color'] = [0.8, 0.8, 0.8]
 matplotlib.rcParams['ytick.color'] = [0.8, 0.8, 0.8]
-params = {'legend.fontsize': 20,
+params = {'legend.fontsize': 16,
           'legend.handlelength': 2}
 plt.rcParams.update(params)
 
@@ -58,6 +58,7 @@ class Plotter():
             plt.show()
 
 ########################################################################################################################
+
     def get_trials_data(self):
         tracking = self.session.Tracking
 
@@ -71,47 +72,46 @@ class Plotter():
 
         grid = (6, 9)
 
-        self.twod_track = plt.subplot2grid(grid, (0, 0), rowspan=4, colspan=3)
+        self.twod_track = plt.subplot2grid(grid, (0, 1), rowspan=3, colspan=2)
         self.twod_track.set(title='Tracking relative to shelter',
                             facecolor=[0.2, 0.2, 0.2], xlim=[300, -300], ylim=[-500, 100])
 
-
         self.std = plt.subplot2grid(grid, (0, 3), rowspan=1, colspan=2)
-        self.std.set(title='DLC - X-Y displacement', facecolor=[0.2, 0.2, 0.2])
+        self.std.set(title='STD - X-Y displacement', facecolor=[0.2, 0.2, 0.2])
 
         self.dlc = plt.subplot2grid(grid, (2,  3), rowspan=1, colspan=2, sharex=self.std)
         self.dlc.set(title='STD - X-Y displacement', facecolor=[0.2, 0.2, 0.2])
 
-
         self.std_vel_plot = plt.subplot2grid(grid, (1, 3), rowspan=1, colspan=2, sharex=self.std)
-        self.std_vel_plot.set(title='STD - Velocity ', facecolor=[0.2, 0.2, 0.2])
+        self.std_vel_plot.set(title='DLC - Velocity ', facecolor=[0.2, 0.2, 0.2])
 
         self.dlc_vel_plot = plt.subplot2grid(grid, (3,  3), rowspan=1, colspan=2, sharex=self.std)
         self.dlc_vel_plot.set(title='DLC - Velocity', facecolor=[0.2, 0.2, 0.2])
 
-
-        self.tracking_on_maze = plt.subplot2grid(grid, (0, 5), rowspan=2, colspan=2)
+        self.tracking_on_maze = plt.subplot2grid(grid, (0, 0), rowspan=1, colspan=1)
         self.tracking_on_maze.set(title='Tracking on maze', facecolor=[0.2, 0.2, 0.2], xlim=[0, 600], ylim=[600, 0])
 
-        self.reaction_polar = plt.subplot2grid(grid, (2, 5), rowspan=2, colspan=2, projection='polar')
-        self.reaction_polar.set(title='Reaction - orientation', theta_zero_location='N', facecolor=[0.2, 0.2, 0.2],
-                                theta_direction=-1)
+        self.absolute_angle_plot = plt.subplot2grid(grid, (0, 5), rowspan=2, colspan=2, projection='polar')
+        self.absolute_angle_plot.set(title='Orientation (body green)', theta_zero_location='N', facecolor=[0.2, 0.2, 0.2],
+                                     theta_direction=-1)
 
         self.pose = plt.subplot2grid(grid, (4, 0), rowspan=2, colspan=9)
-        self.pose.set(title='Pose reconstruction', facecolor=[0.2, 0.2, 0.2], ylim=[600, -150])
+        self.pose.set(title='Pose reconstruction', facecolor=[0.2, 0.2, 0.2], ylim=[635, -150])
 
-        self.exploration_plot = plt.subplot2grid(grid, (0, 7), rowspan=2, colspan=2)
+        self.pose_space = plt.subplot2grid(grid, (2, 0), rowspan=1, colspan=1)
+        self.pose_space.set(title='Pose at stim', facecolor=[0.2, 0.2, 0.2], xlim=[150, 450], ylim=[650, 350])
+
+        self.exploration_plot = plt.subplot2grid(grid, (1, 0), rowspan=1, colspan=1)
         self.exploration_plot.set(title='Eploration', facecolor=[0.2, 0.2, 0.2], xlim=[0, 600], ylim=[600, 0])
 
-        self.react_time_plot =  plt.subplot2grid(grid, (2, 7), rowspan=1, colspan=2)
+        self.react_time_plot =  plt.subplot2grid(grid, (3, 0), rowspan=1, colspan=3)
         self.react_time_plot.set(title='Reaction Time', facecolor=[0.2, 0.2, 0.2])
 
-        self.head_rel_angle = plt.subplot2grid(grid, (3, 7), rowspan=1, colspan=1, projection='polar')
+        self.head_rel_angle = plt.subplot2grid(grid, (2, 5), rowspan=2, colspan=2, projection='polar')
         self.head_rel_angle.set(title='Head Relative Angle', theta_zero_location='N', facecolor=[0.2, 0.2, 0.2],
                                 theta_direction=-1)
 
         self.f.tight_layout()
-
 
 ########################################################################################################################
 
@@ -179,8 +179,8 @@ class Plotter():
         self.post_ori = self.dlc_ori[window:-1]
         self.post_bl = self.dlc_bodylength[window:-1]
 
-        self.mean_pre_xacc, self.sdev_pre_xacc = np.mean(np.diff(x[0:window-31])), np.std(np.diff(x[0:window-31]))
-        self.mean_pre_yacc, self.sdev_pre_yacc = np.mean(np.diff(y[0:window-31])), np.std(np.diff(y[0:window-31]))
+        self.mean_pre_xvel, self.sdev_pre_xacc = np.mean(np.diff(x[0:window - 31])), np.std(np.diff(x[0:window - 31]))
+        self.mean_pre_yvel, self.sdev_pre_yacc = np.mean(np.diff(y[0:window - 31])), np.std(np.diff(y[0:window - 31]))
         self.mean_pre_vel, self.sdev_pre_vel = np.mean(self.dlc_vel[0:window-31]), np.std(self.dlc_vel[0:window-31])
         self.mean_pre_bl, self.sdev_pre_bl = np.mean(self.dlc_bodylength[0:window-31]),np.std(self.dlc_bodylength[0:window-31])
 
@@ -197,11 +197,22 @@ class Plotter():
         # Get point of max Y distance from shelet
         self.y_diff = np.diff(self.post_y)
         self.x_diff = np.diff(post)
-        self.at_shelter = np.where(self.post_y>0)[0][0]
 
-        # Adjust some ax lims
+        try:
+            self.at_shelter = np.where(self.post_y>0)[0][0]
+        except:
+            self.at_shelter = len(self.post_y)
+
+        # Adjust ax limits and mark time in which mouse reached shelter
         self.head_rel_angle.set(ylim=[0, self.at_shelter])
-
+        self.absolute_angle_plot.set(ylim=[0, self.at_shelter])
+        self.std.axvline(self.at_shelter+window, color=[0.8, 0.2, 0.8], linewidth=1, label=None)
+        self.std_vel_plot.axvline(self.at_shelter+window, color=[0.8, 0.2, 0.8], linewidth=1, label=None)
+        self.dlc.axvline(self.at_shelter+window, color=[0.8, 0.2, 0.8], linewidth=1, label=None)
+        self.dlc_vel_plot.axvline(self.at_shelter+window, color=[0.8, 0.2, 0.8], linewidth=1, label=None)
+        self.react_time_plot.axvline(self.at_shelter, color=[0.8, 0.2, 0.8], linewidth=1, label=None)
+        self.twod_track.plot(self.dlc_x_adj[self.wnd+self.at_shelter], self.dlc_y_adj[self.wnd+self.at_shelter],
+                             'o', color=[0.8, 0.2, 0.8], markersize=20, alpha=0.75, label='At shelter')
         # Show the results
         text_x, text_y, text_bg_col = -280, 75, [0.1, 0.1, 0.1]
 
@@ -221,7 +232,7 @@ class Plotter():
         ax.text(-text_x, text_y - 150, 'Stim Y: {}'.format(round(y_stim, 2)),
                 bbox={'facecolor': text_bg_col, 'alpha': 0.5, 'pad': 10})
 
-        ax.text(-text_x, text_y - 200, 'Stim Ori: {}'.format(round(ori_stim, 2)),
+        ax.text(-text_x, text_y - 200, 'Stim Ori: {}'.format(round(360+ori_stim, 2)),
                 bbox={'facecolor': text_bg_col, 'alpha': 0.5, 'pad': 10})
 
         ax.text(-text_x, text_y - 250, 'Stim Vel: {}'.format(round(vel_stim, 2)),
@@ -229,23 +240,42 @@ class Plotter():
 
         ax.text(-text_x, text_y - 300, 'Stim BL: {}'.format(round(bodylenfth_stim, 2)),
                 bbox={'facecolor': text_bg_col, 'alpha': 0.5, 'pad': 10})
-    ########################################################################################################################
+
+        ax.text(-text_x, text_y - 350, 'At shelt: {}'.format(round(self.at_shelter, 2)),
+                bbox={'facecolor': text_bg_col, 'alpha': 0.5, 'pad': 10})
+
+########################################################################################################################
 
     def plot_skeleton_time(self, poses, ax):
         x = np.linspace(1, 101 * (len(poses.keys()) / 2), len(poses.keys()) + 1)
         for idx, (fr, pose) in enumerate(sorted(poses.items())):
             fr = x[idx]
+            # Mark the frame
             if idx == self.prestim_frames-1:
                 ax.axvline(fr, color='r', linewidth=3)
+                # Plot pose over maze edges at react time
+                self.plot_skeleton_single_pose(pose, self.pose_space)
+                self.plot_skeleton_lines(self.pose_space, pose, self.colors, False)
+
+                maze_outline = self.session.Metadata.videodata[0]['Maze Edges']
+                self.pose_space.imshow(maze_outline, cmap='gray')
+
+            elif not (idx+self.prestim_frames+1)%10:
+                ax.axvline(fr, color=[0.4, 0.4, 0.4], linewidth=2)
+                ax.text(fr-20, 600, '{}'.format(idx-self.prestim_frames+1),
+                        bbox={'facecolor': [0.1, 0.1, 0.1], 'alpha': 0.5, 'pad': 10})
+
+            elif (idx-self.prestim_frames) == self.at_shelter:
+                ax.axvline(fr, color=[0.8, 0.2, 0.8], linewidth=3, label=None)
+
+            else:
+                ax.axvline(fr, color=[0.6, 0.6, 0.6], linewidth=0.25)
 
             # Plot the skeleton
             self.plot_skeleton_lines(ax, pose, self.colors, fr)
 
             # Plot the location of the bodyparts
             self.plot_skeleton_single_pose(pose, ax, shift=fr)
-
-            # Mark the frame
-            ax.axvline(fr, color=[0.6, 0.6, 0.6], linewidth=0.25)
         return x
 
     def plot_skeleton_space(self, poses, ax):
@@ -267,13 +297,15 @@ class Plotter():
                 if shift:
                     continue
                 else:
-                    ax.plot(bp['x'], bp['y'], 'o', markersize=7, color=[0.8, 0.8, 0.8], label=None)
+                    ax.plot(bp['x'], bp['y'], 'o', markersize=5, color=[0.8, 0.8, 0.8], label=None)
             else:
                 if shift:
-                    ax.plot(bp['x'] + shift - pose['zero'], bp['y'], 'o', markersize=7, color=self.colors[bpname],
+                    # Plot bodyparts as points in the pose-time plot
+                    ax.plot(bp['x'] + shift - pose['zero'], bp['y'], 'o', markersize=6, color=self.colors[bpname],
                             label=None)
                 else:
-                    ax.plot(bp['x'], bp['y'], 'o', markersize=15, color=self.colors[bpname], alpha=0.5, label=None)
+                    # Plot bodyparts as points in the pose-reaction (space) plot
+                    ax.plot(bp['x'], bp['y'], 'o', markersize=7, color=self.colors[bpname], alpha=0.5, label=None)
 
     def plot_skeleton_lines(self, ax, pose, colors, fr):
         def plot_line_skeleton(ax, p1, p2, pose, colors, shift):
@@ -283,7 +315,7 @@ class Plotter():
                         color=colors[p1], linewidth=4, label=None)
             else:
                 ax.plot([pose[p1]['x'], pose[p2]['x']], [pose[p1]['y'], pose[p2]['y']],
-                        color=colors[p1], linewidth=6, label=None)
+                        color=colors[p1], linewidth=2, label=None)
 
         # Plot body
         p1, p2 = 'body', 'tail'
@@ -306,8 +338,13 @@ class Plotter():
         plot_line_skeleton(ax, p1, p2, pose, colors, fr)
 
 ########################################################################################################################
-    def make_legend(self, ax, c1, c2):
-        legend = ax.legend(frameon=True)
+
+    def make_legend(self, ax, c1, c2, changefont=False):
+        if not changefont:
+            legend = ax.legend(frameon=True)
+        else:
+            legend = ax.legend(frameon=True, prop={'size': changefont})
+
         frame = legend.get_frame()
         frame.set_facecolor(c1)
         frame.set_edgecolor(c2)
@@ -324,7 +361,7 @@ class Plotter():
         self.setup_figure()
 
         print('         ... plotting trial {} of {}: {}'.format(
-            trialidx, len(list(self.trials.keys()))-1, trialname))
+            trialidx, len(list(self.trials.keys()))-2, trialname))
 
         trial = self.trials[list(self.trials.keys())[trialidx]]
 
@@ -383,8 +420,9 @@ class Plotter():
             self.exploration_plot.hexbin(self.exploration['x'].values, self.exploration['y'].values,
                                          bins='log', gridsize=50, cmap=cmap)
         else:
-            self.exploration_plot.plot(self.exploration['x'].values, self.exploration['y'].values,
-                                       color=[0.6, 0.6, 0.6], linewidth=3)
+            pass
+            # self.exploration_plot.plot(self.exploration['x'].values, self.exploration['y'].values,
+            #                            color=[0.6, 0.6, 0.6], linewidth=3)
 
         # Plot orientation at reaction
         yy = np.linspace(self.prestim_frames, self.poststim_frames, self.prestim_frames+self.poststim_frames)
@@ -395,9 +433,9 @@ class Plotter():
         head_theta = np.array([math.radians(x) for x in head_theta])
         head_rel_angle = head_theta-theta
 
-        self.reaction_polar.scatter(theta, yy, c=yy, cmap='Oranges', s=50, alpha=0.5)
-        self.reaction_polar.scatter(head_theta, yy, c=yy, cmap='Greens', s=50, alpha=0.5)
-        self.head_rel_angle.scatter(head_rel_angle, yy, c=yy, cmap='Greens', s=50, alpha=0.5)
+        self.absolute_angle_plot.scatter(theta, yy, c=yy, cmap='Oranges', s=50, alpha=0.5, label='Body')
+        self.absolute_angle_plot.scatter(head_theta, yy, c=yy, cmap='Greens', s=50, alpha=0.5, label='Head')
+        self.head_rel_angle.scatter(head_rel_angle, yy, c=yy, cmap='Paired', s=50, alpha=0.5)
 
         try:
             # Show pose reconstruction
@@ -421,21 +459,21 @@ class Plotter():
             pass
 
         # Plot Reaction Time stuff
-        self.react_time_plot.plot(self.y_diff, color=[0.6, 0.2, 0.2], linewidth=3, label='Y accel.')
-        self.react_time_plot.axhline(self.mean_pre_yacc, color=[0.6, 0.2, 0.2], linewidth=1, label=None)
+        self.react_time_plot.plot(self.y_diff, color=[0.6, 0.2, 0.2], linewidth=3, label='Y vel')
+        self.react_time_plot.axhline(self.mean_pre_yvel, color=[0.6, 0.2, 0.2], linewidth=1, label=None)
 
-        self.react_time_plot.plot(np.diff(self.x_diff), color=[0.8, 0.2, 0.2], linewidth=3, label='X accel.')
-        self.react_time_plot.axhline(self.mean_pre_xacc, color=[0.8, 0.2, 0.2], linewidth=1, label=None)
+        self.react_time_plot.plot(self.x_diff, color=[0.8, 0.2, 0.2], linewidth=3, label='X vel')
+        self.react_time_plot.axhline(self.mean_pre_xvel, color=[0.8, 0.2, 0.2], linewidth=1, label=None)
 
-        self.react_time_plot.plot(self.post_vel, color=[0.8, 0.4, 0.4], linewidth=3, label='Ve.')
-        self.react_time_plot.axhline(self.mean_pre_vel, color=[0.8, 0.4, 0.4], linewidth=1, label=None)
+        self.react_time_plot.plot(self.post_vel, color=[0.6, 0.6, 0.6], linewidth=3, label='Vel')
+        self.react_time_plot.axhline(self.mean_pre_vel, color=[0.6, 0.6, 0.6], linewidth=1, label=None)
 
         self.react_time_plot.plot(self.post_bl * 10, color=[0.4, 0.4, 0.8], linewidth=3, label='BL')
         self.react_time_plot.axhline(self.mean_pre_bl * 10, color=[0.4, 0.4, 0.8], linewidth=1, label=None)
 
         self.react_time_plot.axhline(0, color='w', linewidth=1, label=None)
-        self.react_time_plot.set(xlim=[0, self.at_shelter + 30], ylim=[-20, 20])
-        # self.make_legend(self.react_time_plot, [0.1, .1, .1], [0.8, 0.8, 0.8])
+        self.react_time_plot.set(xlim=[0, self.at_shelter + 120], ylim=[-20, 20])
+        self.make_legend(self.react_time_plot, [0.1, .1, .1], [0.8, 0.8, 0.8], changefont=8)
 
         if self.save_figs:
             path = 'D:\\Dropbox (UCL - SWC)\\Dropbox (UCL - SWC)\\Rotation_vte\\data\\dlc_trialImgs'
@@ -443,7 +481,6 @@ class Plotter():
             print('             ... saving figure {}'.format(name))
             plt.savefig(os.path.join(path, name), facecolor=[0.1, 0.1, 0.1])
             plt.close('all')
-
 
 ########################################################################################################################
 
