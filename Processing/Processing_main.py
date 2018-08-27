@@ -90,12 +90,18 @@ class Processing():
             shelter_location = data.metadata['shelter location']
 
         # Get the position of the two bodyparts
+        head, _ = from_dlc_to_single_bp(data, self.settings['head'])
         body, _ = from_dlc_to_single_bp(data, self.settings['body'])
         tail, _ = from_dlc_to_single_bp(data, self.settings['tail'])
 
         # Get angle relative to frame
         absolute_angle = calc_angle_2d(body, tail, vectors=True)
         data.dlc_tracking['Posture']['body']['Orientation'] = absolute_angle
+
+        # Get head angle relative to body angle
+        absolute_angle_head = calc_angle_2d(head, body, vectors=True)
+        data.dlc_tracking['Posture']['body']['Head angle'] = absolute_angle_head
+
 
     def extract_bodylength(self, data):
         # Get bodylength

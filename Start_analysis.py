@@ -68,8 +68,9 @@ class Analysis():
                     if extract_background or track_mouse:
                         self.video_analysis(session)
 
-                # Finish DLC tracking [extract pose on saved clips]
-                self.db = Tracking.tracking_use_dlc(self.db, self.clips_l)
+                if track_mouse:
+                    # Finish DLC tracking [extract pose on saved clips]
+                    self.db = Tracking.tracking_use_dlc(self.db, self.clips_l)
 
             self.save_results(obj=self.db, mod='_backupsave')
 

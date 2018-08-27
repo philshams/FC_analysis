@@ -21,7 +21,11 @@ def calc_distance_2d(data, vectors = True):
                 p1 = pos
 
                 # Calc distance
-                dist.append(distance.euclidean(p0, p1))
+                try:
+                    dist.append(distance.euclidean(p0, p1))
+                except:
+                    if np.isnan(p1).any():
+                        dist.append(np.nan)
 
                 # Prepare for next iteration
                 p0 = p1
