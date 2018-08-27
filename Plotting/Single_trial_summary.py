@@ -103,6 +103,13 @@ class Plotter():
         self.exploration_plot = plt.subplot2grid(grid, (0, 7), rowspan=2, colspan=2)
         self.exploration_plot.set(title='Eploration', facecolor=[0.2, 0.2, 0.2], xlim=[0, 600], ylim=[600, 0])
 
+        self.react_time_plot =  plt.subplot2grid(grid, (2, 7), rowspan=1, colspan=2)
+        self.react_time_plot.set(title='Reaction Time', facecolor=[0.2, 0.2, 0.2])
+
+        self.head_rel_angle = plt.subplot2grid(grid, (3, 7), rowspan=1, colspan=1, projection='polar')
+        self.head_rel_angle.set(title='Head Relative Angle', theta_zero_location='N', facecolor=[0.2, 0.2, 0.2],
+                                theta_direction=-1)
+
         self.f.tight_layout()
 
 
@@ -131,10 +138,11 @@ class Plotter():
                 self.dlc_y = trial.dlc_tracking['Posture'][bp]['y'].values[stim - wnd:stim + wnd]
                 self.dlc_vel = trial.dlc_tracking['Posture'][bp]['Velocity'].values[stim - wnd:stim + wnd]
                 self.dlc_ori = trial.dlc_tracking['Posture'][bp]['Orientation'].values[stim - wnd:stim + wnd]
+                self.dlc_head_ori = trial.dlc_tracking['Posture'][bp]['Head angle'].values[stim - wnd:stim + wnd]
                 self.dlc_bodylength = trial.dlc_tracking['Posture'][bp]['Body length'].values[stim - wnd:stim + wnd]
                 break
         avgbdlength = trial.metadata['avg body length']
-        self.dlc_bodylength = np.array([x-avgbdlength for x in self.dlc_bodylength])
+        self.dlc_bodylength = np.array([x/avgbdlength for x in self.dlc_bodylength])
 
         # Exploration
         fps = self.session.Metadata.videodata[0]['Frame rate'][0]
@@ -142,10 +150,11 @@ class Plotter():
         expl_len = int(len(self.session.Tracking['Exploration']))
 
         if expl_len>exploration_maxfr:
+            self.exp_heatmap = True
             self.exploration = self.session.Tracking['Exploration'][expl_len-exploration_maxfr:]
         else:
+            self.exp_heatmap = False
             self.exploration = self.session.Tracking['Exploration']
-
 
     def get_dlc_pose(self, trial, stim):
         frames = np.linspace(stim-self.prestim_frames, stim+self.poststim_frames,
@@ -164,14 +173,37 @@ class Plotter():
     def get_outcome(self, x, y,  window, ax):
         pre = x[0:window-1]
         post = x[window:-1]
-        post_y = y[window:-1]
+
+        self.post_y = y[window:-1]
+        self.post_vel = self.dlc_vel[window:-1]
+        self.post_ori = self.dlc_ori[window:-1]
+        self.post_bl = self.dlc_bodylength[window:-1]
+
+        self.mean_pre_xacc, self.sdev_pre_xacc = np.mean(np.diff(x[0:window-31])), np.std(np.diff(x[0:window-31]))
+        self.mean_pre_yacc, self.sdev_pre_yacc = np.mean(np.diff(y[0:window-31])), np.std(np.diff(y[0:window-31]))
+        self.mean_pre_vel, self.sdev_pre_vel = np.mean(self.dlc_vel[0:window-31]), np.std(self.dlc_vel[0:window-31])
+        self.mean_pre_bl, self.sdev_pre_bl = np.mean(self.dlc_bodylength[0:window-31]),np.std(self.dlc_bodylength[0:window-31])
 
         # Get frame at which the mouse is the most distant from midline, ang get the X position at that frame
         pre_peak = pre[np.where(np.abs(pre)==np.max(np.abs(pre)))]
         post_peak = post[np.where(np.abs(post)==np.max(np.abs(post)))]
 
+        # Get position and orientation at time of stimulus
+        x_stim, y_stim, ori_stim, vel_stim, bodylenfth_stim = self.dlc_x_adj[window], self.dlc_y_adj[window],\
+                                                              self.dlc_ori[window],\
+                                                              self.dlc_vel[window], self.dlc_bodylength[window]
+
+        # Get REACTION TIME
+        # Get point of max Y distance from shelet
+        self.y_diff = np.diff(self.post_y)
+        self.x_diff = np.diff(post)
+        self.at_shelter = np.where(self.post_y>0)[0][0]
+
+        # Adjust some ax lims
+        self.head_rel_angle.set(ylim=[0, self.at_shelter])
+
         # Show the results
-        text_x, text_y, text_bg_col = -280, 75, [0.6, 0.6, 0.6]
+        text_x, text_y, text_bg_col = -280, 75, [0.1, 0.1, 0.1]
 
         if pre_peak<0:
             ax.text(-text_x, text_y, 'Origin RIGHT', bbox={'facecolor':text_bg_col, 'alpha':0.5, 'pad':10})
@@ -183,7 +215,21 @@ class Plotter():
         else:
             ax.text(-text_x, text_y-50, 'Escape LEFT', bbox={'facecolor':text_bg_col, 'alpha':0.5, 'pad':10})
 
-########################################################################################################################
+        ax.text(-text_x, text_y - 100, 'Stim X: {}'.format(round(x_stim, 2)),
+                bbox={'facecolor': text_bg_col, 'alpha': 0.5, 'pad': 10})
+
+        ax.text(-text_x, text_y - 150, 'Stim Y: {}'.format(round(y_stim, 2)),
+                bbox={'facecolor': text_bg_col, 'alpha': 0.5, 'pad': 10})
+
+        ax.text(-text_x, text_y - 200, 'Stim Ori: {}'.format(round(ori_stim, 2)),
+                bbox={'facecolor': text_bg_col, 'alpha': 0.5, 'pad': 10})
+
+        ax.text(-text_x, text_y - 250, 'Stim Vel: {}'.format(round(vel_stim, 2)),
+                bbox={'facecolor': text_bg_col, 'alpha': 0.5, 'pad': 10})
+
+        ax.text(-text_x, text_y - 300, 'Stim BL: {}'.format(round(bodylenfth_stim, 2)),
+                bbox={'facecolor': text_bg_col, 'alpha': 0.5, 'pad': 10})
+    ########################################################################################################################
 
     def plot_skeleton_time(self, poses, ax):
         x = np.linspace(1, 101 * (len(poses.keys()) / 2), len(poses.keys()) + 1)
@@ -266,7 +312,6 @@ class Plotter():
         frame.set_facecolor(c1)
         frame.set_edgecolor(c2)
 
-
     def plot_trial(self, trialidx):
         """
         plot stuff for a single trial
@@ -290,7 +335,7 @@ class Plotter():
         poses = self.get_dlc_pose(trial, self.stim)
 
         # Get outcome
-        self.get_outcome(self.dlc_x_adj, self.dlc_x_adj, self.wnd, self.twod_track)
+        self.get_outcome(self.dlc_x_adj, self.dlc_y_adj, self.wnd, self.twod_track)
 
         # Plot 2D tracking from std and dlc data
         shelter = plt.Rectangle((-50,-30),100,60,linewidth=1,edgecolor='b',facecolor=[0.4, 0.4, 0.8], alpha=0.5)
@@ -334,15 +379,25 @@ class Plotter():
 
         # Show exploration heatmap
         cmap = plt.cm.bone
-        cmap.set_under(color=[.1, .1, .1])
-        self.exploration_plot.hexbin(self.exploration['x'].values, self.exploration['y'].values,
-                                     bins='log', gridsize=50, cmap=cmap, vmin=0.0005)
+        if self.exp_heatmap:
+            self.exploration_plot.hexbin(self.exploration['x'].values, self.exploration['y'].values,
+                                         bins='log', gridsize=50, cmap=cmap)
+        else:
+            self.exploration_plot.plot(self.exploration['x'].values, self.exploration['y'].values,
+                                       color=[0.6, 0.6, 0.6], linewidth=3)
 
         # Plot orientation at reaction
         yy = np.linspace(self.prestim_frames, self.poststim_frames, self.prestim_frames+self.poststim_frames)
         theta = self.dlc_ori[self.wnd-self.prestim_frames:self.wnd+self.poststim_frames]
-        theta = [math.radians(x) for x in theta]
-        self.reaction_polar.scatter(theta, yy, c=yy, cmap='Oranges', s=50)
+        head_theta = self.dlc_head_ori[self.wnd-self.prestim_frames:self.wnd+self.poststim_frames]
+
+        theta = np.array([math.radians(x) for x in theta])
+        head_theta = np.array([math.radians(x) for x in head_theta])
+        head_rel_angle = head_theta-theta
+
+        self.reaction_polar.scatter(theta, yy, c=yy, cmap='Oranges', s=50, alpha=0.5)
+        self.reaction_polar.scatter(head_theta, yy, c=yy, cmap='Greens', s=50, alpha=0.5)
+        self.head_rel_angle.scatter(head_rel_angle, yy, c=yy, cmap='Greens', s=50, alpha=0.5)
 
         try:
             # Show pose reconstruction
@@ -357,7 +412,7 @@ class Plotter():
                 self.pose.fill_between(x, 0, self.std_vel[self.wnd-5:self.wnd+self.poststim_frames+2]*10,
                                        facecolor=[0.8, 0.4, 0.4], alpha=0.5, label='Velocity')
 
-                self.pose.plot(x, self.dlc_bodylength[self.wnd - 5:self.wnd + self.poststim_frames + 2] * 10,
+                self.pose.plot(x, self.dlc_bodylength[self.wnd - 5:self.wnd + self.poststim_frames + 2] * 100,
                                        color=[0.4, 0.4, 0.8], alpha=0.5, linewidth=4, label='Body length')
 
                 self.make_legend(self.pose, [0.1, .1, .1], [0.8, 0.8, 0.8])
@@ -365,9 +420,27 @@ class Plotter():
         except:
             pass
 
+        # Plot Reaction Time stuff
+        self.react_time_plot.plot(self.y_diff, color=[0.6, 0.2, 0.2], linewidth=3, label='Y accel.')
+        self.react_time_plot.axhline(self.mean_pre_yacc, color=[0.6, 0.2, 0.2], linewidth=1, label=None)
+
+        self.react_time_plot.plot(np.diff(self.x_diff), color=[0.8, 0.2, 0.2], linewidth=3, label='X accel.')
+        self.react_time_plot.axhline(self.mean_pre_xacc, color=[0.8, 0.2, 0.2], linewidth=1, label=None)
+
+        self.react_time_plot.plot(self.post_vel, color=[0.8, 0.4, 0.4], linewidth=3, label='Ve.')
+        self.react_time_plot.axhline(self.mean_pre_vel, color=[0.8, 0.4, 0.4], linewidth=1, label=None)
+
+        self.react_time_plot.plot(self.post_bl * 10, color=[0.4, 0.4, 0.8], linewidth=3, label='BL')
+        self.react_time_plot.axhline(self.mean_pre_bl * 10, color=[0.4, 0.4, 0.8], linewidth=1, label=None)
+
+        self.react_time_plot.axhline(0, color='w', linewidth=1, label=None)
+        self.react_time_plot.set(xlim=[0, self.at_shelter + 30], ylim=[-20, 20])
+        # self.make_legend(self.react_time_plot, [0.1, .1, .1], [0.8, 0.8, 0.8])
+
         if self.save_figs:
             path = 'D:\\Dropbox (UCL - SWC)\\Dropbox (UCL - SWC)\\Rotation_vte\\data\\dlc_trialImgs'
             name = '{}'.format(list(self.trials.keys())[self.sel_trial])
+            print('             ... saving figure {}'.format(name))
             plt.savefig(os.path.join(path, name), facecolor=[0.1, 0.1, 0.1])
             plt.close('all')
 
