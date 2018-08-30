@@ -485,8 +485,8 @@ class Plotter():
             plt.savefig(os.path.join(path, name), facecolor=[0.1, 0.1, 0.1])
 
             if send_messages:
-                slack_chat_messenger('Sending you {} by email'.format(name))
-                send_email_attachments(name, path)
+                slack_chat_messenger('Sending you the plots for {} by email'.format(name))
+                send_email_attachments(name, os.path.join(path, name))
 
             plt.close('all')
 

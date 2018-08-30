@@ -94,8 +94,7 @@ class Analysis():
                 # PROCESSING
                 if processing:
                     self.processing_session(session)
-                    if send_messages:
-                        slack_chat_messenger('Finished processing')
+
 
                 # Debug
                 if debug:
@@ -104,7 +103,8 @@ class Analysis():
                 # PLOTTING INDIVIDUAL
                 if plotting:  # individuals - work in progress
                     self.plotting_session(session)
-
+            if send_messages:
+                slack_chat_messenger('Finished processing')
         ################################################
         ## WORK ON COHORTS
         ################################################

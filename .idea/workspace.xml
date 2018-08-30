@@ -2,15 +2,11 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="15ced45f-38a7-44df-9dac-4c3e9e555a03" name="Default" comment="">
-      <change beforePath="" afterPath="$PROJECT_DIR$/Utils/Messaging.py" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
-      <change beforePath="$PROJECT_DIR$/Config.py" afterPath="$PROJECT_DIR$/Config.py" />
-      <change beforePath="$PROJECT_DIR$/PATHS.yml" afterPath="$PROJECT_DIR$/PATHS.yml" />
       <change beforePath="$PROJECT_DIR$/Plotting/Single_trial_summary.py" afterPath="$PROJECT_DIR$/Plotting/Single_trial_summary.py" />
       <change beforePath="$PROJECT_DIR$/Start_analysis.py" afterPath="$PROJECT_DIR$/Start_analysis.py" />
       <change beforePath="$PROJECT_DIR$/Tracking/Configs/cfg_dlc_LV.yml" afterPath="$PROJECT_DIR$/Tracking/Configs/cfg_dlc_LV.yml" />
-      <change beforePath="$PROJECT_DIR$/Tracking/Configs/cfg_dlc_maze.yml" afterPath="$PROJECT_DIR$/Tracking/Configs/cfg_dlc_maze.yml" />
-      <change beforePath="$PROJECT_DIR$/Utils/Custom_funcs.py" afterPath="$PROJECT_DIR$/Utils/Custom_funcs.py" />
+      <change beforePath="$PROJECT_DIR$/Utils/Messaging.py" afterPath="$PROJECT_DIR$/Utils/Messaging.py" />
       <change beforePath="$PROJECT_DIR$/Utils/test_space.py" afterPath="$PROJECT_DIR$/Utils/test_space.py" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
@@ -35,8 +31,8 @@
       <file leaf-file-name="Start_analysis.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/Start_analysis.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="324">
-              <caret line="19" column="49" lean-forward="true" selection-start-line="19" selection-start-column="49" selection-end-line="19" selection-end-column="49" />
+            <state relative-caret-position="1782">
+              <caret line="103" column="13" lean-forward="false" selection-start-line="103" selection-start-column="13" selection-end-line="103" selection-end-column="13" />
               <folding>
                 <element signature="e#0#34#0" expanded="true" />
                 <element signature="e#5033#5949#0" expanded="false" />
@@ -50,11 +46,11 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="Messaging.py" pinned="false" current-in-tab="true">
+      <file leaf-file-name="Messaging.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/Utils/Messaging.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="1940">
-              <caret line="89" column="0" lean-forward="true" selection-start-line="89" selection-start-column="0" selection-end-line="89" selection-end-column="0" />
+            <state relative-caret-position="1194">
+              <caret line="48" column="0" lean-forward="true" selection-start-line="48" selection-start-column="0" selection-end-line="48" selection-end-column="0" />
               <folding>
                 <element signature="e#0#35#0" expanded="true" />
               </folding>
@@ -62,14 +58,12 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="test_space.py" pinned="false" current-in-tab="false">
+      <file leaf-file-name="test_space.py" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/Utils/test_space.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="513">
-              <caret line="19" column="88" lean-forward="true" selection-start-line="13" selection-start-column="2" selection-end-line="19" selection-end-column="88" />
-              <folding>
-                <element signature="e#0#35#0" expanded="true" />
-              </folding>
+            <state relative-caret-position="0">
+              <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+              <folding />
             </state>
           </provider>
         </entry>
@@ -77,18 +71,10 @@
       <file leaf-file-name="Single_trial_summary.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/Plotting/Single_trial_summary.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="1973">
-              <caret line="487" column="0" lean-forward="false" selection-start-line="487" selection-start-column="0" selection-end-line="487" selection-end-column="0" />
+            <state relative-caret-position="2739">
+              <caret line="489" column="0" lean-forward="false" selection-start-line="489" selection-start-column="0" selection-end-line="489" selection-end-column="0" />
               <folding>
-                <element signature="e#712#1676#0" expanded="false" />
-                <element signature="e#1839#2020#0" expanded="false" />
-                <element signature="e#4760#6946#0" expanded="false" />
-                <element signature="e#6997#7532#0" expanded="false" />
-                <element signature="e#13317#13653#0" expanded="false" />
-                <element signature="e#13727#14521#0" expanded="false" />
-                <element signature="e#14588#15699#0" expanded="false" />
-                <element signature="e#15888#16137#0" expanded="false" />
-                <element signature="e#23593#24184#0" expanded="false" />
+                <element signature="e#23722#24313#0" expanded="false" />
               </folding>
             </state>
           </provider>
@@ -150,12 +136,12 @@
         <option value="$PROJECT_DIR$/Utils/maths.py" />
         <option value="$PROJECT_DIR$/Processing/Processing_main.py" />
         <option value="$PROJECT_DIR$/Utils/Custom_funcs.py" />
-        <option value="$PROJECT_DIR$/Utils/test_space.py" />
         <option value="$PROJECT_DIR$/PATHS.yml" />
-        <option value="$PROJECT_DIR$/Start_analysis.py" />
         <option value="$PROJECT_DIR$/Config.py" />
-        <option value="$PROJECT_DIR$/Plotting/Single_trial_summary.py" />
+        <option value="$PROJECT_DIR$/Start_analysis.py" />
         <option value="$PROJECT_DIR$/Utils/Messaging.py" />
+        <option value="$PROJECT_DIR$/Plotting/Single_trial_summary.py" />
+        <option value="$PROJECT_DIR$/Utils/test_space.py" />
       </list>
     </option>
   </component>
@@ -383,7 +369,7 @@
       <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="9" side_tool="false" content_ui="tabs" />
       <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="true" content_ui="tabs" />
-      <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.35974422" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
+      <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.13177648" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Cvs" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
       <window_info id="Message" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
       <window_info id="Commander" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
@@ -398,13 +384,6 @@
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
-      <breakpoints>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/Plotting/Single_trial_summary.py</url>
-          <line>487</line>
-          <option name="timeStamp" value="458" />
-        </line-breakpoint>
-      </breakpoints>
       <breakpoints-dialog>
         <breakpoints-dialog />
       </breakpoints-dialog>
@@ -415,9 +394,19 @@
           </properties>
         </breakpoint>
       </default-breakpoints>
-      <option name="time" value="460" />
+      <option name="time" value="466" />
     </breakpoint-manager>
     <watches-manager />
+  </component>
+  <component name="debuggerHistoryManager">
+    <expressions id="evaluateCodeFragment">
+      <expression>
+        <expression-string>with open(filepath+'.png', 'rb') as f:
+      r = requests.post('https://slack.com/api/files.upload', files={filepath+'.png': f})</expression-string>
+        <language-id>Python</language-id>
+        <evaluation-mode>CODE_FRAGMENT</evaluation-mode>
+      </expression>
+    </expressions>
   </component>
   <component name="editorHistoryManager">
     <entry file="file://$PROJECT_DIR$/Tracking/Tracking_functions.py">
@@ -757,38 +746,20 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/Utils/test_space.py">
+    <entry file="file://$PROJECT_DIR$/Utils/Messaging.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="513">
-          <caret line="19" column="88" lean-forward="true" selection-start-line="13" selection-start-column="2" selection-end-line="19" selection-end-column="88" />
+        <state relative-caret-position="1194">
+          <caret line="48" column="0" lean-forward="true" selection-start-line="48" selection-start-column="0" selection-end-line="48" selection-end-column="0" />
           <folding>
             <element signature="e#0#35#0" expanded="true" />
           </folding>
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/Plotting/Single_trial_summary.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1973">
-          <caret line="487" column="0" lean-forward="false" selection-start-line="487" selection-start-column="0" selection-end-line="487" selection-end-column="0" />
-          <folding>
-            <element signature="e#712#1676#0" expanded="false" />
-            <element signature="e#1839#2020#0" expanded="false" />
-            <element signature="e#4760#6946#0" expanded="false" />
-            <element signature="e#6997#7532#0" expanded="false" />
-            <element signature="e#13317#13653#0" expanded="false" />
-            <element signature="e#13727#14521#0" expanded="false" />
-            <element signature="e#14588#15699#0" expanded="false" />
-            <element signature="e#15888#16137#0" expanded="false" />
-            <element signature="e#23593#24184#0" expanded="false" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/Start_analysis.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="324">
-          <caret line="19" column="49" lean-forward="true" selection-start-line="19" selection-start-column="49" selection-end-line="19" selection-end-column="49" />
+        <state relative-caret-position="1782">
+          <caret line="103" column="13" lean-forward="false" selection-start-line="103" selection-start-column="13" selection-end-line="103" selection-end-column="13" />
           <folding>
             <element signature="e#0#34#0" expanded="true" />
             <element signature="e#5033#5949#0" expanded="false" />
@@ -801,13 +772,21 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/Utils/Messaging.py">
+    <entry file="file://$PROJECT_DIR$/Plotting/Single_trial_summary.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1940">
-          <caret line="89" column="0" lean-forward="true" selection-start-line="89" selection-start-column="0" selection-end-line="89" selection-end-column="0" />
+        <state relative-caret-position="2739">
+          <caret line="489" column="0" lean-forward="false" selection-start-line="489" selection-start-column="0" selection-end-line="489" selection-end-column="0" />
           <folding>
-            <element signature="e#0#35#0" expanded="true" />
+            <element signature="e#23722#24313#0" expanded="false" />
           </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/Utils/test_space.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding />
         </state>
       </provider>
     </entry>
