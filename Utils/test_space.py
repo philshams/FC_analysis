@@ -1,27 +1,28 @@
 from slackclient import SlackClient
 import requests
+import os
 
-
-slack_token = ''  # NEVER LEAVE THE TOKEN IN YOUR CODE ON GITHUB, EVERYBODY WOULD HAVE ACCESS TO THE CHANNEL!
+# NEVER LEAVE THE TOKEN IN YOUR CODE ON GITHUB, EVERYBODY WOULD HAVE ACCESS TO THE CHANNEL!
+slack_token = os.environ.get('SLACK_BRANCO_TOKEN')
 slack_client = SlackClient(slack_token)
 # ========================================================================================================
-# send attachments
-my_file = {
-  'file' : ('/tmp/myfile.pdf', open('/tmp/myfile.pdf', 'rb'), 'pdf')
-}
-token = ''
-payload={
-  "filename":"myfile.pdf",
-  "token":token,
-  "channels":['#random'],
-}
-
-r = requests.post("https://slack.com/api/files.upload", params=payload, files=my_file)
-# ========================================================================================================
-# To send slack messages to channel
-channel = '#rotation_vte'
-text = 'Test: send message from python'
-slack_client.api_call('chat.postMessage', channel=channel, text=text)
+# # send attachments
+# my_file = {
+#   'file' : ('/tmp/myfile.pdf', open('/tmp/myfile.pdf', 'rb'), 'pdf')
+# }
+# token = ''
+# payload={
+#   "filename":"myfile.pdf",
+#   "token":token,
+#   "channels":['#random'],
+# }
+#
+# r = requests.post("https://slack.com/api/files.upload", params=payload, files=my_file)
+# # ========================================================================================================
+# # To send slack messages to channel
+# channel = '#rotation_vte'
+# text = 'Test: send message from python'
+# slack_client.api_call('chat.postMessage', channel=channel, text=text)
 
 # ========================================================================================================
 # To send slack messages to user
@@ -35,7 +36,7 @@ if api_call.get('ok'):
         if im.get("user") == user_slack_id:
             im_channel = im.get("id")
             slack_client.api_call("chat.postMessage", channel=im_channel,
-                                       text="Test message from python", as_user=True)
+                                       text="Test message fgxhfxhxfg python", as_user=False)
 
 
 # ========================================================================================================

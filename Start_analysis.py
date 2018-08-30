@@ -6,11 +6,12 @@ from Tracking.Tracking_main import Tracking
 from Utils.Data_rearrange_funcs import create_cohort, check_session_selected
 from Processing import Processing_main
 from Debug.DebugTrack_GUI_Main import start_gui
+from Utils.Messaging import slack_chat_messenger
 
 from Config import load_database, update_database, load_name, save_name\
     , selector_type, selector,\
     extract_background, track_mouse, track_options, \
-    plotting, cohort, processing, debug
+    plotting, cohort, processing, debug, use_slack
 
 
 ########################################################################################################################
@@ -68,9 +69,15 @@ class Analysis():
                     if extract_background or track_mouse:
                         self.video_analysis(session)
 
+                if use_slack:
+                    slack_chat_messenger('Finished STD tracking')
+
                 if track_mouse:
                     # Finish DLC tracking [extract pose on saved clips]
                     self.db = Tracking.tracking_use_dlc(self.db, self.clips_l)
+
+                    if use_slack:
+                        slack_chat_messenger('Finished DLC tracking')
 
             self.save_results(obj=self.db, mod='_backupsave')
 
@@ -87,6 +94,8 @@ class Analysis():
                 # PROCESSING
                 if processing:
                     self.processing_session(session)
+                    if use_slack:
+                        slack_chat_messenger('Finished processing')
 
                 # Debug
                 if debug:

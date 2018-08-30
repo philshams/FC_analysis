@@ -2,24 +2,16 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="15ced45f-38a7-44df-9dac-4c3e9e555a03" name="Default" comment="">
-<<<<<<< HEAD
-      <change beforePath="$PROJECT_DIR$/.gitignore" afterPath="$PROJECT_DIR$/.gitignore" />
+      <change beforePath="" afterPath="$PROJECT_DIR$/Utils/Messaging.py" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
       <change beforePath="$PROJECT_DIR$/Config.py" afterPath="$PROJECT_DIR$/Config.py" />
-      <change beforePath="$PROJECT_DIR$/Processing/processing_utils.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/Processing/stim_responses.py" afterPath="$PROJECT_DIR$/Processing/stim_responses.py" />
-      <change beforePath="$PROJECT_DIR$/Processing/test.py" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/PATHS.yml" afterPath="$PROJECT_DIR$/PATHS.yml" />
+      <change beforePath="$PROJECT_DIR$/Plotting/Single_trial_summary.py" afterPath="$PROJECT_DIR$/Plotting/Single_trial_summary.py" />
+      <change beforePath="$PROJECT_DIR$/Start_analysis.py" afterPath="$PROJECT_DIR$/Start_analysis.py" />
+      <change beforePath="$PROJECT_DIR$/Tracking/Configs/cfg_dlc_LV.yml" afterPath="$PROJECT_DIR$/Tracking/Configs/cfg_dlc_LV.yml" />
       <change beforePath="$PROJECT_DIR$/Tracking/Configs/cfg_dlc_maze.yml" afterPath="$PROJECT_DIR$/Tracking/Configs/cfg_dlc_maze.yml" />
-      <change beforePath="$PROJECT_DIR$/Tracking/Tracking_main.py" afterPath="$PROJECT_DIR$/Tracking/Tracking_main.py" />
-      <change beforePath="$PROJECT_DIR$/Tracking/Tracking_utils.py" afterPath="$PROJECT_DIR$/Tracking/Tracking_utils.py" />
-      <change beforePath="$PROJECT_DIR$/Tracking/dlc_analyseVideos.py" afterPath="$PROJECT_DIR$/Tracking/dlc_analyseVideos.py" />
-      <change beforePath="$PROJECT_DIR$/Utils/Data_rearrange_funcs.py" afterPath="$PROJECT_DIR$/Utils/Data_rearrange_funcs.py" />
-=======
-      <change afterPath="$PROJECT_DIR$/Config_anna.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Tracking/Configs/cfg_dlc_LV.yml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Tracking/dlc_analysis_config_anna.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
->>>>>>> a6037fa9398eb154434c684a8194fb54ecc8d5ee
+      <change beforePath="$PROJECT_DIR$/Utils/Custom_funcs.py" afterPath="$PROJECT_DIR$/Utils/Custom_funcs.py" />
+      <change beforePath="$PROJECT_DIR$/Utils/test_space.py" afterPath="$PROJECT_DIR$/Utils/test_space.py" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="TRACKING_ENABLED" value="true" />
@@ -33,138 +25,71 @@
       <file leaf-file-name="Config.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/Config.py">
           <provider selected="true" editor-type-id="text-editor">
-<<<<<<< HEAD
-            <state relative-caret-position="1026">
-              <caret line="50" column="18" lean-forward="false" selection-start-line="50" selection-start-column="18" selection-end-line="50" selection-end-column="18" />
+            <state relative-caret-position="1593">
+              <caret line="74" column="0" lean-forward="true" selection-start-line="74" selection-start-column="0" selection-end-line="74" selection-end-column="0" />
               <folding />
-=======
-            <state relative-caret-position="-275">
-              <caret line="62" column="12" selection-start-line="62" selection-start-column="5" selection-end-line="62" selection-end-column="12" />
->>>>>>> a6037fa9398eb154434c684a8194fb54ecc8d5ee
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="Config_anna.py" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/Config_anna.py">
+      <file leaf-file-name="Start_analysis.py" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/Start_analysis.py">
           <provider selected="true" editor-type-id="text-editor">
-<<<<<<< HEAD
-            <state relative-caret-position="-103">
-              <caret line="14" column="52" lean-forward="true" selection-start-line="14" selection-start-column="52" selection-end-line="14" selection-end-column="52" />
+            <state relative-caret-position="324">
+              <caret line="19" column="49" lean-forward="true" selection-start-line="19" selection-start-column="49" selection-end-line="19" selection-end-column="49" />
               <folding>
-                <element signature="e#0#14#0" expanded="true" />
-              </folding>
-=======
-            <state relative-caret-position="1598">
-              <caret line="94" selection-start-line="94" selection-end-line="94" />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="dlc_analysis_config_anna.py" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/Tracking/dlc_analysis_config_anna.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="252">
-              <caret line="15" selection-start-line="15" selection-end-line="15" />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="dlc_analysis_config.py" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/Tracking/dlc_analysis_config.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="136">
-              <caret line="8" column="1" lean-forward="true" selection-start-line="8" selection-start-column="1" selection-end-line="8" selection-end-column="1" />
->>>>>>> a6037fa9398eb154434c684a8194fb54ecc8d5ee
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="cfg_dlc_maze.yml" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/Tracking/Configs/cfg_dlc_maze.yml">
-          <provider selected="true" editor-type-id="text-editor">
-<<<<<<< HEAD
-            <state relative-caret-position="162">
-              <caret line="6" column="0" lean-forward="false" selection-start-line="6" selection-start-column="0" selection-end-line="6" selection-end-column="0" />
-              <folding />
-=======
-            <state>
-              <caret selection-end-line="6" />
->>>>>>> a6037fa9398eb154434c684a8194fb54ecc8d5ee
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="cfg_dlc_LV.yml" pinned="false" current-in-tab="true">
-        <entry file="file://$PROJECT_DIR$/Tracking/Configs/cfg_dlc_LV.yml">
-          <provider selected="true" editor-type-id="text-editor" />
-        </entry>
-      </file>
-      <file leaf-file-name="cfg_std_maze.yml" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/Tracking/Configs/cfg_std_maze.yml">
-          <provider selected="true" editor-type-id="text-editor" />
-        </entry>
-      </file>
-      <file leaf-file-name="Tracking_utils.py" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/Tracking/Tracking_utils.py">
-          <provider selected="true" editor-type-id="text-editor">
-<<<<<<< HEAD
-            <state relative-caret-position="1621">
-              <caret line="286" column="39" lean-forward="true" selection-start-line="286" selection-start-column="39" selection-end-line="286" selection-end-column="39" />
-=======
-            <state relative-caret-position="5100">
-              <caret line="300" selection-start-line="300" selection-end-line="300" />
->>>>>>> a6037fa9398eb154434c684a8194fb54ecc8d5ee
-              <folding>
-                <element signature="e#0#10#0" expanded="true" />
+                <element signature="e#0#34#0" expanded="true" />
+                <element signature="e#5033#5949#0" expanded="false" />
+                <element signature="e#6006#6138#0" expanded="false" />
+                <element signature="e#6193#6330#0" expanded="false" />
+                <element signature="e#6636#6812#0" expanded="false" />
+                <element signature="e#7137#7203#0" expanded="false" />
+                <element signature="e#7242#7798#0" expanded="false" />
               </folding>
             </state>
           </provider>
         </entry>
       </file>
-<<<<<<< HEAD
-      <file leaf-file-name="Tracking_main.py" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/Tracking/Tracking_main.py">
+      <file leaf-file-name="Messaging.py" pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/Utils/Messaging.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="1458">
-              <caret line="158" column="43" lean-forward="true" selection-start-line="158" selection-start-column="43" selection-end-line="158" selection-end-column="43" />
-              <folding />
-=======
-      <file leaf-file-name="Data_rearrange_funcs.py" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/Utils/Data_rearrange_funcs.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="102">
-              <caret line="23" column="22" selection-start-line="23" selection-start-column="22" selection-end-line="23" selection-end-column="22" />
+            <state relative-caret-position="1940">
+              <caret line="89" column="0" lean-forward="true" selection-start-line="89" selection-start-column="0" selection-end-line="89" selection-end-column="0" />
               <folding>
-                <element signature="e#240#752#0" />
-                <element signature="e#782#3730#0" />
+                <element signature="e#0#35#0" expanded="true" />
               </folding>
->>>>>>> a6037fa9398eb154434c684a8194fb54ecc8d5ee
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="dlc_analyseVideos.py" pinned="false" current-in-tab="true">
-        <entry file="file://$PROJECT_DIR$/Tracking/dlc_analyseVideos.py">
+      <file leaf-file-name="test_space.py" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/Utils/test_space.py">
           <provider selected="true" editor-type-id="text-editor">
-<<<<<<< HEAD
-            <state relative-caret-position="1281">
-              <caret line="72" column="0" lean-forward="false" selection-start-line="72" selection-start-column="0" selection-end-line="72" selection-end-column="0" />
-              <folding />
+            <state relative-caret-position="513">
+              <caret line="19" column="88" lean-forward="true" selection-start-line="13" selection-start-column="2" selection-end-line="19" selection-end-column="88" />
+              <folding>
+                <element signature="e#0#35#0" expanded="true" />
+              </folding>
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="stim_responses.py" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/Processing/stim_responses.py">
+      <file leaf-file-name="Single_trial_summary.py" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/Plotting/Single_trial_summary.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="54">
-              <caret line="2" column="14" lean-forward="false" selection-start-line="2" selection-start-column="0" selection-end-line="5" selection-end-column="0" />
-              <folding />
-=======
-            <state relative-caret-position="2788">
-              <caret line="166" selection-start-line="166" selection-end-line="166" />
->>>>>>> a6037fa9398eb154434c684a8194fb54ecc8d5ee
+            <state relative-caret-position="1973">
+              <caret line="487" column="0" lean-forward="false" selection-start-line="487" selection-start-column="0" selection-end-line="487" selection-end-column="0" />
+              <folding>
+                <element signature="e#712#1676#0" expanded="false" />
+                <element signature="e#1839#2020#0" expanded="false" />
+                <element signature="e#4760#6946#0" expanded="false" />
+                <element signature="e#6997#7532#0" expanded="false" />
+                <element signature="e#13317#13653#0" expanded="false" />
+                <element signature="e#13727#14521#0" expanded="false" />
+                <element signature="e#14588#15699#0" expanded="false" />
+                <element signature="e#15888#16137#0" expanded="false" />
+                <element signature="e#23593#24184#0" expanded="false" />
+              </folding>
             </state>
           </provider>
         </entry>
@@ -177,6 +102,14 @@
         <option value="Python Script" />
       </list>
     </option>
+  </component>
+  <component name="FindInProjectRecents">
+    <findStrings>
+      <find>clips</find>
+      <find>clips_l</find>
+      <find>run</find>
+      <find>F</find>
+    </findStrings>
   </component>
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
@@ -191,48 +124,66 @@
         <option value="$PROJECT_DIR$/Tracking/Tracking_config.txt" />
         <option value="$PROJECT_DIR$/Tracking/Configs/cfg_std_fearcond.yml" />
         <option value="$PROJECT_DIR$/Tracking/Configs/cfg_std_TEMPLATE.yml" />
-        <option value="$PROJECT_DIR$/Utils/Setup_funcs.py" />
         <option value="$PROJECT_DIR$/Utils/Image_processing.py" />
-        <option value="$PROJECT_DIR$/Tracking/Configs/cfg_dlc_TEMPLATE.yml" />
-        <option value="$PROJECT_DIR$/Utils/loadsave_funcs.py" />
-        <option value="$PROJECT_DIR$/Utils/utils_classes.py" />
-        <option value="$PROJECT_DIR$/Utils/test_space.py" />
         <option value="$PROJECT_DIR$/Processing/test.py" />
-        <option value="$PROJECT_DIR$/Start_analysis.py" />
         <option value="$PROJECT_DIR$/Processing/processing_utils.py" />
-        <option value="$PROJECT_DIR$/Tracking/Configs/cfg_dlc_maze.yml" />
-        <option value="$PROJECT_DIR$/Tracking/dlc_analyseVideos.py" />
-        <option value="$PROJECT_DIR$/Tracking/Tracking_main.py" />
-<<<<<<< HEAD
-        <option value="$PROJECT_DIR$/Utils/Data_rearrange_funcs.py" />
-        <option value="$PROJECT_DIR$/Tracking/Tracking_utils.py" />
+        <option value="$PROJECT_DIR$/Processing/Processing main.py" />
         <option value="$PROJECT_DIR$/Processing/stim_responses.py" />
+        <option value="$PROJECT_DIR$/Plotting/Plotting_main.py" />
+        <option value="$PROJECT_DIR$/Tracking/Configs/cfg_dlc_TEMPLATE.yml" />
+        <option value="$PROJECT_DIR$/PATHS_FC.yml" />
+        <option value="$PROJECT_DIR$/Tracking/Tracking_utils.py" />
+        <option value="$PROJECT_DIR$/Tracking/Configs/cfg_dlc_maze.yml" />
+        <option value="$PROJECT_DIR$/Utils/utils_classes.py" />
+        <option value="$PROJECT_DIR$/Utils/Data_rearrange_funcs.py" />
+        <option value="$PROJECT_DIR$/Plotting/Plt_individual_stimresponses.py" />
+        <option value="$PROJECT_DIR$/Utils/Setup_funcs.py" />
+        <option value="$PROJECT_DIR$/Tracking/Tracking_main.py" />
+        <option value="$PROJECT_DIR$/Tracking/Configs/cfg_dlc_LV.yml" />
+        <option value="$PROJECT_DIR$/Debug/test.py" />
+        <option value="$PROJECT_DIR$/Utils/loadsave_funcs.py" />
+        <option value="$PROJECT_DIR$/Tracking/dlc_analyseVideos.py" />
+        <option value="$PROJECT_DIR$/Processing/processing_cfg.yml" />
+        <option value="$PROJECT_DIR$/Debug/DebugTrack_GUI_Main.py" />
+        <option value="$PROJECT_DIR$/Debug/DebugTrack_funcs.py" />
+        <option value="$PROJECT_DIR$/Processing/Processing_utils.py" />
+        <option value="$PROJECT_DIR$/Utils/maths.py" />
+        <option value="$PROJECT_DIR$/Processing/Processing_main.py" />
+        <option value="$PROJECT_DIR$/Utils/Custom_funcs.py" />
+        <option value="$PROJECT_DIR$/Utils/test_space.py" />
+        <option value="$PROJECT_DIR$/PATHS.yml" />
+        <option value="$PROJECT_DIR$/Start_analysis.py" />
         <option value="$PROJECT_DIR$/Config.py" />
-=======
-        <option value="$PROJECT_DIR$/Config_anna.py" />
-        <option value="$PROJECT_DIR$/Tracking/dlc_analysis_config_anna.py" />
->>>>>>> a6037fa9398eb154434c684a8194fb54ecc8d5ee
+        <option value="$PROJECT_DIR$/Plotting/Single_trial_summary.py" />
+        <option value="$PROJECT_DIR$/Utils/Messaging.py" />
       </list>
     </option>
   </component>
   <component name="ProjectFrameBounds" extendedState="6">
-    <option name="x" value="-8" />
-    <option name="y" value="-8" />
-    <option name="width" value="1936" />
-    <option name="height" value="1056" />
+    <option name="x" value="5749" />
+    <option name="y" value="-11" />
+    <option name="width" value="2182" />
+    <option name="height" value="3802" />
   </component>
   <component name="ProjectLevelVcsManager">
     <ConfirmationsSetting value="2" id="Add" />
   </component>
   <component name="ProjectView">
-    <navigator proportions="" version="1">
+    <navigator currentView="ProjectPane" proportions="" version="1">
+      <flattenPackages />
+      <showMembers />
+      <showModules />
+      <showLibraryContents />
+      <hideEmptyPackages />
+      <abbreviatePackageNames />
+      <autoscrollToSource />
+      <autoscrollFromSource />
+      <sortByType />
+      <manualOrder />
       <foldersAlwaysOnTop value="true" />
     </navigator>
     <panes>
-<<<<<<< HEAD
-      <pane id="Scratches" />
-=======
->>>>>>> a6037fa9398eb154434c684a8194fb54ecc8d5ee
+      <pane id="Scope" />
       <pane id="ProjectPane">
         <subPane>
           <expand>
@@ -243,18 +194,17 @@
             <path>
               <item name="FC_analysis" type="b2602c69:ProjectViewProjectNode" />
               <item name="FC_analysis" type="462c0819:PsiDirectoryNode" />
+              <item name="Debug" type="462c0819:PsiDirectoryNode" />
+            </path>
+            <path>
+              <item name="FC_analysis" type="b2602c69:ProjectViewProjectNode" />
+              <item name="FC_analysis" type="462c0819:PsiDirectoryNode" />
+              <item name="Plotting" type="462c0819:PsiDirectoryNode" />
+            </path>
+            <path>
+              <item name="FC_analysis" type="b2602c69:ProjectViewProjectNode" />
+              <item name="FC_analysis" type="462c0819:PsiDirectoryNode" />
               <item name="Processing" type="462c0819:PsiDirectoryNode" />
-            </path>
-            <path>
-              <item name="FC_analysis" type="b2602c69:ProjectViewProjectNode" />
-              <item name="FC_analysis" type="462c0819:PsiDirectoryNode" />
-              <item name="Tracking" type="462c0819:PsiDirectoryNode" />
-            </path>
-            <path>
-              <item name="FC_analysis" type="b2602c69:ProjectViewProjectNode" />
-              <item name="FC_analysis" type="462c0819:PsiDirectoryNode" />
-              <item name="Tracking" type="462c0819:PsiDirectoryNode" />
-              <item name="Configs" type="462c0819:PsiDirectoryNode" />
             </path>
             <path>
               <item name="FC_analysis" type="b2602c69:ProjectViewProjectNode" />
@@ -265,22 +215,23 @@
           <select />
         </subPane>
       </pane>
-      <pane id="Scope" />
+      <pane id="Scratches" />
     </panes>
   </component>
   <component name="PropertiesComponent">
     <property name="settings.editor.selected.configurable" value="net.vektah.codeglance.config.ConfigEntry" />
-    <property name="last_opened_file_path" value="$PROJECT_DIR$" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$/../DeepLabCut" />
     <property name="com.intellij.ide.scratch.LRUPopupBuilder$2/Languages" value="yaml" />
   </component>
   <component name="RecentsManager">
-    <key name="CopyFile.RECENT_KEYS">
-      <recent name="C:\Users\Federico\Documents\GitHub\FC_analysis\Tracking\Configs" />
-      <recent name="C:\Users\Federico\Documents\GitHub\FC_analysis\Tracking" />
-    </key>
     <key name="MoveFile.RECENT_KEYS">
       <recent name="C:\Users\Federico\Documents\GitHub\FC_analysis\Processing" />
       <recent name="C:\Users\Federico\Documents\GitHub\FC_analysis\Tracking\Configs" />
+    </key>
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="C:\Users\Federico\Documents\GitHub\FC_analysis" />
+      <recent name="C:\Users\Federico\Documents\GitHub\FC_analysis\Tracking\Configs" />
+      <recent name="C:\Users\Federico\Documents\GitHub\FC_analysis\Tracking" />
     </key>
   </component>
   <component name="RunDashboard">
@@ -297,7 +248,6 @@
   </component>
   <component name="RunManager" selected="Python.Start_analysis">
     <configuration name="Config" type="PythonConfigurationType" factoryName="Python" temporary="true">
-      <module name="FC_analysis" />
       <option name="INTERPRETER_OPTIONS" value="" />
       <option name="PARENT_ENVS" value="true" />
       <envs>
@@ -308,50 +258,14 @@
       <option name="IS_MODULE_SDK" value="true" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
+      <module name="FC_analysis" />
       <option name="SCRIPT_NAME" value="$PROJECT_DIR$/Config.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
       <option name="MODULE_MODE" value="false" />
     </configuration>
-    <configuration name="Start_analysis" type="PythonConfigurationType" factoryName="Python" temporary="true">
-      <module name="FC_analysis" />
-      <option name="INTERPRETER_OPTIONS" value="" />
-      <option name="PARENT_ENVS" value="true" />
-      <envs>
-        <env name="PYTHONUNBUFFERED" value="1" />
-      </envs>
-      <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
-      <option name="IS_MODULE_SDK" value="true" />
-      <option name="ADD_CONTENT_ROOTS" value="true" />
-      <option name="ADD_SOURCE_ROOTS" value="true" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/Start_analysis.py" />
-      <option name="PARAMETERS" value="" />
-      <option name="SHOW_COMMAND_LINE" value="true" />
-      <option name="EMULATE_TERMINAL" value="false" />
-      <option name="MODULE_MODE" value="false" />
-    </configuration>
-    <configuration name="test" type="PythonConfigurationType" factoryName="Python" temporary="true">
-      <module name="FC_analysis" />
-      <option name="INTERPRETER_OPTIONS" value="" />
-      <option name="PARENT_ENVS" value="true" />
-      <envs>
-        <env name="PYTHONUNBUFFERED" value="1" />
-      </envs>
-      <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/Processing" />
-      <option name="IS_MODULE_SDK" value="true" />
-      <option name="ADD_CONTENT_ROOTS" value="true" />
-      <option name="ADD_SOURCE_ROOTS" value="true" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/Processing/test.py" />
-      <option name="PARAMETERS" value="" />
-      <option name="SHOW_COMMAND_LINE" value="true" />
-      <option name="EMULATE_TERMINAL" value="false" />
-      <option name="MODULE_MODE" value="false" />
-    </configuration>
-    <configuration name="test_space" type="PythonConfigurationType" factoryName="Python" temporary="true">
-      <module name="FC_analysis" />
+    <configuration name="Custom_funcs" type="PythonConfigurationType" factoryName="Python" temporary="true">
       <option name="INTERPRETER_OPTIONS" value="" />
       <option name="PARENT_ENVS" value="true" />
       <envs>
@@ -362,27 +276,86 @@
       <option name="IS_MODULE_SDK" value="true" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
+      <module name="FC_analysis" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/Utils/Custom_funcs.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+    </configuration>
+    <configuration name="Messaging" type="PythonConfigurationType" factoryName="Python" temporary="true">
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/Utils" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <module name="FC_analysis" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/Utils/Messaging.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+    </configuration>
+    <configuration name="Start_analysis" type="PythonConfigurationType" factoryName="Python" temporary="true">
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <module name="FC_analysis" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/Start_analysis.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="true" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+    </configuration>
+    <configuration name="test_space" type="PythonConfigurationType" factoryName="Python" temporary="true">
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/Utils" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <module name="FC_analysis" />
       <option name="SCRIPT_NAME" value="$PROJECT_DIR$/Utils/test_space.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
       <option name="MODULE_MODE" value="false" />
     </configuration>
-    <list>
-      <item itemvalue="Python.Start_analysis" />
-      <item itemvalue="Python.test_space" />
-      <item itemvalue="Python.Config" />
-      <item itemvalue="Python.test" />
+    <list size="5">
+      <item index="0" class="java.lang.String" itemvalue="Python.Start_analysis" />
+      <item index="1" class="java.lang.String" itemvalue="Python.Custom_funcs" />
+      <item index="2" class="java.lang.String" itemvalue="Python.test_space" />
+      <item index="3" class="java.lang.String" itemvalue="Python.Config" />
+      <item index="4" class="java.lang.String" itemvalue="Python.Messaging" />
     </list>
     <recent_temporary>
-      <list>
-        <item itemvalue="Python.Start_analysis" />
-        <item itemvalue="Python.test" />
-        <item itemvalue="Python.Start_analysis" />
-        <item itemvalue="Python.Config" />
-        <item itemvalue="Python.test_space" />
+      <list size="5">
+        <item index="0" class="java.lang.String" itemvalue="Python.Start_analysis" />
+        <item index="1" class="java.lang.String" itemvalue="Python.Messaging" />
+        <item index="2" class="java.lang.String" itemvalue="Python.Config" />
+        <item index="3" class="java.lang.String" itemvalue="Python.test_space" />
+        <item index="4" class="java.lang.String" itemvalue="Python.Custom_funcs" />
       </list>
     </recent_temporary>
+  </component>
+  <component name="ShelveChangesManager" show_recycled="false">
+    <option name="remove_strategy" value="false" />
   </component>
   <component name="SvnConfiguration">
     <configuration />
@@ -398,19 +371,19 @@
     <servers />
   </component>
   <component name="ToolWindowManager">
-    <frame x="-8" y="-8" width="1936" height="1056" extended-state="6" />
+    <frame x="5749" y="-11" width="2182" height="3802" extended-state="6" />
+    <editor active="true" />
     <layout>
-<<<<<<< HEAD
       <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.17364706" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
       <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="true" content_ui="tabs" />
-      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.3299972" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
-      <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
-      <window_info id="Python Console" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.3299972" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
+      <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.3299972" sideWeight="0.5" order="10" side_tool="false" content_ui="tabs" />
+      <window_info id="Python Console" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.3299972" sideWeight="0.5" order="8" side_tool="false" content_ui="tabs" />
+      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.3294412" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
-      <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
-      <window_info id="Debug" active="true" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.3497359" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
+      <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="9" side_tool="false" content_ui="tabs" />
       <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="true" content_ui="tabs" />
+      <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.35974422" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Cvs" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
       <window_info id="Message" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
       <window_info id="Commander" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
@@ -418,25 +391,6 @@
       <window_info id="Hierarchy" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="2" side_tool="false" content_ui="combo" />
       <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.3299972" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Ant Build" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
-=======
-      <window_info active="true" content_ui="combo" id="Project" order="0" visible="true" weight="0.17386723" />
-      <window_info anchor="bottom" id="TODO" order="6" />
-      <window_info anchor="bottom" id="Event Log" order="7" side_tool="true" />
-      <window_info anchor="bottom" id="Run" order="2" weight="0.3299972" />
-      <window_info anchor="bottom" id="Version Control" order="7" />
-      <window_info anchor="bottom" id="Python Console" order="7" weight="0.3299972" />
-      <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
-      <window_info anchor="bottom" id="Terminal" order="7" />
-      <window_info anchor="bottom" id="Debug" order="3" weight="0.3497359" />
-      <window_info id="Favorites" order="2" side_tool="true" />
-      <window_info anchor="right" content_ui="combo" id="Hierarchy" order="2" weight="0.25" />
-      <window_info anchor="right" id="Commander" order="0" weight="0.4" />
-      <window_info anchor="right" id="Ant Build" order="1" weight="0.25" />
-      <window_info anchor="bottom" id="Message" order="0" />
-      <window_info anchor="bottom" id="Inspection" order="5" weight="0.4" />
-      <window_info anchor="bottom" id="Cvs" order="4" weight="0.25" />
-      <window_info anchor="bottom" id="Find" order="1" weight="0.3299972" />
->>>>>>> a6037fa9398eb154434c684a8194fb54ecc8d5ee
     </layout>
   </component>
   <component name="VcsContentAnnotationSettings">
@@ -445,19 +399,10 @@
   <component name="XDebuggerManager">
     <breakpoint-manager>
       <breakpoints>
-        <line-breakpoint suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/Utils/test_space.py</url>
-          <option name="timeStamp" value="10" />
-        </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/Processing/stim_responses.py</url>
-          <line>9</line>
-          <option name="timeStamp" value="61" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/Tracking/dlc_analyseVideos.py</url>
-          <line>72</line>
-          <option name="timeStamp" value="62" />
+          <url>file://$PROJECT_DIR$/Plotting/Single_trial_summary.py</url>
+          <line>487</line>
+          <option name="timeStamp" value="458" />
         </line-breakpoint>
       </breakpoints>
       <breakpoints-dialog>
@@ -470,423 +415,401 @@
           </properties>
         </breakpoint>
       </default-breakpoints>
-      <option name="time" value="63" />
+      <option name="time" value="460" />
     </breakpoint-manager>
+    <watches-manager />
   </component>
   <component name="editorHistoryManager">
-<<<<<<< HEAD
-    <entry file="file://$PROJECT_DIR$/Config.py">
+    <entry file="file://$PROJECT_DIR$/Tracking/Tracking_functions.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1998">
-          <caret line="74" column="24" lean-forward="false" selection-start-line="74" selection-start-column="24" selection-end-line="74" selection-end-column="24" />
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/../DeepLabCut/pose-tensorflow/nnet/predict.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="297">
+          <caret line="15" column="0" lean-forward="false" selection-start-line="15" selection-start-column="0" selection-end-line="15" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/../BrancoLab_RandomCode/Analysis_V2/Tracking/pose_cfg.yaml">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/Tracking/Configs/cfg_dlc_TEMPLATE.yml">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="54">
+          <caret line="2" column="77" lean-forward="false" selection-start-line="2" selection-start-column="77" selection-end-line="2" selection-end-column="77" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/Config_anna.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/Miniconda3/envs/CVenv/Lib/site-packages/pandas/core/indexing.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="707">
+          <caret line="1784" column="0" lean-forward="false" selection-start-line="1784" selection-start-column="0" selection-end-line="1784" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/Plotting/Plotting_main.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="432">
+          <caret line="18" column="0" lean-forward="false" selection-start-line="18" selection-start-column="0" selection-end-line="18" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/Miniconda3/envs/CVenv/Lib/site-packages/pandas/core/reshape/concat.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="707">
+          <caret line="240" column="0" lean-forward="false" selection-start-line="240" selection-start-column="0" selection-end-line="240" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/Miniconda3/envs/CVenv/Lib/site-packages/pyqtgraph/widgets/GraphicsView.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="1917">
+          <caret line="71" column="0" lean-forward="false" selection-start-line="71" selection-start-column="0" selection-end-line="71" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/Miniconda3/envs/CVenv/Lib/site-packages/moviepy/video/io/ffmpeg_reader.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="707">
+          <caret line="242" column="0" lean-forward="false" selection-start-line="242" selection-start-column="0" selection-end-line="242" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/Tracking/pose_cfg.yaml">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="31" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/Tracking/Configs/cfg_dlc_LV.yml">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="135">
+          <caret line="5" column="26" lean-forward="true" selection-start-line="5" selection-start-column="26" selection-end-line="5" selection-end-column="26" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/Tracking/Configs/cfg_dlc_maze.yml">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="54">
+          <caret line="2" column="19" lean-forward="false" selection-start-line="2" selection-start-column="0" selection-end-line="2" selection-end-column="19" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/Miniconda3/envs/CVenv/Lib/site-packages/pyqtgraph/graphicsItems/ViewBox/ViewBox.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="707">
+          <caret line="1375" column="0" lean-forward="false" selection-start-line="1375" selection-start-column="0" selection-end-line="1375" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/Debug/Threading.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="945">
+          <caret line="110" column="55" lean-forward="false" selection-start-line="110" selection-start-column="40" selection-end-line="110" selection-end-column="55" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/AppData/Roaming/Python/Python35/site-packages/numpy/core/fromnumeric.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="1080">
+          <caret line="51" column="0" lean-forward="false" selection-start-line="51" selection-start-column="0" selection-end-line="51" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/Miniconda3/envs/CVenv/Lib/site-packages/pyqtgraph/graphicsItems/ScatterPlotItem.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="707">
+          <caret line="125" column="0" lean-forward="false" selection-start-line="125" selection-start-column="0" selection-end-line="125" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/Miniconda3/envs/CVenv/Lib/site-packages/pandas/io/common.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="708">
+          <caret line="405" column="0" lean-forward="false" selection-start-line="405" selection-start-column="0" selection-end-line="405" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/Tracking/Tracking_utils.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="707">
+          <caret line="240" column="51" lean-forward="false" selection-start-line="240" selection-start-column="44" selection-end-line="240" selection-end-column="51" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/Miniconda3/envs/CVenv/Lib/site-packages/pyqtgraph/graphicsItems/PlotDataItem.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="707">
+          <caret line="380" column="0" lean-forward="false" selection-start-line="380" selection-start-column="0" selection-end-line="380" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/Miniconda3/envs/CVenv/Lib/site-packages/pyqtgraph/graphicsItems/PlotItem/PlotItem.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="707">
+          <caret line="635" column="0" lean-forward="false" selection-start-line="635" selection-start-column="0" selection-end-line="635" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/Processing/processing_cfg.yml">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="216">
+          <caret line="8" column="28" lean-forward="false" selection-start-line="8" selection-start-column="28" selection-end-line="8" selection-end-column="28" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/Miniconda3/envs/CVenv/Lib/site-packages/pyqtgraph/functions.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="697">
+          <caret line="287" column="0" lean-forward="false" selection-start-line="287" selection-start-column="0" selection-end-line="287" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/Utils/Data_rearrange_funcs.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="81">
+          <caret line="9" column="4" lean-forward="false" selection-start-line="9" selection-start-column="4" selection-end-line="9" selection-end-column="4" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/Tracking/dlc_analyseVideos.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-501">
+          <caret line="44" column="4" lean-forward="false" selection-start-line="44" selection-start-column="4" selection-end-line="44" selection-end-column="4" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/Tracking/Tracking_main.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="1659">
+          <caret line="272" column="29" lean-forward="true" selection-start-line="272" selection-start-column="29" selection-end-line="272" selection-end-column="29" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/Miniconda3/envs/CVenv/Lib/codecs.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="768">
+          <caret line="308" column="0" lean-forward="false" selection-start-line="308" selection-start-column="0" selection-end-line="308" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/Utils/utils_classes.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="54">
+          <caret line="2" column="30" lean-forward="false" selection-start-line="2" selection-start-column="26" selection-end-line="2" selection-end-column="30" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/Miniconda3/envs/CVenv/Lib/site-packages/matplotlib/backend_bases.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="707">
+          <caret line="159" column="0" lean-forward="false" selection-start-line="159" selection-start-column="0" selection-end-line="159" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/Miniconda3/envs/CVenv/Lib/site-packages/matplotlib/rcsetup.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="707">
+          <caret line="662" column="0" lean-forward="false" selection-start-line="662" selection-start-column="0" selection-end-line="662" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/Debug/DebugTrack_funcs.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="1404">
+          <caret line="98" column="0" lean-forward="false" selection-start-line="98" selection-start-column="0" selection-end-line="98" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/AppData/Roaming/Python/Python35/site-packages/six.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="707">
+          <caret line="586" column="0" lean-forward="false" selection-start-line="586" selection-start-column="0" selection-end-line="586" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$APPLICATION_HOME_DIR$/helpers/pydev/_pydevd_bundle/pydevd_exec2.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="54">
+          <caret line="2" column="0" lean-forward="false" selection-start-line="2" selection-start-column="0" selection-end-line="2" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/Miniconda3/envs/CVenv/Lib/site-packages/matplotlib/axes/_axes.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="707">
+          <caret line="4278" column="0" lean-forward="false" selection-start-line="4278" selection-start-column="0" selection-end-line="4278" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/Miniconda3/envs/CVenv/Lib/site-packages/pandas/core/generic.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="147">
+          <caret line="4371" column="0" lean-forward="false" selection-start-line="4371" selection-start-column="0" selection-end-line="4371" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/AppData/Roaming/Python/Python35/site-packages/numpy/lib/function_base.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="242">
+          <caret line="1214" column="18" lean-forward="true" selection-start-line="1214" selection-start-column="18" selection-end-line="1214" selection-end-column="18" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/Miniconda3/envs/CVenv/Lib/site-packages/pandas/core/series.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="728">
+          <caret line="3999" column="0" lean-forward="false" selection-start-line="3999" selection-start-column="0" selection-end-line="3999" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/Processing/Processing_main.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="1539">
+          <caret line="102" column="56" lean-forward="false" selection-start-line="102" selection-start-column="46" selection-end-line="102" selection-end-column="56" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/Processing/Processing_utils.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="1404">
+          <caret line="80" column="0" lean-forward="false" selection-start-line="80" selection-start-column="0" selection-end-line="80" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/Utils/maths.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="2727">
+          <caret line="103" column="26" lean-forward="false" selection-start-line="103" selection-start-column="18" selection-end-line="103" selection-end-column="26" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/Debug/DebugTrack_GUI_Main.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="5400">
+          <caret line="209" column="0" lean-forward="false" selection-start-line="209" selection-start-column="0" selection-end-line="214" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/Utils/Setup_funcs.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="243">
+          <caret line="9" column="25" lean-forward="false" selection-start-line="9" selection-start-column="25" selection-end-line="9" selection-end-column="25" />
           <folding />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/Start_analysis.py">
+    <entry file="file://$PROJECT_DIR$/Utils/Custom_funcs.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1161">
-          <caret line="44" column="28" lean-forward="true" selection-start-line="39" selection-start-column="15" selection-end-line="44" selection-end-column="28" />
-          <folding>
-            <element signature="e#0#14#0" expanded="true" />
-          </folding>
+        <state relative-caret-position="702">
+          <caret line="27" column="11" lean-forward="false" selection-start-line="27" selection-start-column="11" selection-end-line="27" selection-end-column="11" />
+          <folding />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/Utils/Image_processing.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="108">
-          <caret line="4" column="16" lean-forward="false" selection-start-line="4" selection-start-column="16" selection-end-line="4" selection-end-column="16" />
-        </state>
-      </provider>
-    </entry>
-=======
->>>>>>> a6037fa9398eb154434c684a8194fb54ecc8d5ee
     <entry file="file://$PROJECT_DIR$/Utils/loadsave_funcs.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="54">
-          <caret line="5" selection-start-line="5" selection-end-line="5" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/Tracking/Tracking_main.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="2538">
-          <caret line="96" column="50" selection-start-line="96" selection-start-column="43" selection-end-line="96" selection-end-column="50" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/Utils/utils_classes.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1134">
-          <caret line="42" column="13" lean-forward="true" selection-start-line="42" selection-start-column="13" selection-end-line="42" selection-end-column="31" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/Utils/Data_rearrange_funcs.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="2187">
-          <caret line="81" column="10" lean-forward="true" selection-start-line="81" selection-start-column="10" selection-end-line="81" selection-end-column="10" />
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
           <folding>
-<<<<<<< HEAD
-            <element signature="e#240#752#0" expanded="false" />
-=======
-            <element signature="e#240#752#0" />
-            <element signature="e#782#3730#0" />
->>>>>>> a6037fa9398eb154434c684a8194fb54ecc8d5ee
+            <element signature="e#0#15#0" expanded="false" />
           </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/PATHS.yml">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="54">
+          <caret line="2" column="0" lean-forward="false" selection-start-line="2" selection-start-column="0" selection-end-line="2" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/Plotting/Plt_individual_stimresponses.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="324">
+          <caret line="16" column="0" lean-forward="false" selection-start-line="16" selection-start-column="0" selection-end-line="16" selection-end-column="0" />
+          <folding />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/Config.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="2025">
-          <caret line="75" column="23" selection-start-line="75" selection-start-column="23" selection-end-line="75" selection-end-column="23" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$USER_HOME$/AppData/Roaming/Python/Python35/site-packages/tensorflow/python/client/session.py" />
-    <entry file="file://$PROJECT_DIR$/Tracking/Configs/cfg_dlc_maze.yml">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="162">
-          <caret line="6" lean-forward="true" selection-start-line="6" selection-end-line="6" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/Utils/Image_processing.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="108">
-<<<<<<< HEAD
-          <caret line="4" column="16" lean-forward="false" selection-start-line="4" selection-start-column="16" selection-end-line="4" selection-end-column="16" />
-=======
-          <caret line="4" column="16" selection-start-line="4" selection-start-column="16" selection-end-line="4" selection-end-column="16" />
->>>>>>> a6037fa9398eb154434c684a8194fb54ecc8d5ee
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/Tracking/Tracking_main.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="4347">
-          <caret line="163" column="37" selection-start-line="163" selection-start-column="37" selection-end-line="163" selection-end-column="37" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/Utils/Data_rearrange_funcs.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1404">
-          <caret line="52" lean-forward="true" selection-start-line="52" selection-end-line="52" />
-          <folding>
-<<<<<<< HEAD
-            <element signature="e#240#752#0" expanded="false" />
-=======
-            <element signature="e#240#752#0" />
-            <element signature="e#782#3730#0" />
->>>>>>> a6037fa9398eb154434c684a8194fb54ecc8d5ee
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/Utils/utils_classes.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1188">
-          <caret line="44" column="33" lean-forward="true" selection-start-line="44" selection-start-column="33" selection-end-line="44" selection-end-column="33" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/Start_analysis.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="2268">
-          <caret line="85" column="23" lean-forward="true" selection-start-line="85" selection-start-column="23" selection-end-line="85" selection-end-column="23" />
-          <folding>
-            <element signature="e#0#14#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/Tracking/dlc_loadconfig.py">
-      <provider selected="true" editor-type-id="text-editor" />
-    </entry>
-    <entry file="file://$PROJECT_DIR$/Tracking/dlc_config.yaml" />
-    <entry file="file://$APPLICATION_CONFIG_DIR$/scratches/scratch_1.yml" />
-    <entry file="file://$PROJECT_DIR$/Tracking/Configs/cfg_params_def.txt">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="675">
-          <caret line="25" selection-start-line="25" selection-end-line="25" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/Tracking/Tracking_config.py" />
-    <entry file="file://$PROJECT_DIR$/Tracking/Configs/cfg_std_fearcond.yml">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="243">
-          <caret line="9" lean-forward="true" selection-start-line="9" selection-end-line="9" />
-        </state>
-      </provider>
-    </entry>
-<<<<<<< HEAD
-=======
-    <entry file="file://$PROJECT_DIR$/Tracking/Tracking_functions.py">
-      <provider selected="true" editor-type-id="text-editor" />
-    </entry>
->>>>>>> a6037fa9398eb154434c684a8194fb54ecc8d5ee
-    <entry file="file://$PROJECT_DIR$/Utils/Custom_funcs.py">
-      <provider selected="true" editor-type-id="text-editor" />
-    </entry>
-    <entry file="file://$USER_HOME$/Miniconda3/envs/CVenv/Lib/site-packages/yaml/__init__.py" />
-    <entry file="file://$USER_HOME$/Miniconda3/envs/CVenv/Lib/site-packages/yaml/loader.py" />
-    <entry file="file://$USER_HOME$/Miniconda3/envs/CVenv/Lib/site-packages/yaml/scanner.py" />
-    <entry file="file://$USER_HOME$/Miniconda3/envs/CVenv/Lib/encodings/cp1252.py" />
-    <entry file="file://$USER_HOME$/Miniconda3/envs/CVenv/Lib/site-packages/nptdms/tdms.py" />
-    <entry file="file://$USER_HOME$/Miniconda3/envs/CVenv/Lib/site-packages/pandas/core/generic.py" />
-    <entry file="file://$PROJECT_DIR$/Utils/Setup_funcs.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="2024">
-          <caret line="118" column="10" lean-forward="true" selection-start-line="118" selection-start-column="10" selection-end-line="118" selection-end-column="10" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$USER_HOME$/Miniconda3/envs/CVenv/Lib/site-packages/yaml/parser.py" />
-    <entry file="file://$PROJECT_DIR$/Tracking/Configs/cfg_dlc_TEMPLATE.yml">
-      <provider selected="true" editor-type-id="text-editor">
-        <state>
-          <caret column="11" selection-start-column="11" selection-end-column="11" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/Tracking/Configs/cfg_std_TEMPLATE.yml">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="243">
-          <caret line="9" lean-forward="true" selection-start-line="9" selection-end-line="9" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$USER_HOME$/AppData/Roaming/Python/Python35/site-packages/tensorflow/python/client/session.py" />
-    <entry file="file://$USER_HOME$/Miniconda3/envs/CVenv/Lib/site-packages/pandas/io/common.py" />
-    <entry file="file://$PROJECT_DIR$/Utils/Image_processing.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="108">
-<<<<<<< HEAD
-          <caret line="4" column="16" lean-forward="false" selection-start-line="4" selection-start-column="16" selection-end-line="4" selection-end-column="16" />
-=======
-          <caret line="4" column="16" selection-start-line="4" selection-start-column="16" selection-end-line="4" selection-end-column="16" />
->>>>>>> a6037fa9398eb154434c684a8194fb54ecc8d5ee
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/Utils/loadsave_funcs.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="135">
-          <caret line="5" selection-start-line="5" selection-end-line="5" />
+        <state relative-caret-position="1593">
+          <caret line="74" column="0" lean-forward="true" selection-start-line="74" selection-start-column="0" selection-end-line="74" selection-end-column="0" />
+          <folding />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/Utils/test_space.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="243">
-          <caret line="9" column="4" lean-forward="true" selection-start-line="9" selection-start-column="4" selection-end-line="9" selection-end-column="4" />
+        <state relative-caret-position="513">
+          <caret line="19" column="88" lean-forward="true" selection-start-line="13" selection-start-column="2" selection-end-line="19" selection-end-column="88" />
+          <folding>
+            <element signature="e#0#35#0" expanded="true" />
+          </folding>
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/Utils/utils_classes.py">
+    <entry file="file://$PROJECT_DIR$/Plotting/Single_trial_summary.py">
       <provider selected="true" editor-type-id="text-editor">
-<<<<<<< HEAD
-        <state relative-caret-position="1134">
-          <caret line="42" column="13" lean-forward="false" selection-start-line="42" selection-start-column="13" selection-end-line="42" selection-end-column="31" />
-          <folding />
-=======
-        <state relative-caret-position="54">
-          <caret line="2" column="23" selection-start-line="1" selection-end-line="3" selection-end-column="48" />
->>>>>>> a6037fa9398eb154434c684a8194fb54ecc8d5ee
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/Tracking/Configs/cfg_dlc_maze.yml">
-      <provider selected="true" editor-type-id="text-editor">
-<<<<<<< HEAD
-        <state relative-caret-position="162">
-          <caret line="6" column="0" lean-forward="false" selection-start-line="6" selection-start-column="0" selection-end-line="6" selection-end-column="0" />
-          <folding />
-=======
-        <state relative-caret-position="108">
-          <caret line="4" column="30" selection-start-line="4" selection-start-column="30" selection-end-line="4" selection-end-column="30" />
->>>>>>> a6037fa9398eb154434c684a8194fb54ecc8d5ee
+        <state relative-caret-position="1973">
+          <caret line="487" column="0" lean-forward="false" selection-start-line="487" selection-start-column="0" selection-end-line="487" selection-end-column="0" />
+          <folding>
+            <element signature="e#712#1676#0" expanded="false" />
+            <element signature="e#1839#2020#0" expanded="false" />
+            <element signature="e#4760#6946#0" expanded="false" />
+            <element signature="e#6997#7532#0" expanded="false" />
+            <element signature="e#13317#13653#0" expanded="false" />
+            <element signature="e#13727#14521#0" expanded="false" />
+            <element signature="e#14588#15699#0" expanded="false" />
+            <element signature="e#15888#16137#0" expanded="false" />
+            <element signature="e#23593#24184#0" expanded="false" />
+          </folding>
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/Start_analysis.py">
       <provider selected="true" editor-type-id="text-editor">
-<<<<<<< HEAD
-        <state relative-caret-position="-103">
-          <caret line="14" column="52" lean-forward="true" selection-start-line="14" selection-start-column="52" selection-end-line="14" selection-end-column="52" />
+        <state relative-caret-position="324">
+          <caret line="19" column="49" lean-forward="true" selection-start-line="19" selection-start-column="49" selection-end-line="19" selection-end-column="49" />
           <folding>
-            <element signature="e#0#14#0" expanded="true" />
-          </folding>
-=======
-        <state relative-caret-position="567">
-          <caret line="21" selection-start-line="21" selection-end-line="21" />
->>>>>>> a6037fa9398eb154434c684a8194fb54ecc8d5ee
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/Utils/Data_rearrange_funcs.py">
-      <provider selected="true" editor-type-id="text-editor">
-<<<<<<< HEAD
-        <state relative-caret-position="2133">
-          <caret line="96" column="0" lean-forward="true" selection-start-line="96" selection-start-column="0" selection-end-line="96" selection-end-column="0" />
-          <folding>
-            <element signature="e#240#752#0" expanded="false" />
+            <element signature="e#0#34#0" expanded="true" />
+            <element signature="e#5033#5949#0" expanded="false" />
+            <element signature="e#6006#6138#0" expanded="false" />
+            <element signature="e#6193#6330#0" expanded="false" />
+            <element signature="e#6636#6812#0" expanded="false" />
+            <element signature="e#7137#7203#0" expanded="false" />
+            <element signature="e#7242#7798#0" expanded="false" />
           </folding>
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/Processing/processing_utils.py">
+    <entry file="file://$PROJECT_DIR$/Utils/Messaging.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="567">
-          <caret line="21" column="0" lean-forward="false" selection-start-line="21" selection-start-column="0" selection-end-line="21" selection-end-column="0" />
-          <folding />
-=======
-        <state relative-caret-position="1134">
-          <caret line="42" column="13" selection-start-line="42" selection-start-column="13" selection-end-line="42" selection-end-column="31" />
->>>>>>> a6037fa9398eb154434c684a8194fb54ecc8d5ee
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/Tracking/Tracking_utils.py">
-      <provider selected="true" editor-type-id="text-editor">
-<<<<<<< HEAD
-        <state relative-caret-position="1621">
-          <caret line="286" column="39" lean-forward="true" selection-start-line="286" selection-start-column="39" selection-end-line="286" selection-end-column="39" />
-=======
-        <state relative-caret-position="204">
-          <caret line="12" column="34" selection-start-line="12" selection-start-column="34" selection-end-line="12" selection-end-column="34" />
->>>>>>> a6037fa9398eb154434c684a8194fb54ecc8d5ee
+        <state relative-caret-position="1940">
+          <caret line="89" column="0" lean-forward="true" selection-start-line="89" selection-start-column="0" selection-end-line="89" selection-end-column="0" />
           <folding>
-            <element signature="e#0#10#0" expanded="true" />
+            <element signature="e#0#35#0" expanded="true" />
           </folding>
         </state>
       </provider>
-    </entry>
-<<<<<<< HEAD
-    <entry file="file://$PROJECT_DIR$/Processing/test.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="135">
-          <caret line="5" column="0" lean-forward="true" selection-start-line="5" selection-start-column="0" selection-end-line="5" selection-end-column="0" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/Tracking/Tracking_functions.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="0">
-          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/Processing/stim_responses.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="54">
-          <caret line="2" column="14" lean-forward="false" selection-start-line="2" selection-start-column="0" selection-end-line="5" selection-end-column="0" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/Config.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1026">
-          <caret line="50" column="18" lean-forward="false" selection-start-line="50" selection-start-column="18" selection-end-line="50" selection-end-column="18" />
-          <folding />
-=======
-    <entry file="file://$PROJECT_DIR$/Tracking/dlc_analyseVideos.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="833">
-          <caret line="50" column="8" selection-start-line="50" selection-start-column="8" selection-end-line="50" selection-end-column="8" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/Tracking/Tracking_utils.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="5100">
-          <caret line="300" selection-start-line="300" selection-end-line="300" />
-          <folding>
-            <element signature="e#0#10#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/Tracking/Tracking_main.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="2788">
-          <caret line="166" selection-start-line="166" selection-end-line="166" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/Utils/Data_rearrange_funcs.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="102">
-          <caret line="23" column="22" selection-start-line="23" selection-start-column="22" selection-end-line="23" selection-end-column="22" />
-          <folding>
-            <element signature="e#240#752#0" />
-            <element signature="e#782#3730#0" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/Tracking/Configs/cfg_std_maze.yml">
-      <provider selected="true" editor-type-id="text-editor" />
-    </entry>
-    <entry file="file://$PROJECT_DIR$/Config_anna.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1598">
-          <caret line="94" selection-start-line="94" selection-end-line="94" />
->>>>>>> a6037fa9398eb154434c684a8194fb54ecc8d5ee
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/Config.py">
-      <provider selected="true" editor-type-id="text-editor">
-<<<<<<< HEAD
-        <state relative-caret-position="1458">
-          <caret line="158" column="43" lean-forward="true" selection-start-line="158" selection-start-column="43" selection-end-line="158" selection-end-column="43" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/Tracking/dlc_analyseVideos.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1281">
-          <caret line="72" column="0" lean-forward="false" selection-start-line="72" selection-start-column="0" selection-end-line="72" selection-end-column="0" />
-          <folding />
-=======
-        <state relative-caret-position="-275">
-          <caret line="62" column="12" selection-start-line="62" selection-start-column="5" selection-end-line="62" selection-end-column="12" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/Tracking/dlc_analysis_config.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="136">
-          <caret line="8" column="1" lean-forward="true" selection-start-line="8" selection-start-column="1" selection-end-line="8" selection-end-column="1" />
->>>>>>> a6037fa9398eb154434c684a8194fb54ecc8d5ee
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/Tracking/dlc_analysis_config_anna.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="252">
-          <caret line="15" selection-start-line="15" selection-end-line="15" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/Tracking/Configs/cfg_dlc_maze.yml">
-      <provider selected="true" editor-type-id="text-editor">
-        <state>
-          <caret selection-end-line="6" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/Tracking/Configs/cfg_dlc_LV.yml">
-      <provider selected="true" editor-type-id="text-editor" />
     </entry>
   </component>
 </project>

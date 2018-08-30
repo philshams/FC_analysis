@@ -11,10 +11,10 @@ load_database = True  # This is False only if you are creating a new database, i
 
 # Specify if you want to update the database loading info from datalog.csv to add recently added sessions to database
 update_database = False
-load_name = 'Cohort test_tracking'
+load_name = 'SquareMazeAllSessions_completed'
 
 # Specify name with which to save the results of the analysis
-save_name = 'processing test'
+save_name = 'SquareMazeAllSessions'
 
 """
 Specify set of sessions to analyse 
@@ -32,8 +32,9 @@ might behave differently depending on the type of experiment
 
 
 """
+
 selector_type = 'session'  # selects which session to an 'new', 'experiment', 'session', 'date'
-selector = [62]  # ['180607', '180603', '180604', '180605', '180606']
+selector = [74]  # ['180603', '180604', '180605', '180606', '180607', '180625', '180626', '080628']  # [74, 75, 78, 79, 80, 81]  #
 exp_type = 'maze'
 
 
@@ -44,20 +45,20 @@ Flags and params that control the execution of the different parts of the code
 #  TRACKING           #
 #######################
 # analysis start frame: beginning of videos is usually empty, we can skip that
-startf = 6000  # Skip the first n frames when tracking
+startf = 8000  # Skip the first n frames of the first video when tracking [
 
 extract_background = False
 
 track_mouse = False             # <----- !!!!!!!!!!
 track_options = {
-    'bg get rois': False,         # allow user to define 3 ROIs when extracting background [threat, shelter variable]
+    'bg get rois': True,          # allow user to define 3 ROIs when extracting background [threat, shelter variable]
     'track whole session': False,  # Track the mouse for the entire session
-    'track_exploration': False,  # Track the mouse during the exploration using the standard tracking
-    'track_mouse_fast': True,    # if true only track segments of videos around the stimuli
-    'use_stdtracking': True,      # Use standard tracking (written by FC)
-    'stdtracking_justCoM': True,  # When using the standard tracking just extract the Centre of Mass and
-                                  # not other variables. This is TRUE by default
-    'use_deeplabcut': True,       # Use deepLabCut to track the mouse
+    'track_exploration': True,    # Track the mouse during the exploration using the standard tracking
+    'track_mouse_fast': True,      # if true only track segments of videos around the stimuli
+    'use_stdtracking': True,       # Use standard tracking (written by FC)
+    'stdtracking_justCoM': True,   # When using the standard tracking just extract the Centre of Mass and
+                                   # not other variables [e.g. orientation]. This is TRUE by default
+    'use_deeplabcut': True,        # Use deepLabCut to track the mouse
     'cfg_std': 'C:\\Users\\Federico\\Documents\\GitHub\\FC_analysis\\Tracking\\Configs\\cfg_std_maze.yml',
     # configure yaml files for std and dlc tracking
     'cfg_dlc': 'C:\\Users\\Federico\\Documents\\GitHub\\FC_analysis\\Tracking\\Configs\\cfg_dlc_maze.yml'
@@ -67,20 +68,23 @@ track_options = {
 #######################
 #  PROCESSING         #
 #######################
-processing = True
+processing = RecursionError
 processing_options = {
     'cfg': 'C:\\Users\\Federico\\Documents\\GitHub\\FC_analysis\\Processing\\processing_cfg.yml'
-
 }
 
+#######################
+#  DEBUGGING          #
+#######################
+debug = False
 
 #######################
 #  COHORT #
 #######################
 """
-Cohort gives the otpion to pool the data from all the sessions analysed for group analysis
+Cohort gives the option to pool the data from all the sessions analysed for group analysis
 """
-Cohort = False
+cohort = False
 cohort_options = {
     'name': 'CH_ThreeSessions',   # Name of the cohort
     'selector type': 'session',  # what to select the sessions to pool by [e.g. by experiment, by date...]
@@ -95,7 +99,7 @@ cohort_options = {
 """
 Plotting still needs to be implemented 
 """
-plotting = False
+plotting = True
 plotting_individuals = False
 plotting_cohort = True
 
@@ -122,8 +126,14 @@ else:
     
 
 
-
-
-
+#######################
+#  MESSAGING          #
+#######################
+"""
+Options to send slack message, slack channel messages or emails with progress of the analysis and results
+"""
+use_slack = True
+slack_username = 'U9ES1UXSM'
+slack_env_var_token = 'SLACK_BRANCO_TOKEN'
 
 

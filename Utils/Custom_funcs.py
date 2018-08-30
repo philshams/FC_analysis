@@ -31,9 +31,9 @@ def cut_crop_video(vidpath='',  save_format=['avi'],
 
 ########################################################################################################################
 if __name__ == "__main__":
-    video_to_edit = 'C:\\Users\\Federico\\Documents\\GitHub\\DeepLabCut\\videos\\Zina_twomice.avi'
+    video_to_edit = 'D:\\Dropbox (UCL - SWC)\\Dropbox (UCL - SWC)\\Rotation_vte\\data\\dlc_trialVids\\test_man_tis_v-default-104926442-cam2-0.avi'
 
-    cut_crop_video(video_to_edit, cut=True, starts=1110, fins=1210, crop_sel=False, crop_coord=[150, 300, 450, 300],
+    cut_crop_video(video_to_edit, cut=True, starts=1110, fins=1150, crop_sel=False, crop_coord=[150, 300, 450, 300],
                    save_format=['avi'])
 
 

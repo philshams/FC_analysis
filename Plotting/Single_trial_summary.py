@@ -16,6 +16,9 @@ import math
 import os
 
 from Utils.maths import line_smoother
+from Utils.Messaging import slack_chat_messenger, slack_chat_attachments
+
+from Config import use_slack
 
 
 class Plotter():
@@ -480,6 +483,10 @@ class Plotter():
             name = '{}'.format(list(self.trials.keys())[self.sel_trial])
             print('             ... saving figure {}'.format(name))
             plt.savefig(os.path.join(path, name), facecolor=[0.1, 0.1, 0.1])
+
+            if use_slack:
+                slack_chat_attachments(os.path.join(path, name))
+
             plt.close('all')
 
 ########################################################################################################################
