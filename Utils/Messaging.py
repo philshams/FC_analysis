@@ -44,7 +44,7 @@ def slack_chat_attachments(filepath):
       "media": my_file
     }
 
-    r = requests.post("https://slack.com/api/files.upload", params=payload)
+    r = requests.post("https://slack.com/api/files.upload", params=payload, files=my_file)
 
 
 def upload_file( filepath ):
@@ -79,20 +79,34 @@ def upload_file( filepath ):
 
     print(response.text)
 
-def upload(file, channel):
-  options = {
-    token: @team.bot["bot_access_token"],
-    file: File.new("./tmp/composed/#{file.timestamp}", 'rb'),
-    filename: "composed_" + file.name,
-    title: "Composed " + file.title,
-    channels: channel
-  }
 
-  res = RestClient.post 'https://slack.com/api/files.upload', options
-  json_response = JSON.parse(res.body)
+def send_email_attachments(filename, filepath):
+    import smtplib
+    from email.mime.image import MIMEImage
+    from email.mime.text import  MIMEText
+    from email.mime.multipart import MIMEMultipart
 
-  # Return the uploaded file's ID
-  thread_ts = json_response["file"]["shares"]["private"][channel]["ts"]
-  file_id = json_response["file"]["id"]
-end
+
+    # Create the container (outer) email message.
+    msg = MIMEMultipart()
+    msg['Subject'] = filename
+    # me == the sender's email address
+    # family = the list of all recipients' email addresses
+    msg['From'] = 'federicopython@gmail.com'
+    msg['To'] = 'federicoclaudi@gmail.com'
+    body = "Analysis results"
+    msg.attach(MIMEText(body, 'plain'))
+
+
+    with open(filepath+'.png', 'rb') as fp:
+        img = MIMEImage(fp.read())
+    msg.attach(img)
+
+    # Send the email via our own SMTP server.
+    server = smtplib.SMTP('smtp.gmail.com:587')
+    server.ehlo()
+    server.starttls()
+    server.login('federicopython@gmail.com', '')
+    server.sendmail('federicopython@gmail.com', 'federicoclaudi@gmail.com', msg.as_string())
+    server.quit()
 

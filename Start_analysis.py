@@ -11,7 +11,7 @@ from Utils.Messaging import slack_chat_messenger
 from Config import load_database, update_database, load_name, save_name\
     , selector_type, selector,\
     extract_background, track_mouse, track_options, \
-    plotting, cohort, processing, debug, use_slack
+    plotting, cohort, processing, debug, send_messages
 
 
 ########################################################################################################################
@@ -69,14 +69,14 @@ class Analysis():
                     if extract_background or track_mouse:
                         self.video_analysis(session)
 
-                if use_slack:
+                if send_messages:
                     slack_chat_messenger('Finished STD tracking')
 
                 if track_mouse:
                     # Finish DLC tracking [extract pose on saved clips]
                     self.db = Tracking.tracking_use_dlc(self.db, self.clips_l)
 
-                    if use_slack:
+                    if send_messages:
                         slack_chat_messenger('Finished DLC tracking')
 
             self.save_results(obj=self.db, mod='_backupsave')
@@ -94,7 +94,7 @@ class Analysis():
                 # PROCESSING
                 if processing:
                     self.processing_session(session)
-                    if use_slack:
+                    if send_messages:
                         slack_chat_messenger('Finished processing')
 
                 # Debug

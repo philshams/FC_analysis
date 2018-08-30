@@ -16,9 +16,9 @@ import math
 import os
 
 from Utils.maths import line_smoother
-from Utils.Messaging import slack_chat_messenger, slack_chat_attachments
+from Utils.Messaging import slack_chat_messenger, slack_chat_attachments, send_email_attachments
 
-from Config import use_slack
+from Config import send_messages
 
 
 class Plotter():
@@ -484,8 +484,9 @@ class Plotter():
             print('             ... saving figure {}'.format(name))
             plt.savefig(os.path.join(path, name), facecolor=[0.1, 0.1, 0.1])
 
-            if use_slack:
-                slack_chat_attachments(os.path.join(path, name))
+            if send_messages:
+                slack_chat_messenger('Sending you {} by email'.format(name))
+                send_email_attachments(name, path)
 
             plt.close('all')
 

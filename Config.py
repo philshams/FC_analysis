@@ -132,7 +132,7 @@ else:
 """
 Options to send slack message, slack channel messages or emails with progress of the analysis and results
 """
-use_slack = True
+send_messages = True
 slack_username = 'U9ES1UXSM'
 slack_env_var_token = 'SLACK_BRANCO_TOKEN'
 
