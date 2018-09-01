@@ -121,8 +121,8 @@ def create_database(datalogpath, database=None):
                     db = generate_database_from_metadatas(sessions_dict)
                 else:
                     # create a new database with the newly added sessions and concatenate it with the preivious one
-                    justaddedd = generate_database_from_metadatas(sessions_dict)
-                    db = pd.concat(database, justaddedd)
+                    db = generate_database_from_metadatas(sessions_dict)
+                    # db = pd.concat(database, justaddedd)
 
                 save_data(savelogpath, save_name, name_modifier='_emergency_save', object=db)
                 sys.exit('Closing application....')
