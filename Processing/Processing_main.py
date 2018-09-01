@@ -102,7 +102,6 @@ class Processing():
         absolute_angle_head = calc_angle_2d(head, body, vectors=True)
         data.dlc_tracking['Posture']['body']['Head angle'] = absolute_angle_head
 
-
     def extract_bodylength(self, data):
         # Get bodylength
         avg_bodylength, bodylength = get_average_bodylength(data, head_tag=self.settings['head'],
@@ -139,7 +138,8 @@ class Processing():
 
         # Get the unit velocity will be calculated as and save it in the metadata
         unit = self.settings['velocity unit']
-        if 'bl' in unit:
+        allunits = ['pxperframe', 'pxpersec', 'blpersec']
+        if 'bl' in unit or 'all' in unit:
             # Need to calculate the avg length of the mouse
             if not data.dlc_tracking:
                 print('Could not calculate velocity in bodylength per second as there are no DLC data\n'
@@ -162,9 +162,16 @@ class Processing():
         if self.settings['std']:
             # Extract velocity using std tracking data
             distance = calc_distance_2d((data.std_tracking['x'].values, data.std_tracking['y'].values))
-            data.std_tracking['Velocity'] = distance
-            data.std_tracking['Acceleration'] = calc_acceleration(distance, unit=unit, fps=fps,
-                                                                  bodylength=bodylength)
+            if not 'all' in unit:
+                data.std_tracking['Velocity'] = scale_velocity_by_unit(distance, unit=unit, fps=fps, bodylength=bodylength)
+                data.std_tracking['Acceleration'] = calc_acceleration(distance, unit=unit, fps=fps,
+                                                                      bodylength=bodylength)
+            else:
+                for un in allunits:
+                    data.std_tracking['Velocity_{}'.format(un)] = scale_velocity_by_unit(distance, unit=un, fps=fps,
+                                                                           bodylength=bodylength)
+                    data.std_tracking['Acceleration_{}'.format(un)] = calc_acceleration(distance, unit=un, fps=fps,
+                                                                          bodylength=bodylength)
 
         if self.settings['dlc']:
             if not data.dlc_tracking:
@@ -183,8 +190,15 @@ class Processing():
                         self.settings['dlc single bp'] = bodypart
 
                 distance = calc_distance_2d((bp_data['x'], bp_data['y']))
-                bp_data['Velocity'] = distance
-                bp_data['Accelearation'] = calc_acceleration(distance, unit=unit, fps=fps, bodylength=bodylength)
+                if not 'all' in unit:
+                    bp_data['Velocity'] = scale_velocity_by_unit(distance, unit=unit, fps=fps, bodylength=bodylength)
+                    bp_data['Accelearation'] = calc_acceleration(distance, unit=unit, fps=fps, bodylength=bodylength)
+                else:
+                    for un in allunits:
+                        bp_data['Velocity_{}'.format(un)] = scale_velocity_by_unit(distance, unit=un, fps=fps,
+                                                                                             bodylength=bodylength)
+                        bp_data['Acceleration_{}'.format(un)] = calc_acceleration(distance, unit=un, fps=fps,
+                                                                                            bodylength=bodylength)
 
     def extract_posture(self):
             """

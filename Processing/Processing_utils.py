@@ -127,3 +127,30 @@ def calc_position_relative_point(data, point):
         x_adj[idx] = point[0] - x
         y_adj[idx] = point[1] - y
     return x_adj, y_adj
+
+
+def scale_velocity_by_unit(data, unit=False, fps=False, bodylength=False):
+    if not unit or unit == 'pxperframe':
+        # Return the velocity in px per frame
+        return data
+    else:
+        # Scale the velocity from px per frame depending on the unit used
+        if not fps:
+            print('No FPS was available when calculating velocity\n FPS set as 30 frames per second')
+            fps = 30
+        else:
+            if isinstance(fps, list):
+                fps = fps[0]
+
+        if unit == 'pxpersec':
+            return data*fps
+
+        if unit =='blpersec':
+            if not bodylength:
+                print('No body length was found when calculating velocity as bodylengths per second\nUsing px per second'
+                      'instead')
+                return data*fps
+            else:
+                data *= fps
+                data /= bodylength
+                return data
