@@ -1,37 +1,79 @@
 import numpy as np
-import time
-from moviepy.editor import *
 import os
 from tempfile import mkdtemp
 from nptdms import TdmsFile
 import psutil
 import gc
-import matplotlib.pyplot as plt
-import sys
+import time
+
+import cv2
+
+def show_mem_stats():
+        giga = 1073741824
+        stats = psutil.virtual_memory()
+        print("""Total memory:          {} GB
+          available:    {} GB
+               free:    {} GB
+               used:    {} GB
+            percent:    {}%
+        """.format(round(stats.total/giga, 2), round(stats.available/giga, 2),
+                   round(stats.free/giga, 2), round(stats.used/giga, 2), stats.percent))
+
+        return stats.available
+
+
+start_time = time.clock()
 
 filepath = 'D:\\Camera_LDR-default-10160362-video.tdms'
-
+filepath2 = 'D:\\test_mantis_v6-default-102077900-cam2'
+#tempdir = mkdtemp(dir='D:\\')
+tempdir = 'D:\\tmpmyzce9ia'
 
 width = 1100 + 52
 skip_data_points = 4094
 real_width = 1100
 height = 550
-frame_size = self.width * self.height
-real_frame_size = self.real_width * self.height
-f_size = os.path.getsize(filepath)  # size in bytes
-
+frame_size =width * height
+real_frame_size = real_width * height
+f_size = os.path.getsize(filepath2)  # size in bytes
 tot_frames = int((f_size - skip_data_points) / frame_size)  # num frames
 
-if open filepath as binary:
-    # Skip HEADER
-    binary.seek(skip_data_points)
+print('Total number of frames {}'.format(tot_frames))
 
-    # Read data for first frame
-    bframe = binary.read(frame_size)
+print('Opening binary')
+bfile = open(filepath2, 'rb')
+show_mem_stats()
 
-    # Turn it into a numpy and reshape
-    frame = np.fromstring(bframe, dtype=np.int8).reshape(width, height)
+print('Opening mmap tdms')
+tdms = TdmsFile(bfile, memmap_dir=tempdir)  # open tdms binary file as a memmapped object
+show_mem_stats()
 
-    # show results
-    plt.figure()
-    plt.imshow(frame, cmap='Greys')
+print('Extracting data')
+tdms = tdms.__dict__['objects']["/'cam0'/'data'"].data.reshape((tot_frames, height, width), order='C')
+show_mem_stats()
+
+print('Got data, cleaning up cached memory')
+gc.collect()
+
+print('Cleaning up data')
+tdms = tdms[:, :, :real_width]
+
+print('Ready to plot')
+free_mem = show_mem_stats()
+
+
+print('Make video')
+fourcc=cv2.VideoWriter_fourcc(*'MP4V')
+videowriter = cv2.VideoWriter(os.path.join(tempdir, 'OUTPUT.mp4'), fourcc,
+                30, (1100, 550), False)
+
+for framen in range(len(tdms)):
+    print(framen)
+    videowriter.write(tdms[framen])
+videowriter.release()
+
+
+print('It took {}s to process a file of {} bytes'.format(time.clock()-start_time, f_size))
+
+
+a = 1
