@@ -14,7 +14,7 @@ import cv2
 def show_mem_stats():
         giga = 1073741824
         stats = psutil.virtual_memory()
-        print("""Total memory:          {} GB
+        print("""Total memory:           {} GB
           available:    {} GB
                free:    {} GB
                used:    {} GB
@@ -28,7 +28,7 @@ def write_clip(limits):
     vidname = 'output_{}.mp4'.format(limits[0])
     fourcc = cv2.VideoWriter_fourcc(*'MP4V')
     videowriter = cv2.VideoWriter(os.path.join(tempdir, vidname), fourcc,
-                                  30, (1100, 550), False)
+                                  120, (1100, 550), False)
 
     for framen in range(limits[0], limits[1]):
         videowriter.write(tdms[framen])
