@@ -1,6 +1,7 @@
+from Plotting.Plotting_utils import *
+
 import matplotlib.pyplot as plt
 import matplotlib
-
 matplotlib.rc('axes', edgecolor=[0.8, 0.8, 0.8])
 matplotlib.rcParams['text.color'] = [0.8, 0.8, 0.8]
 matplotlib.rcParams['axes.labelcolor'] = [0.8, 0.8, 0.8]
@@ -14,6 +15,10 @@ plt.rcParams.update(params)
 import numpy as np
 import math
 import os
+import time
+
+from Processing.Processing_utils import parallelizer
+from multiprocessing.dummy import Pool as ThreadPool
 
 from Utils.maths import line_smoother
 from Utils.Messaging import slack_chat_messenger, slack_chat_attachments, send_email_attachments
@@ -70,6 +75,15 @@ class Plotter():
         for trial in trials_names:
             self.trials[trial] = tracking[trial]
 
+            if 'exploration' not in trial.lower() and 'session' not in trial.lower():
+                # Get processing metadta
+                try:
+                    self.processing_metadata = tracking[trial].metadata['Processing info']
+                    if self.processing_metadata['velocity unit'] == 'all':
+                        self.processing_metadata['velocity unit'] = 'blpersec'
+                except:
+                    pass
+
     def setup_figure(self):
         self.f = plt.figure(figsize=(35,15), facecolor=[0.1, 0.1, 0.1])
 
@@ -77,29 +91,34 @@ class Plotter():
 
         self.twod_track = plt.subplot2grid(grid, (0, 1), rowspan=3, colspan=2)
         self.twod_track.set(title='Tracking relative to shelter',
-                            facecolor=[0.2, 0.2, 0.2], xlim=[300, -300], ylim=[-500, 100])
+                            facecolor=[0.2, 0.2, 0.2], xlim=[300, -300], ylim=[-500, 100], xlabel='px', ylabel='px')
 
         self.std = plt.subplot2grid(grid, (0, 3), rowspan=1, colspan=2)
-        self.std.set(title='STD - X-Y displacement', facecolor=[0.2, 0.2, 0.2])
+        self.std.set(title='STD - X-Y displacement', facecolor=[0.2, 0.2, 0.2], xlabel='frames', ylabel='px')
 
         self.dlc = plt.subplot2grid(grid, (2,  3), rowspan=1, colspan=2, sharex=self.std)
-        self.dlc.set(title='STD - X-Y displacement', facecolor=[0.2, 0.2, 0.2])
+        self.dlc.set(title='STD - X-Y displacement', facecolor=[0.2, 0.2, 0.2], xlabel='frames', ylabel='px')
 
         self.std_vel_plot = plt.subplot2grid(grid, (1, 3), rowspan=1, colspan=2, sharex=self.std)
-        self.std_vel_plot.set(title='DLC - Velocity ', facecolor=[0.2, 0.2, 0.2])
+        self.std_vel_plot.set(title='DLC - Velocity [{}]'.format(self.processing_metadata['velocity unit']),
+                              facecolor=[0.2, 0.2, 0.2], xlabel='frames',
+                              ylabel=' [{}]'.format(self.processing_metadata['velocity unit']))
 
         self.dlc_vel_plot = plt.subplot2grid(grid, (3,  3), rowspan=1, colspan=2, sharex=self.std)
-        self.dlc_vel_plot.set(title='DLC - Velocity', facecolor=[0.2, 0.2, 0.2])
+        self.dlc_vel_plot.set(title='DLC - Velocity [{}]'.format(self.processing_metadata['velocity unit']),
+                              facecolor=[0.2, 0.2, 0.2], xlabel='frames',
+                              ylabel=' [{}]'.format(self.processing_metadata['velocity unit']))
 
         self.tracking_on_maze = plt.subplot2grid(grid, (0, 0), rowspan=1, colspan=1)
-        self.tracking_on_maze.set(title='Tracking on maze', facecolor=[0.2, 0.2, 0.2], xlim=[0, 600], ylim=[600, 0])
+        self.tracking_on_maze.set(title='Tracking on maze', facecolor=[0.2, 0.2, 0.2], xlim=[0, 600], ylim=[600, 0],
+                                  xlabel='frames', ylabel='px')
 
         self.absolute_angle_plot = plt.subplot2grid(grid, (0, 5), rowspan=2, colspan=2, projection='polar')
         self.absolute_angle_plot.set(title='Orientation (body green)', theta_zero_location='N', facecolor=[0.2, 0.2, 0.2],
-                                     theta_direction=-1)
+                                     theta_direction=-1, xlabel='frames', ylabel='deg')
 
         self.pose = plt.subplot2grid(grid, (4, 0), rowspan=2, colspan=9)
-        self.pose.set(title='Pose reconstruction', facecolor=[0.2, 0.2, 0.2], ylim=[635, -150])
+        self.pose.set(title='Pose reconstruction', facecolor=[0.2, 0.2, 0.2], ylim=[635, -150], xlabel='frames')
 
         self.pose_space = plt.subplot2grid(grid, (2, 0), rowspan=1, colspan=1)
         self.pose_space.set(title='Pose at stim', facecolor=[0.2, 0.2, 0.2], xlim=[150, 450], ylim=[650, 350])
@@ -108,11 +127,15 @@ class Plotter():
         self.exploration_plot.set(title='Eploration', facecolor=[0.2, 0.2, 0.2], xlim=[0, 600], ylim=[600, 0])
 
         self.react_time_plot =  plt.subplot2grid(grid, (3, 0), rowspan=1, colspan=3)
-        self.react_time_plot.set(title='Reaction Time', facecolor=[0.2, 0.2, 0.2])
+        self.react_time_plot.set(title='Reaction Time', facecolor=[0.2, 0.2, 0.2], xlabel='frames', ylabel='-')
 
         self.head_rel_angle = plt.subplot2grid(grid, (2, 5), rowspan=2, colspan=2, projection='polar')
         self.head_rel_angle.set(title='Head Relative Angle', theta_zero_location='N', facecolor=[0.2, 0.2, 0.2],
                                 theta_direction=-1)
+
+        self.ang_vel_plot = plt.subplot2grid(grid, (0, 7), rowspan=1, colspan=2)
+        self.ang_vel_plot.set(title='Angular velocity', facecolor=[0.2, 0.2, 0.2], ylim=[-750, 750],
+                              xlabel='frames', ylabel='deg/sec')
 
         self.f.tight_layout()
 
@@ -130,7 +153,12 @@ class Plotter():
         self.std_y_adj = trial.std_tracking['adjusted y'].values[stim - wnd:stim + wnd]
         self.std_x = trial.std_tracking['x'].values[stim - wnd:stim + wnd]
         self.std_y = trial.std_tracking['y'].values[stim - wnd:stim + wnd]
-        self.std_vel = trial.std_tracking['Velocity'].values[stim - wnd:stim + wnd]
+
+        if self.processing_metadata['velocity unit'] in trial.std_tracking.keys():
+            self.std_vel = trial.std_tracking['Velocity_{}'.format(self.
+                                                   processing_metadata['velocity unit'])].values[stim - wnd:stim + wnd]
+        else:
+            self.std_vel = trial.std_tracking['Velocity'].values[stim - wnd:stim + wnd]
 
         # DLC
         for bp in trial.dlc_tracking['Posture'].keys():
@@ -139,11 +167,22 @@ class Plotter():
                 self.dlc_y_adj = trial.dlc_tracking['Posture'][bp]['adjusted y'].values[stim - wnd:stim + wnd]
                 self.dlc_x = trial.dlc_tracking['Posture'][bp]['x'].values[stim - wnd:stim + wnd]
                 self.dlc_y = trial.dlc_tracking['Posture'][bp]['y'].values[stim - wnd:stim + wnd]
-                self.dlc_vel = trial.dlc_tracking['Posture'][bp]['Velocity'].values[stim - wnd:stim + wnd]
+
+                if self.processing_metadata['velocity unit'] in trial.dlc_tracking['Posture'][bp].keys():
+                    self.dlc_vel = trial.dlc_tracking['Posture'][bp]['Velocity_{}'.format(
+                        self.processing_metadata['velocity unit'])].values[stim - wnd:stim + wnd]
+                else:
+                    self.dlc_vel = trial.dlc_tracking['Posture'][bp]['Velocity'].values[stim - wnd:stim + wnd]
+
                 self.dlc_ori = trial.dlc_tracking['Posture'][bp]['Orientation'].values[stim - wnd:stim + wnd]
                 self.dlc_head_ori = trial.dlc_tracking['Posture'][bp]['Head angle'].values[stim - wnd:stim + wnd]
                 self.dlc_bodylength = trial.dlc_tracking['Posture'][bp]['Body length'].values[stim - wnd:stim + wnd]
+
+                self.dlc_head_ang_vel = trial.dlc_tracking['Posture'][bp]['Head ang vel'].values[stim - wnd:stim + wnd]
+                self.dlc_body_ang_vel = trial.dlc_tracking['Posture'][bp]['Body ang vel'].values[stim - wnd:stim + wnd]
+
                 break
+
         avgbdlength = trial.metadata['avg body length']
         self.dlc_bodylength = np.array([x/avgbdlength for x in self.dlc_bodylength])
 
@@ -216,6 +255,10 @@ class Plotter():
         self.react_time_plot.axvline(self.at_shelter, color=[0.8, 0.2, 0.8], linewidth=1, label=None)
         self.twod_track.plot(self.dlc_x_adj[self.wnd+self.at_shelter], self.dlc_y_adj[self.wnd+self.at_shelter],
                              'o', color=[0.8, 0.2, 0.8], markersize=20, alpha=0.75, label='At shelter')
+        self.ang_vel_plot.set(xlim=[window-100, window+self.at_shelter+5])
+        self.ang_vel_plot.axvline(self.at_shelter+window, color=[0.8, 0.2, 0.8], linewidth=1, label=None)
+
+
         # Show the results
         text_x, text_y, text_bg_col = -280, 75, [0.1, 0.1, 0.1]
 
@@ -341,44 +384,8 @@ class Plotter():
         plot_line_skeleton(ax, p1, p2, pose, colors, fr)
 
 ########################################################################################################################
-
-    def make_legend(self, ax, c1, c2, changefont=False):
-        if not changefont:
-            legend = ax.legend(frameon=True)
-        else:
-            legend = ax.legend(frameon=True, prop={'size': changefont})
-
-        frame = legend.get_frame()
-        frame.set_facecolor(c1)
-        frame.set_edgecolor(c2)
-
-    def plot_trial(self, trialidx):
-        """
-        plot stuff for a single trial
-        """
-
-        trialname = list(self.trials.keys())[trialidx]
-        if 'Exploration' in trialname or 'Whole Session' in trialname:
-            return
-
-        self.setup_figure()
-
-        print('         ... plotting trial {} of {}: {}'.format(
-            trialidx, len(list(self.trials.keys()))-2, trialname))
-
-        trial = self.trials[list(self.trials.keys())[trialidx]]
-
-        # Get tracking data for plotting
-        self.get_tr_data_to_plot(trial)
-
-        # Get pose
-        poses = self.get_dlc_pose(trial, self.stim)
-
-        # Get outcome
-        self.get_outcome(self.dlc_x_adj, self.dlc_y_adj, self.wnd, self.twod_track)
-
-        # Plot 2D tracking from std and dlc data
-        shelter = plt.Rectangle((-50,-30),100,60,linewidth=1,edgecolor='b',facecolor=[0.4, 0.4, 0.8], alpha=0.5)
+    def plot_twod_tracking(self):
+        shelter = plt.Rectangle((-50, -30), 100, 60, linewidth=1, edgecolor='b', facecolor=[0.4, 0.4, 0.8], alpha=0.5)
         self.twod_track.add_artist(shelter)
         # self.twod_track.plot(std_x_adj, std_y_adj, '-o', color='g')
         self.twod_track.plot(self.dlc_x_adj[0:self.wnd], self.dlc_y_adj[0:self.wnd],
@@ -386,34 +393,35 @@ class Plotter():
         self.twod_track.plot(self.dlc_x_adj[self.wnd:], self.dlc_y_adj[self.wnd:],
                              '-', color=[0.6, 0.6, 0.6], linewidth=4, label='Escape')
         self.twod_track.plot(self.dlc_x_adj[self.wnd], self.dlc_y_adj[self.wnd],
-                             'o', color=[0.8, 0.2, 0.2], markersize=20, alpha = 0.75, label='Stim location')
-        self.make_legend(self.twod_track, [0.1, .1, .1], [0.8, 0.8, 0.8])
+                             'o', color=[0.8, 0.2, 0.2], markersize=20, alpha=0.75, label='Stim location')
+        make_legend(self.twod_track, [0.1, .1, .1], [0.8, 0.8, 0.8])
 
+    def plot_1D_std_tracking(self):
         # Plot 1D stuff for std [x, y, velocity...]
         self.std.plot(self.std_x_adj, color=[0.2, 0.8, 0.2], linewidth=3, label='X pos')
         self.std.plot(self.std_y_adj, color=[0.2, 0.6, 0.2], linewidth=3, label='Y pos')
         self.std.axvline(self.wnd, color='w', linewidth=1, label=None)
-        self.make_legend(self.std, [0.1, .1, .1], [0.8, 0.8, 0.8])
+        make_legend(self.std, [0.1, .1, .1], [0.8, 0.8, 0.8])
 
         self.std_vel_plot.plot(self.std_vel, color=[0.4, 0.4, 0.4], linewidth=3, label='Vel')
         self.std_vel_plot.plot(line_smoother(self.std_vel, 51, 3), color=[0.4, 0.8, 0.4], linewidth=5,
                                label='Smoothed')
         self.std_vel_plot.axvline(self.wnd, color='w', linewidth=1, label=None)
-        self.make_legend(self.std_vel_plot, [0.1, .1, .1], [0.8, 0.8, 0.8])
+        make_legend(self.std_vel_plot, [0.1, .1, .1], [0.8, 0.8, 0.8])
 
-        # Plot 1D stuff for dlc [x, y, velocity...]
+    def plot_1D_dlc_tracking(self):
         self.dlc.plot(self.dlc_x_adj, color=[0.8, 0.2, 0.2], linewidth=3, label='X pos')
         self.dlc.plot(self.dlc_y_adj, color=[0.6, 0.2, 0.2], linewidth=3, label='Y pos')
         self.dlc.axvline(self.wnd, color='w', linewidth=1, label=None)
-        self.make_legend(self.dlc, [0.1, .1, .1], [0.8, 0.8, 0.8])
+        make_legend(self.dlc, [0.1, .1, .1], [0.8, 0.8, 0.8])
 
         self.dlc_vel_plot.plot(self.dlc_vel, color=[0.4, 0.4, 0.4], linewidth=5, label='Vel')
         self.dlc_vel_plot.plot(line_smoother(self.dlc_vel, 51, 3), color=[0.8, 0.4, 0.4], linewidth=3,
                                label='Smoothed')
         self.dlc_vel_plot.axvline(self.wnd, color='w', linewidth=1, label=None)
-        self.make_legend(self.dlc_vel_plot, [0.1, .1, .1], [0.8, 0.8, 0.8])
+        make_legend(self.dlc_vel_plot, [0.1, .1, .1], [0.8, 0.8, 0.8])
 
-        # Show mouse tracking over the maze
+    def plot_exploration_tracking_over_maze(self):
         self.tracking_on_maze.imshow(self.session.Metadata.videodata[0]['Background'], cmap='Greys')
         self.tracking_on_maze.plot(self.dlc_x, self.dlc_y, '-', color='r')
 
@@ -427,41 +435,39 @@ class Plotter():
             # self.exploration_plot.plot(self.exploration['x'].values, self.exploration['y'].values,
             #                            color=[0.6, 0.6, 0.6], linewidth=3)
 
-        # Plot orientation at reaction
-        yy = np.linspace(self.prestim_frames, self.poststim_frames, self.prestim_frames+self.poststim_frames)
-        theta = self.dlc_ori[self.wnd-self.prestim_frames:self.wnd+self.poststim_frames]
-        head_theta = self.dlc_head_ori[self.wnd-self.prestim_frames:self.wnd+self.poststim_frames]
+    def plot_orientation(self):
+        yy = np.linspace(self.prestim_frames, self.poststim_frames, self.prestim_frames + self.poststim_frames)
+        theta = self.dlc_ori[self.wnd - self.prestim_frames:self.wnd + self.poststim_frames]
+        head_theta = self.dlc_head_ori[self.wnd - self.prestim_frames:self.wnd + self.poststim_frames]
 
         theta = np.array([math.radians(x) for x in theta])
         head_theta = np.array([math.radians(x) for x in head_theta])
-        head_rel_angle = head_theta-theta
+        head_rel_angle = head_theta - theta
 
         self.absolute_angle_plot.scatter(theta, yy, c=yy, cmap='Oranges', s=50, alpha=0.5, label='Body')
         self.absolute_angle_plot.scatter(head_theta, yy, c=yy, cmap='Greens', s=50, alpha=0.5, label='Head')
         self.head_rel_angle.scatter(head_rel_angle, yy, c=yy, cmap='Paired', s=50, alpha=0.5)
 
-        try:
-            # Show pose reconstruction
-            if self.plot_pose:
-                # TIME pose reconstruction
-                self.pose.axhline(0, color='w', linewidth=1, alpha=0.75)
-                x = self.plot_skeleton_time(poses, self.pose)
+    def plot_pose_reconstruction(self):
+        # Get pose
+        poses = self.get_dlc_pose(self.trial, self.stim)
 
-                # Plot stuff over pose reconstruction
-                self.pose.fill_between(x, 0, self.std_x_adj[self.wnd-5:self.wnd+self.poststim_frames+2],
-                                       facecolor=[0.8, 0.8, 0.8], alpha=0.5, label='X position')
-                self.pose.fill_between(x, 0, self.std_vel[self.wnd-5:self.wnd+self.poststim_frames+2]*10,
-                                       facecolor=[0.8, 0.4, 0.4], alpha=0.5, label='Velocity')
+        # TIME pose reconstruction
+        self.pose.axhline(0, color='w', linewidth=1, alpha=0.75)
+        x = self.plot_skeleton_time(poses, self.pose)
 
-                self.pose.plot(x, self.dlc_bodylength[self.wnd - 5:self.wnd + self.poststim_frames + 2] * 100,
-                                       color=[0.4, 0.4, 0.8], alpha=0.5, linewidth=4, label='Body length')
+        # Plot stuff over pose reconstruction
+        self.pose.fill_between(x, 0, self.std_x_adj[self.wnd - 5:self.wnd + self.poststim_frames + 2],
+                               facecolor=[0.8, 0.8, 0.8], alpha=0.5, label='X position')
+        self.pose.fill_between(x, 0, self.std_vel[self.wnd - 5:self.wnd + self.poststim_frames + 2] * 10,
+                               facecolor=[0.8, 0.4, 0.4], alpha=0.5, label='Velocity')
 
-                self.make_legend(self.pose, [0.1, .1, .1], [0.8, 0.8, 0.8])
+        self.pose.plot(x, self.dlc_bodylength[self.wnd - 5:self.wnd + self.poststim_frames + 2] * 100,
+                       color=[0.4, 0.4, 0.8], alpha=0.5, linewidth=4, label='Body length')
 
-        except:
-            pass
+        make_legend(self.pose, [0.1, .1, .1], [0.8, 0.8, 0.8])
 
-        # Plot Reaction Time stuff
+    def plot_reaction_time_metrics(self):
         self.react_time_plot.plot(self.y_diff, color=[0.6, 0.2, 0.2], linewidth=3, label='Y vel')
         self.react_time_plot.axhline(self.mean_pre_yvel, color=[0.6, 0.2, 0.2], linewidth=1, label=None)
 
@@ -474,9 +480,67 @@ class Plotter():
         self.react_time_plot.plot(self.post_bl * 10, color=[0.4, 0.4, 0.8], linewidth=3, label='BL')
         self.react_time_plot.axhline(self.mean_pre_bl * 10, color=[0.4, 0.4, 0.8], linewidth=1, label=None)
 
+        self.react_time_plot.plot(line_smoother(self.dlc_body_ang_vel, 51, 3)/100,
+                               color=[0.3, 0.75, 0.3], alpha=1, linewidth=3, label='Body ang v')
+        self.react_time_plot.plot(line_smoother(self.dlc_head_ang_vel, 51, 3)/100,
+                               color='darkorange', alpha=1, linewidth=3, label='Head ang v')
+
         self.react_time_plot.axhline(0, color='w', linewidth=1, label=None)
         self.react_time_plot.set(xlim=[0, self.at_shelter + 120], ylim=[-20, 20])
-        self.make_legend(self.react_time_plot, [0.1, .1, .1], [0.8, 0.8, 0.8], changefont=8)
+        make_legend(self.react_time_plot, [0.1, .1, .1], [0.8, 0.8, 0.8], changefont=8)
+
+    def plot_angular_velocity(self):
+        self.ang_vel_plot.axvline(self.wnd, color='w', linewidth=1, label=None)
+
+
+        self.ang_vel_plot.plot(self.dlc_body_ang_vel, color=[0.3, 0.5, 0.3], alpha=0.4, linewidth=5)
+        self.ang_vel_plot.plot(self.dlc_head_ang_vel, color='chocolate', alpha=0.4, linewidth=5)
+
+        self.ang_vel_plot.plot(line_smoother(self.dlc_body_ang_vel, 51, 3),
+                               color=[0.3, 0.75, 0.3], linewidth=3, label='Body')
+        self.ang_vel_plot.plot(line_smoother(self.dlc_head_ang_vel, 51, 3)
+                               , color='darkorange', linewidth=3, label='Head')
+
+        make_legend(self.ang_vel_plot, [0.1, .1, .1], [0.8, 0.8, 0.8], changefont=8)
+
+    def plot_trial(self, trialidx):
+        """
+        Main plotting function of the script. calls subfuncs that take care of each subplot
+        """
+
+        trialname = list(self.trials.keys())[trialidx]
+        if 'Exploration' in trialname or 'Whole Session' in trialname:
+            return
+
+        self.setup_figure()
+
+        print('         ... plotting trial {} of {}: {}'.format(
+            trialidx, len(list(self.trials.keys()))-2, trialname))
+
+        self.trial = self.trials[list(self.trials.keys())[trialidx]]
+
+        # Get tracking data for plotting
+        self.get_tr_data_to_plot(self.trial)
+
+        # Get outcome
+        self.get_outcome(self.dlc_x_adj, self.dlc_y_adj, self.wnd, self.twod_track)
+
+        # Parallelise the plotting to increase speed
+        starttime = time.clock()
+        if not self.plot_pose:
+            plot_funcs = [self.plot_twod_tracking, self.plot_1D_std_tracking, self.plot_1D_dlc_tracking,
+                          self.plot_exploration_tracking_over_maze, self.plot_orientation,
+                          self.plot_reaction_time_metrics, self.plot_angular_velocity]
+        else:
+            plot_funcs = [self.plot_pose_reconstruction, self.plot_twod_tracking, self.plot_1D_std_tracking,
+                          self.plot_1D_dlc_tracking, self.plot_exploration_tracking_over_maze, self.plot_orientation,
+                          self.plot_reaction_time_metrics, self.plot_angular_velocity]
+
+        pool = ThreadPool(len(plot_funcs))
+        _ = pool.map(parallelizer, plot_funcs)
+
+
+        print('Plotting took: {}'.format(time.clock()-starttime))
 
         if self.save_figs:
             path = 'D:\\Dropbox (UCL - SWC)\\Dropbox (UCL - SWC)\\Rotation_vte\\data\\dlc_trialImgs'

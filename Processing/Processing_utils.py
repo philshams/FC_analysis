@@ -154,3 +154,14 @@ def scale_velocity_by_unit(data, unit=False, fps=False, bodylength=False):
                 data = np.multiply(data, fps)
                 data = np.divide(data, bodylength)
                 return data
+
+
+def parallelizer(func, arg=False):
+    """
+    When called and passed a function calls that function. Used in combination with pool to run
+    multiple processing functions in parallel [it gets called multiple times with different funcs as argument]
+    """
+    if arg:
+        func(arg)
+    else:
+        func()

@@ -24,32 +24,22 @@ class Processing():
             if data_name == 'Exploration' or data_name == 'Whole Session':
                 continue
 
-            # Process stuff
-            strt = time.clock()
-
+            # Process stuff [in parallel, 825x faster than calling each func one at the time]
             self.tracking_data = tracking_data
             funcs = [self.extract_bodylength, self.extract_velocity, self.extract_location_relative_shelter,
                      self.extract_orientation]
             pool = ThreadPool(4)
-            _ = pool.apply_async(self.parallelizer, funcs)
+            _ = pool.apply_async(parallelizer, funcs, tracking_data)
 
-            # self.extract_bodylength(tracking_data)
-            # self.extract_velocity(tracking_data)
-            # self.extract_location_relative_shelter(tracking_data)
-            # self.extract_orientation(tracking_data)
             self.extract_ang_velocity(tracking_data)
-
-            print('Processing this trial took: {}'.format(time.clock()-strt))
 
             # Store info in metadata
             self.define_processing_metadata(tracking_data)
 
-    def parallelizer(self, func):
-        """
-        When called and passed a function calls that function. Used in combinatin with pool to run
-        multiple processing functions in parallel [it gets called multiple times with different funcs as argument]
-        """
-        func(self.tracking_data)
+    def define_processing_metadata(self, tracking_data):
+        tracking_data.metadata['Processing info'] = self.settings
+
+    # FUNCTIONS ===========================================================================================
 
     def extract_location_relative_shelter(self, data):
         """
@@ -249,5 +239,4 @@ class Processing():
             data.dlc_tracking['Posture'][self.settings['body']]['Head ang vel'] =\
                 calc_ang_velocity(orientation, fps=fps)
 
-    def define_processing_metadata(self, tracking_data):
-        tracking_data.metadata['Processing info'] = self.settings
+

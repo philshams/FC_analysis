@@ -40,6 +40,7 @@ start_time = time.clock()
 filepath = 'D:\\Camera_LDR-default-10160362-video.tdms'
 filepath2 = 'D:\\test_mantis_v6-default-102077900-cam2.tdms'
 tempdir = mkdtemp(dir='D:\\')
+tempdir = 'D:\\tmpmyzce9ia'
 
 width = 1100 + 52
 skip_data_points = 4094
