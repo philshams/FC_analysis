@@ -143,7 +143,7 @@ def scale_velocity_by_unit(data, unit=False, fps=False, bodylength=False):
                 fps = fps[0]
 
         if unit == 'pxpersec':
-            return data*fps
+            return np.multiply(data, fps)
 
         if unit =='blpersec':
             if not bodylength:
@@ -151,6 +151,6 @@ def scale_velocity_by_unit(data, unit=False, fps=False, bodylength=False):
                       'instead')
                 return data*fps
             else:
-                data *= fps
-                data /= bodylength
+                data = np.multiply(data, fps)
+                data = np.divide(data, bodylength)
                 return data

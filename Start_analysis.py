@@ -1,7 +1,7 @@
 from Utils import Image_processing
 from Utils.loadsave_funcs import save_data, load_data, load_paths
 from Utils.Setup_funcs import create_database
-from Plotting import Plotting_main, Single_trial_summary
+from Plotting import Single_trial_summary
 from Tracking.Tracking_main import Tracking
 from Utils.Data_rearrange_funcs import create_cohort, check_session_selected
 from Processing import Processing_main

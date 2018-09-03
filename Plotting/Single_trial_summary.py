@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import matplotlib
 
-matplotlib.rc('axes',edgecolor=[0.8, 0.8, 0.8])
+matplotlib.rc('axes', edgecolor=[0.8, 0.8, 0.8])
 matplotlib.rcParams['text.color'] = [0.8, 0.8, 0.8]
 matplotlib.rcParams['axes.labelcolor'] = [0.8, 0.8, 0.8]
 matplotlib.rcParams['axes.labelcolor'] = [0.8, 0.8, 0.8]

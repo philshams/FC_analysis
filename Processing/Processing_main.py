@@ -1,8 +1,8 @@
+import matplotlib.pyplot as plt   # Used to test stuff while writing new functions
+
 from Utils.loadsave_funcs import load_yaml
 from Processing.Processing_utils import *
-from Plotting import Plt_individual_stimresponses
-from Utils.maths import calc_angle_2d
-import matplotlib.pyplot as plt
+from Utils.maths import calc_angle_2d, calc_ang_velocity
 
 from Config import processing_options
 
@@ -26,6 +26,7 @@ class Processing():
             self.extract_velocity(tracking_data)
             self.extract_location_relative_shelter(tracking_data)
             self.extract_orientation(tracking_data)
+            self.extract_ang_velocity(tracking_data)
 
     def extract_location_relative_shelter(self, data):
         """
@@ -96,11 +97,11 @@ class Processing():
 
         # Get angle relative to frame
         absolute_angle = calc_angle_2d(body, tail, vectors=True)
-        data.dlc_tracking['Posture']['body']['Orientation'] = absolute_angle
+        data.dlc_tracking['Posture']['body']['Orientation'] = [x+360 for x in absolute_angle]
 
         # Get head angle relative to body angle
         absolute_angle_head = calc_angle_2d(head, body, vectors=True)
-        data.dlc_tracking['Posture']['body']['Head angle'] = absolute_angle_head
+        data.dlc_tracking['Posture']['body']['Head angle'] = [x+360 for x in absolute_angle_head]
 
     def extract_bodylength(self, data):
         # Get bodylength
@@ -200,29 +201,30 @@ class Processing():
                         bp_data['Acceleration_{}'.format(un)] = calc_acceleration(distance, unit=un, fps=fps,
                                                                                             bodylength=bodylength)
 
-    def extract_posture(self):
-            """
-            Reconstruct posture from DLC data
+    def extract_ang_velocity(self, data):
+        """
+        Get orientation [calculated previously] and compute the velocity in it
 
-            Save in tracking.processing
+        Returns the angular velocity in either deg per frame or deg per second
 
-            :param self:
-            :return:
-            """
+        :param data:
+        :return:
+        """
+        if self.settings['ang vel unit'] == 'degperframe':
+            orientation = data.dlc_tracking['Posture'][self.settings['body']]['Orientation']
+            data.dlc_tracking['Posture'][self.settings['body']]['Body ang vel'] = calc_ang_velocity(orientation)
 
-            pass
+            orientation = data.dlc_tracking['Posture'][self.settings['body']]['Head angle']
+            data.dlc_tracking['Posture'][self.settings['body']]['Head ang vel'] = calc_ang_velocity(orientation)
+        else:
+            fps = self.session.Metadata.videodata[0]['Frame rate'][0]
+            orientation = data.dlc_tracking['Posture'][self.settings['body']]['Orientation']
+            data.dlc_tracking['Posture'][self.settings['body']]['Body ang vel'] =\
+                calc_ang_velocity(orientation, fps=fps)
 
-            # bp_data = Processing_utils.from_dlc_to_single_bp(session, settings['center of mass bodypart'])
-            # head_data = Processing_utils.from_dlc_to_single_bp(session, settings['head'])
-            # tail_data = Processing_utils.from_dlc_to_single_bp(session, settings['tail'])
-            #
-            # # Calculate velocity and other stuff
-            # bp_data = Processing_utils.single_bp_calc_stuff(bp_data)
-            # head_data = Processing_utils.single_bp_calc_stuff(head_data)
-            # tail_data = Processing_utils.single_bp_calc_stuff(tail_data)
-            #
-            # # Reconstruct posture
-            # bp_data = Processing_utils.pose_reconstruction(head_data, bp_data, tail_data)
-            #
-            # # Plot
-            # Plt_individual_stimresponses.plotter(bp_data)
+            orientation = data.dlc_tracking['Posture'][self.settings['body']]['Head angle']
+            data.dlc_tracking['Posture'][self.settings['body']]['Head ang vel'] =\
+                calc_ang_velocity(orientation, fps=fps)
+
+
+

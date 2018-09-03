@@ -82,6 +82,26 @@ def calc_angle_2d(p1, p2, vectors=False):
         return angles
 
 
+def calc_ang_velocity(orientation, fps=False):
+    """
+    Given a vector of orientation (degees) per frame, calcualtes the velocity as either degrees per frame
+    or degrees per second (if fps != False).
+
+    :param orientation: vecotor of angle values
+    :param fps:  framerate of video the orientation was extracted from
+    :return: angular velocity as either deg per sec or deg per frame.
+    """
+    rad_ori = np.radians(orientation.values)
+    rad_ang_vel = np.diff(np.unwrap(rad_ori))
+
+    if not fps:
+        # return and vel as degrees per frame
+        return np.degrees(rad_ang_vel)
+    else:
+        # return and vel as degrees per sec
+        return np.degrees(np.multiply(rad_ang_vel, fps))
+
+
 def line_smoother(y, window_size, order, deriv=0, rate=1):
     # Apply a Savitzy-Golay filter to smooth traces
     order_range = range(order + 1)
