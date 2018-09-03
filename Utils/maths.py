@@ -92,7 +92,7 @@ def calc_ang_velocity(orientation, fps=False):
     :return: angular velocity as either deg per sec or deg per frame.
     """
     rad_ori = np.radians(orientation.values)
-    rad_ang_vel = np.diff(np.unwrap(rad_ori))
+    rad_ang_vel = np.insert(np.diff(np.unwrap(rad_ori)), 0, 0)
 
     if not fps:
         # return and vel as degrees per frame

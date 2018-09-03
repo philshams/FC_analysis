@@ -1,8 +1,11 @@
 import matplotlib.pyplot as plt   # Used to test stuff while writing new functions
 
+from multiprocessing.dummy import Pool as ThreadPool
+
 from Utils.loadsave_funcs import load_yaml
 from Processing.Processing_utils import *
 from Utils.maths import calc_angle_2d, calc_ang_velocity
+import time
 
 from Config import processing_options
 
@@ -22,11 +25,31 @@ class Processing():
                 continue
 
             # Process stuff
-            self.extract_bodylength(tracking_data)
-            self.extract_velocity(tracking_data)
-            self.extract_location_relative_shelter(tracking_data)
-            self.extract_orientation(tracking_data)
+            strt = time.clock()
+
+            self.tracking_data = tracking_data
+            funcs = [self.extract_bodylength, self.extract_velocity, self.extract_location_relative_shelter,
+                     self.extract_orientation]
+            pool = ThreadPool(4)
+            _ = pool.apply_async(self.parallelizer, funcs)
+
+            # self.extract_bodylength(tracking_data)
+            # self.extract_velocity(tracking_data)
+            # self.extract_location_relative_shelter(tracking_data)
+            # self.extract_orientation(tracking_data)
             self.extract_ang_velocity(tracking_data)
+
+            print('Processing this trial took: {}'.format(time.clock()-strt))
+
+            # Store info in metadata
+            self.define_processing_metadata(tracking_data)
+
+    def parallelizer(self, func):
+        """
+        When called and passed a function calls that function. Used in combinatin with pool to run
+        multiple processing functions in parallel [it gets called multiple times with different funcs as argument]
+        """
+        func(self.tracking_data)
 
     def extract_location_relative_shelter(self, data):
         """
@@ -226,5 +249,5 @@ class Processing():
             data.dlc_tracking['Posture'][self.settings['body']]['Head ang vel'] =\
                 calc_ang_velocity(orientation, fps=fps)
 
-
-
+    def define_processing_metadata(self, tracking_data):
+        tracking_data.metadata['Processing info'] = self.settings
