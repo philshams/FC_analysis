@@ -1,10 +1,11 @@
 import matplotlib.pyplot as plt   # Used to test stuff while writing new functions
 
 from multiprocessing.dummy import Pool as ThreadPool
+import scipy.integrate as integrate
 
 from Utils.loadsave_funcs import load_yaml
 from Processing.Processing_utils import *
-from Utils.maths import calc_angle_2d, calc_ang_velocity
+from Utils.maths import calc_angle_2d, calc_ang_velocity, calc_ang_acc
 import time
 
 from Config import processing_options
@@ -31,7 +32,9 @@ class Processing():
             pool = ThreadPool(4)
             _ = pool.apply_async(parallelizer, funcs, tracking_data)
 
+            # Extract ang velocity
             self.extract_ang_velocity(tracking_data)
+
 
             # Store info in metadata
             self.define_processing_metadata(tracking_data)
@@ -229,6 +232,7 @@ class Processing():
 
             orientation = data.dlc_tracking['Posture'][self.settings['body']]['Head angle']
             data.dlc_tracking['Posture'][self.settings['body']]['Head ang vel'] = calc_ang_velocity(orientation)
+
         else:
             fps = self.session.Metadata.videodata[0]['Frame rate'][0]
             orientation = data.dlc_tracking['Posture'][self.settings['body']]['Orientation']
@@ -239,4 +243,5 @@ class Processing():
             data.dlc_tracking['Posture'][self.settings['body']]['Head ang vel'] =\
                 calc_ang_velocity(orientation, fps=fps)
 
-
+        data.dlc_tracking['Posture'][self.settings['body']]['Head ang acc'] = \
+            calc_ang_acc(data.dlc_tracking['Posture'][self.settings['body']]['Head ang vel'])

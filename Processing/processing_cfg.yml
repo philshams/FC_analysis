@@ -8,7 +8,7 @@
 # Settings for VELOCITY extraction
 'velocity unit': 'all'       # How the velocity is computed: pixel per frame [pxperframe], pixel per second [pxpersec]
                              # or bodylength per second [blpersec]
-ang vel unit: 'degpers'      # Unit of meausre of angulare velocity, Either 'degperframe' or 'degpersec'
+ang vel unit: 'degperfram'      # Unit of meausre of angulare velocity, Either 'degperframe' or 'degpersec'
 
 'std': true                  # Extract velocity from STD tracking data - STD and DLC are also used for extraction of position relative to shelter
 'dlc': true                  # Extract velocity from DLC tracking data

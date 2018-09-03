@@ -180,7 +180,7 @@ class Plotter():
 
                 self.dlc_head_ang_vel = trial.dlc_tracking['Posture'][bp]['Head ang vel'].values[stim - wnd:stim + wnd]
                 self.dlc_body_ang_vel = trial.dlc_tracking['Posture'][bp]['Body ang vel'].values[stim - wnd:stim + wnd]
-
+                self.dlc_head_ang_acc = trial.dlc_tracking['Posture'][bp]['Head ang vel'].values[stim - wnd:stim + wnd]
                 break
 
         avgbdlength = trial.metadata['avg body length']
