@@ -1,3 +1,5 @@
+from collections import namedtuple
+
 class Session_metadata():
     def __init__(self):
         self.session_id = None
@@ -16,15 +18,16 @@ class Session_metadata():
 
 class DataBase():
     def __init__(self):
-        self.sessions = {'Metadata': None, 'Video': None, 'Tracking': None}
-
+        # self.sessions = {'Metadata': None, 'Tracking': None}
+        self.sessions = namedtuple('sessions', 'Metadata Tracking')
 
 class Trial():
     def __init__(self):
         self.name = None
         self.id = None
         self.metadata = None
-        self.std_tracking = {'x': None, 'y': None, 'orientation': None, 'direction': None, 'velocity': None}
+        # self.std_tracking = {'x': None, 'y': None, 'orientation': None, 'direction': None, 'velocity': None}
+        self.std_tracing = namedtuple('std_tracking', 'x y orientation direction velocity')
         self.dlc_tracking = {}
 
 
@@ -38,13 +41,17 @@ class All_trials():
 class Cohort():
     def __init__(self):
         self.name = None
-        self.metadata = {
-            'created':None,
-            'selector type':None,
-            'selector':None,
-            'sessions in cohort':None
-        }
-        self.tracking_data = {'explorations': [], 'whole sessions': [], 'trials': {}}
+        self.metadata = namedtuple('metadata', 'created selector_type selector sessions_in_cohort')
+        self.tracking_data = namedtuple('tracking_data', 'explorations whole_sessions trials')
+
+
+        # self.metadata = {
+        #     'created':None,
+        #     'selector type':None,
+        #     'selector':None,
+        #     'sessions in cohort':None
+        # }
+        # self.tracking_data = {'explorations': [], 'whole sessions': [], 'trials': {}}
 
 
 class Processing_class():
