@@ -1,12 +1,11 @@
 import matplotlib.pyplot as plt   # Used to test stuff while writing new functions
 
 from multiprocessing.dummy import Pool as ThreadPool
-import scipy.integrate as integrate
 
+from Processing.Processing_reconstruc_pose import PoseReconstructor
 from Utils.loadsave_funcs import load_yaml
 from Processing.Processing_utils import *
 from Utils.maths import calc_angle_2d, calc_ang_velocity, calc_ang_acc
-import time
 
 from Config import processing_options
 
@@ -29,26 +28,30 @@ class Processing():
             self.tracking_data = tracking_data
             funcs = [self.extract_bodylength, self.extract_velocity, self.extract_location_relative_shelter,
                      self.extract_orientation]
-            pool = ThreadPool(4)
-            _ = pool.apply_async(parallelizer, funcs, tracking_data)
+            pool = ThreadPool(len(funcs))
+
+            [pool.apply(func) for func in funcs]
 
             # Extract ang velocity
-            self.extract_ang_velocity(tracking_data)
-
+            self.extract_ang_velocity()
 
             # Store info in metadata
-            self.define_processing_metadata(tracking_data)
+            self.define_processing_metadata()
 
-    def define_processing_metadata(self, tracking_data):
-        tracking_data.metadata['Processing info'] = self.settings
+            # Extract pose
+            PoseReconstructor(self.tracking_data.dlc_tracking['Posture'])
+
+    def define_processing_metadata(self):
+        self.tracking_data.metadata['Processing info'] = self.settings
 
     # FUNCTIONS ===========================================================================================
 
-    def extract_location_relative_shelter(self, data):
+    def extract_location_relative_shelter(self):
         """
         This function extracts the mouse position relative to the shelter
 
         """
+        data = self.tracking_data
         # Get the position of the centre of the shelter
         if not 'shelter location' in data.metadata.keys():
             if self.settings['shelter location'] == 'roi':
@@ -62,7 +65,7 @@ class Processing():
             shelter_location = data.metadata['shelter location']
 
         # Get position relative to shelter from STD data
-        if self.settings['std']:
+        if self.settings['std'] and self.tracking_data.std_tracking['x'] is not None:
             adjusted_pos = calc_position_relative_point((data.std_tracking['x'].values,
                                                          data.std_tracking['y'].values), shelter_location)
             data.std_tracking['adjusted x'], data.std_tracking['adjusted y'] = adjusted_pos[0], adjusted_pos[1]
@@ -80,7 +83,7 @@ class Processing():
                                                              bp_data['y'].values), shelter_location)
                 bp_data['adjusted x'], bp_data['adjusted y'] = adjusted_pos[0], adjusted_pos[1]
 
-    def extract_orientation(self, data):
+    def extract_orientation(self):
         """
         This function extracts the mouse' orientation from the angle of two body parts [DLC tracking] and the
         position of the shelter.
@@ -93,6 +96,7 @@ class Processing():
         :param data:
         :return:
         """
+        data = self.tracking_data
 
         # Get the position of the centre of the shelter
         if not data.metadata['shelter location']:
@@ -119,7 +123,9 @@ class Processing():
         absolute_angle_head = calc_angle_2d(head, body, vectors=True)
         data.dlc_tracking['Posture']['body']['Head angle'] = [x+360 for x in absolute_angle_head]
 
-    def extract_bodylength(self, data):
+    def extract_bodylength(self):
+        data = self.tracking_data
+
         # Get bodylength
         avg_bodylength, bodylength = get_average_bodylength(data, head_tag=self.settings['head'],
                                                             tail_tag=self.settings['tail'])
@@ -136,7 +142,9 @@ class Processing():
             bp_data, bodypart = from_dlc_to_single_bp(data, bp)
             bp_data['Body length'] = bodylength
 
-    def extract_velocity(self, data):
+    def extract_velocity(self):
+        data = self.tracking_data
+
         """
             Calculates the velocity of the mouse from tracking data.
 
@@ -176,7 +184,7 @@ class Processing():
         data.metadata['Velocity unit'] = unit
 
         fps = self.session.Metadata.videodata[0]['Frame rate'][0]
-        if self.settings['std']:
+        if self.settings['std'] and self.tracking_data.std_tracking['x'] is not None:
             # Extract velocity using std tracking data
             distance = calc_distance_2d((data.std_tracking['x'].values, data.std_tracking['y'].values))
             if not 'all' in unit:
@@ -217,7 +225,7 @@ class Processing():
                         bp_data['Acceleration_{}'.format(un)] = calc_acceleration(distance, unit=un, fps=fps,
                                                                                             bodylength=bodylength)
 
-    def extract_ang_velocity(self, data):
+    def extract_ang_velocity(self):
         """
         Get orientation [calculated previously] and compute the velocity in it
 
@@ -226,6 +234,8 @@ class Processing():
         :param data:
         :return:
         """
+        data = self.tracking_data
+
         if self.settings['ang vel unit'] == 'degperframe':
             orientation = data.dlc_tracking['Posture'][self.settings['body']]['Orientation']
             data.dlc_tracking['Posture'][self.settings['body']]['Body ang vel'] = calc_ang_velocity(orientation)
@@ -234,14 +244,15 @@ class Processing():
             data.dlc_tracking['Posture'][self.settings['body']]['Head ang vel'] = calc_ang_velocity(orientation)
 
         else:
-            fps = self.session.Metadata.videodata[0]['Frame rate'][0]
-            orientation = data.dlc_tracking['Posture'][self.settings['body']]['Orientation']
-            data.dlc_tracking['Posture'][self.settings['body']]['Body ang vel'] =\
-                calc_ang_velocity(orientation, fps=fps)
+            if data.dlc_tracking:
+                fps = self.session.Metadata.videodata[0]['Frame rate'][0]
+                orientation = data.dlc_tracking['Posture'][self.settings['body']]['Orientation']
+                data.dlc_tracking['Posture'][self.settings['body']]['Body ang vel'] =\
+                    calc_ang_velocity(orientation, fps=fps)
 
-            orientation = data.dlc_tracking['Posture'][self.settings['body']]['Head angle']
-            data.dlc_tracking['Posture'][self.settings['body']]['Head ang vel'] =\
-                calc_ang_velocity(orientation, fps=fps)
+                orientation = data.dlc_tracking['Posture'][self.settings['body']]['Head angle']
+                data.dlc_tracking['Posture'][self.settings['body']]['Head ang vel'] =\
+                    calc_ang_velocity(orientation, fps=fps)
 
         data.dlc_tracking['Posture'][self.settings['body']]['Head ang acc'] = \
             calc_ang_acc(data.dlc_tracking['Posture'][self.settings['body']]['Head ang vel'])
