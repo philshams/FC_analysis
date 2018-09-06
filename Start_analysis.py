@@ -178,7 +178,7 @@ class Analysis():
 
         else:
             # Create database from scratch
-            self.db = create_database(self.datalog_path,)
+            self.db = create_database(self.datalog_path)
 
 
 #######################

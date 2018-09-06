@@ -6,6 +6,8 @@ import datetime
 import os
 from nptdms import TdmsFile
 import sys
+from multiprocessing.dummy import Pool as ThreadPool
+from tqdm import tqdm
 
 from Utils.utils_classes import Session_metadata, DataBase
 from Utils.loadsave_funcs import save_data
@@ -67,138 +69,174 @@ def create_database(datalogpath, database=None):
         videos_data['Cumu. Num Frames'] = np.cumsum(videos_data['Number frames'])
         return videos_data
 
+    def process_list_of_sessions(sessions):
+        """
+        loops over a list of dictionary with the info for each session and gets all the metadata
+
+        :param sessions:
+        :return:
+        """
+        for line in tqdm(sessions):
+            session_id = line['Sess.ID']
+            # If we loaded and empty line, stop
+            if not session_id:
+                continue
+
+            session_name = '{}_{}_{}'.format(line['Sess.ID'], line['Date'], line['MouseID'])
+
+            # if we are updating a pre-existing database, check if the session corrisponding to this line
+            # already exists in the database. If so, skip the line
+            print('       ... Session {}'.format(session_name))
+            if database is not None:
+                if session_name in database.index:
+                    print('           ... session already in database')
+                    continue
+
+            # Create the metadata
+            session_metadata = Session_metadata()
+            session_metadata.session_id = session_id
+            session_metadata.experiment = line['Experiment']
+            session_metadata.date = line['Date']
+            session_metadata.mouse_id = line['MouseID']
+            session_metadata.created = datetime.datetime.now().strftime("%y-%m-%d-%H-%M")
+            session_metadata.software = line['Software']
+
+            # LOOP OVER EACH SESSION'S SUBFOLDER
+            for recording in line['Recordings']:
+                path = os.path.join(line['Base fld'], line['Exp fld'], recording)
+
+                # If the path to the recording doesn't exist the program will crash
+                # To avoid loosing data, create a database and save it
+                if not os.path.exists(path):
+                    print('-- !! Something went wrong!\nThis path doesnt exist: {}'.format(path))
+                    print('Saving the database created so far as {}'.format(os.path.join(savelogpath,
+                                                                                         save_name + '_emergency_save')))
+                    # Create or update a database and save it so that we don't loos data
+                    if database is None:
+                        # Create a new database from the metadata we have collected so far [ will only run once ]
+                        db = generate_database_from_metadatas(sessions_dict)
+                    else:
+                        # create a new database with the newly added sessions and concatenate it with the preivious one
+                        db = generate_database_from_metadatas(sessions_dict)
+                        # db = pd.concat(database, justaddedd)
+
+                    save_data(savelogpath, save_name, name_modifier='_emergency_save', object=db)
+                    sys.exit('Closing application....')
+
+                # If the program exists, get all .avi and .tdms files in the folder
+                videopaths = []
+                for f in os.listdir(path):
+                    if '.avi' in f:
+                        videopaths.append(os.path.join(path, f))
+                    elif '.tdms' == f[-5:]:
+                        tdmspath = os.path.join(path, f)
+
+                # add file paths to metadata
+                session_metadata.video_file_paths.append(videopaths)
+                session_metadata.tdms_file_paths.append(tdmspath)
+
+                # Loop over each video and get the relevant data [e.g., number of frames, fps...]
+                session_metadata.videodata.append(get_session_videodata(videopaths))
+
+                # Loop over each .tdms file and extract stimuli frames
+                """
+                TODO: make the following bit of code behave differently for data originated from the behaviour software
+                or from mantis. 
+                TODO: allow the possibility of extracting stimuli in TIME instead of FRAME
+                """
+                try:
+                    # Try to load a .tdms
+                    print('           ... loading metadata from .tdms')
+                    tdms = TdmsFile(tdmspath)
+                    if session_metadata.software == 'behaviour':
+                        visual_rec_stims, audio_rec_stims, digital_rec_stims = [], [], []
+                        # loop over tdms groups and extract frames of stimuli
+                        # TODO extract stim metadata
+                        for group in tdms.groups():
+                            for obj in tdms.group_channels(group):
+                                if 'stimulis' in str(obj).lower():
+                                    for idx in obj.as_dataframe().loc[0].index:
+                                        if '  ' in idx:
+                                            framen = int(idx.split('  ')[1].split('-')[0])
+                                        else:
+                                            framen = int(idx.split(' ')[2].split('-')[0])
+                                        if 'visual' in str(obj).lower():
+                                            visual_rec_stims.append(framen)
+                                        elif 'audio' in str(obj).lower():
+                                            audio_rec_stims.append(framen)
+                                        elif 'digital' in str(obj).lower():
+                                            digital_rec_stims.append(framen)
+                                        else:
+                                            print('                  ... couldnt load stim correctly')
+
+                        session_metadata.stimuli['visual'].append(visual_rec_stims)
+                        session_metadata.stimuli['audio'].append(audio_rec_stims)
+                        session_metadata.stimuli['digital'].append(digital_rec_stims)
+
+                    else:
+                        # TODO add mantis tdms reading stuff
+                        """
+                        HERE IS WERE THE CODE TO GET THE STIM TIMES IN MANTIS WILL HAVE TO BE ADDEDD
+                        """
+                        pass
+
+                except:
+                    print('                  ... could not load .tdms ')
+
+            # Add to dictionary (or update entry)
+            sessions_dict[session_name] = session_metadata
+        return sessions_dict
+
+    ####################################################################################################################
+    ####################################################################################################################
+
     # Load excel spreadsheet
     if database is None:
         print('========================\nCreating database from datalog.csv')
     else:
         print('========================\nUpdating database from datalog.csv')
 
-    loaded_excel = pyexcel.get_records(file_name=datalogpath)
+    try:
+        loaded_excel = pyexcel.get_records(file_name=datalogpath)
+    except:
+        print('Could not load datalog, these are the excel files in the folder:')
+        counter = 0
+        files = []
+        directory = os.path.join(*datalogpath.split('\\')[0:-1])
+        for f in os.listdir(directory):
+            if 'csv' in f or 'xls' in f:
+                print('({})  -  {}'.format(counter, f))
+                counter += 1
+                files.append(f)
+        selected = input('Enter number of the file to be loaded')
+        selected = files[int(selected)]
+        loaded_excel = pyexcel.get_records(file_name=os.path.join(directory, selected))
 
     # <-- Create a dictionary with each session's name as key and its metadata as value
     sessions_dict = {}
-    # Read each line in the excel spreadsheet and load data accordingly
+
+    # Read each line in the excel spreadsheet and load info
+    all_metadata = []
     for line in loaded_excel:
-        session_id = line['Sess.ID']
-        # If we loaded and empty line, stop
-        if not session_id:
-            continue
+        temp = {
+            'Sess.ID': line['Sess.ID'],
+            'Date':line['Date'],
+            'MouseID':line['MouseID'],
+            'Experiment':line['Experiment'],
+            'Software':line['Software'],
+            'Base fld':line['Base fld'],
+            'Exp fld': line['Exp fld'],
+            'Recordings': line['Sub Folders'].split('; ')
+        }
+        all_metadata.append(temp)
 
-        session_name = '{}_{}_{}'.format(line['Sess.ID'], line['Date'], line['MouseID'])
+    # Use loaded metadata to create the database. Threadpooled for faster execution
+    num_parallel_processes = 1
+    splitted_all_metadata = [all_metadata[i::num_parallel_processes] for i in range(num_parallel_processes)]
+    pool = ThreadPool(num_parallel_processes)
+    results = pool.map(process_list_of_sessions, splitted_all_metadata)
 
-        # if we are updating a pre-existing database, check if the session corrisponding to this line
-        # already exists in the database. If so, skip the line
-        print('------------------------\n     ... Session {}'.format(session_name))
-        if database is not None:
-            if session_name in database.index:
-                print('           ... session already in database')
-
-                continue
-
-        # Create the metadata
-        session_metadata = Session_metadata()
-        session_metadata.session_id = session_id
-        session_metadata.experiment = line['Experiment']
-        session_metadata.date = line['Date']
-        session_metadata.mouse_id = line['MouseID']
-        session_metadata.created = datetime.datetime.now().strftime("%y-%m-%d-%H-%M")
-        session_metadata.software = line['Software']
-
-        # LOOP OVER EACH SESSION'S SUBFOLDER
-        recordings = line['Sub Folders'].split('; ')
-        for recording in recordings:
-            path = os.path.join(line['Base fld'], line['Exp fld'], recording)
-
-            # If the path to the recording doesn't exist the program will crash
-            # To avoid loosing data, create a database and save it
-            if not os.path.exists(path):
-                print('-- !! Something went wrong!\nThis path doesnt exist: {}'.format(path))
-                print('Saving the database created so far as {}'.format(os.path.join(savelogpath,
-                                                                                     save_name+'_emergency_save')))
-                # Create or update a database and save it so that we don't loos data
-                if database is None:
-                    # Create a new database from the metadata we have collected so far [ will only run once ]
-                    db = generate_database_from_metadatas(sessions_dict)
-                else:
-                    # create a new database with the newly added sessions and concatenate it with the preivious one
-                    db = generate_database_from_metadatas(sessions_dict)
-                    # db = pd.concat(database, justaddedd)
-
-                save_data(savelogpath, save_name, name_modifier='_emergency_save', object=db)
-                sys.exit('Closing application....')
-
-            # If the program exists, get all .avi and .tdms files in the folder
-            videopaths = []
-            for f in os.listdir(path):
-                if '.avi' in f:
-                    videopaths.append(os.path.join(path, f))
-                elif '.tdms' == f[-5:]:
-                    tdmspath = os.path.join(path, f)
-
-            # add file paths to metadata
-            session_metadata.video_file_paths.append(videopaths)
-            session_metadata.tdms_file_paths.append(tdmspath)
-
-            # Loop over each video and get the relevant data [e.g., number of frames, fps...]
-            session_metadata.videodata.append(get_session_videodata(videopaths))
-
-            # Loop over each .tdms file and extract stimuli frames
-            """
-            TODO: make the following bit of code behave differently for data originated from the behaviour software
-            or from mantis. 
-            TODO: allow the possibility of extracting stimuli in TIME instead of FRAME
-            """
-            try:
-                # Try to load a .tdms
-                print('           ... loading metadata from .tdms')
-                tdms = TdmsFile(tdmspath)
-
-                df_tdms = tdms.as_dataframe()
-
-                # save the stims from each recording as a separate list
-                visual_rec_stims, audio_rec_stims, digital_rec_stims = [], [], []
-
-                # Loop over the data in the .tdms to extract info
-                if session_metadata.software == 'behaviour':
-                    for idx in df_tdms.loc[0].index:
-                        if 'Stimulis' in idx:
-                            # get frame number
-                            try:
-                                # Extract the frame number from the ame of the datapoint, these names are not constant...
-                                if '  ' in idx:
-                                    framen = int(idx.split('  ')[1].split('-')[0])
-                                else:
-                                    framen = int(idx.split(' ')[2].split('-')[0])
-                            except:
-                                print('                  ... Something went wrong while trying'
-                                      ' to extract stimulus frame from tdms')
-                                raise ValueError('This might be a bug!')
-
-                            # store frame number in metadata
-                            if 'Visual' in idx:
-                                visual_rec_stims.append(framen)
-                            elif 'Audio' in idx:
-                                audio_rec_stims.append(framen)
-                            elif 'Digital' in idx:
-                                digital_rec_stims.append(framen)
-                            else:
-                                print('                  ... couldnt load stim correctly')
-                    session_metadata.stimuli['visual'].append(visual_rec_stims)
-                    session_metadata.stimuli['audio'].append(audio_rec_stims)
-                    session_metadata.stimuli['digital'].append(digital_rec_stims)
-
-                else:
-                    # TODO add mantis tdms reading stuff
-                    """
-                    HERE IS WERE THE CODE TO GET THE STIM TIMES IN MANTIS WILL HAVE TO BE ADDEDD
-                    """
-                    pass
-
-            except:
-                print('                  ... could not load .tdms ')
-
-        # Add to dictionary (or update entry)
-        sessions_dict[session_name] = session_metadata
+    a = 1
 
     if database is None:
         return generate_database_from_metadatas(sessions_dict)

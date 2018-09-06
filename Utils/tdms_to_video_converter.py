@@ -8,6 +8,7 @@ import time
 from multiprocessing.dummy import Pool as ThreadPool
 import matplotlib.pyplot as plt
 from functools import partial
+from tqdm import tqdm, trange
 
 import cv2
 
@@ -115,8 +116,7 @@ class TDMs_to_Video():
         videowriter = cv2.VideoWriter(os.path.join(self.tempdir, vidname), fourcc,
                                       120, (self.real_width, self.height), self.iscolor)
 
-        for framen in range(limits[0], limits[1]):
-            print(framen)
+        for framen in tqdm(range(limits[0], limits[1])):
             videowriter.write(self.tdms[framen])
         videowriter.release()
 
