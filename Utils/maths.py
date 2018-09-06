@@ -101,6 +101,7 @@ def calc_ang_velocity(orientation, fps=False):
         # return and vel as degrees per sec
         return np.degrees(np.multiply(rad_ang_vel, fps))
 
+
 def calc_ang_acc(velocity):
     return np.insert(np.diff(velocity), 0, 0)
 

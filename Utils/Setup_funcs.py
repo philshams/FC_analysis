@@ -152,7 +152,9 @@ def create_database(datalogpath, database=None):
                 # Try to load a .tdms
                 print('           ... loading metadata from .tdms')
                 tdms = TdmsFile(tdmspath)
+
                 df_tdms = tdms.as_dataframe()
+
                 # save the stims from each recording as a separate list
                 visual_rec_stims, audio_rec_stims, digital_rec_stims = [], [], []
 
@@ -184,7 +186,9 @@ def create_database(datalogpath, database=None):
                     session_metadata.stimuli['visual'].append(visual_rec_stims)
                     session_metadata.stimuli['audio'].append(audio_rec_stims)
                     session_metadata.stimuli['digital'].append(digital_rec_stims)
+
                 else:
+                    # TODO add mantis tdms reading stuff
                     """
                     HERE IS WERE THE CODE TO GET THE STIM TIMES IN MANTIS WILL HAVE TO BE ADDEDD
                     """
