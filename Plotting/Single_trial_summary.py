@@ -543,7 +543,7 @@ class Plotter():
         print('Plotting took: {}'.format(time.clock()-starttime))
 
         if self.save_figs:
-            path = 'D:\\Dropbox (UCL - SWC)\\Dropbox (UCL - SWC)\\Rotation_vte\\data\\dlc_trialImgs'
+            path = 'D:\\Dropbox (UCL - SWC)\\Dropbox (UCL - SWC)\\Rotation_vte\\data\\z_TrialImages'
             name = '{}'.format(list(self.trials.keys())[self.sel_trial])
             print('             ... saving figure {}'.format(name))
             plt.savefig(os.path.join(path, name), facecolor=[0.1, 0.1, 0.1])

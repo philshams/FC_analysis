@@ -1,3 +1,6 @@
+from tqdm import tqdm
+import sys
+
 from Utils import Image_processing
 from Utils.loadsave_funcs import save_data, load_data, load_paths
 from Utils.Setup_funcs import create_database
@@ -33,7 +36,7 @@ class Analysis():
 
         # Flags to keep track if TF is set up for DLC analysis
         self.TF_setup = False
-        self.TF_sttings = None
+        self.TF_settings = None
         self.clips_l = []
 
         # Load the database
@@ -45,6 +48,9 @@ class Analysis():
         # Save the final results
         self.save_results(obj=self.db, mod='_completed')
 
+        # Close everything
+        sys.exit()
+
     def main(self):
         """"
         Once all is set up we apply sub-processes to individual sessions or cohorts
@@ -55,7 +61,7 @@ class Analysis():
         if not selector_type == 'cohort':
             # Loop over all the sessions - Tracking ========================================================
             if track_mouse or extract_background:
-                for session_name in sorted(self.db.index):
+                for session_name in tqdm(sorted(self.db.index)):
                     session = self.db.loc[session_name]
                     # Check if this is one of th sessions we should be processing
                     selected = check_session_selected(session.Metadata, selector_type, selector)
@@ -82,7 +88,7 @@ class Analysis():
             self.save_results(obj=self.db, mod='_backupsave')
 
             # Loop over all the sessions - Other processes ================================================
-            for session_name in sorted(self.db.index):
+            for session_name in tqdm(sorted(self.db.index)):
                 session = self.db.loc[session_name]
                 # Check if this is one of th sessions we should be processing
                 selected = check_session_selected(session.Metadata, selector_type, selector)
@@ -129,10 +135,10 @@ class Analysis():
 
         # Track animal on videos   <---!!!!
         if track_mouse:
-            tracked = Tracking(session, self.db, self.TF_setup, self.TF_sttings, self.clips_l)
+            tracked = Tracking(session, self.db, self.TF_setup, self.TF_settings, self.clips_l)
             self.db = tracked.database
             self.TF_setup = tracked.TF_setup
-            self.TF_sttings = tracked.TF_settings
+            self.TF_settings = tracked.TF_settings
             self.clips_l = tracked.clips_l
 
         self.save_results(obj=self.db, mod='_tracking')

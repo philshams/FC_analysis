@@ -7,7 +7,6 @@ import os
 from nptdms import TdmsFile
 import sys
 from multiprocessing.dummy import Pool as ThreadPool
-from tqdm import tqdm
 
 from Utils.utils_classes import Session_metadata, DataBase
 from Utils.loadsave_funcs import save_data
@@ -76,7 +75,10 @@ def create_database(datalogpath, database=None):
         :param sessions:
         :return:
         """
-        for line in tqdm(sessions):
+        if not isinstance(sessions, list):
+            sessions = list(sessions)
+
+        for line in sessions:
             session_id = line['Sess.ID']
             # If we loaded and empty line, stop
             if not session_id:
@@ -202,13 +204,13 @@ def create_database(datalogpath, database=None):
         print('Could not load datalog, these are the excel files in the folder:')
         counter = 0
         files = []
-        directory = os.path.join(*datalogpath.split('\\')[0:-1])
+        directory, _ = os.path.split(datalogpath)  # path.split returns [path, filename.abc]
         for f in os.listdir(directory):
             if 'csv' in f or 'xls' in f:
                 print('({})  -  {}'.format(counter, f))
                 counter += 1
                 files.append(f)
-        selected = input('Enter number of the file to be loaded')
+        selected = input('Enter number of the file to be loaded:  ')
         selected = files[int(selected)]
         loaded_excel = pyexcel.get_records(file_name=os.path.join(directory, selected))
 
@@ -231,12 +233,10 @@ def create_database(datalogpath, database=None):
         all_metadata.append(temp)
 
     # Use loaded metadata to create the database. Threadpooled for faster execution
-    num_parallel_processes = 1
+    num_parallel_processes = 3
     splitted_all_metadata = [all_metadata[i::num_parallel_processes] for i in range(num_parallel_processes)]
     pool = ThreadPool(num_parallel_processes)
-    results = pool.map(process_list_of_sessions, splitted_all_metadata)
-
-    a = 1
+    _ = pool.map(process_list_of_sessions, splitted_all_metadata)
 
     if database is None:
         return generate_database_from_metadatas(sessions_dict)

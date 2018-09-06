@@ -1,8 +1,7 @@
 # Import packages
-import pandas as pd
-import numpy as np
 import imageio
 imageio.plugins.ffmpeg.download()
+from tqdm import tqdm
 
 # Import functions and params from other scripts
 from Tracking import dlc_analyseVideos
@@ -88,10 +87,10 @@ class Tracking():
             all_stims = [item for sublist in all_stims for item in sublist]
             first_stim = min(all_stims)
             if first_stim:
-                start_frame = 0
+                start_frame = startf
                 stop_frame = first_stim-1
             else:
-                start_frame = 0
+                start_frame = startf
                 stop_frame = -1
             tracked = self.tracking(self.background, self.session['Metadata'].video_file_paths[0][0],
                                     start_frame=start_frame, stop_frame=stop_frame, video_fps=self.fps)
@@ -187,7 +186,7 @@ class Tracking():
 ########################################################################################################################
 ########################################################################################################################
 
-    def tracking(self, bg, video_path, start_frame=1, stop_frame=-1, video_fps=30, justCoM=True):
+    def tracking(self, bg, video_path, start_frame=1, video_fps=30, stop_frame=-1, justCoM=True):
         # Create video capture
         cap = cv2.VideoCapture(video_path)
         ret, firstframe = cap.read()
@@ -203,6 +202,7 @@ class Tracking():
         indexes = ['x', 'y', 'orientation']
         if stop_frame == -1:
             array = np.full((video_duration_frames, len(indexes)), np.nan)
+            stop_frame = video_duration_frames
         else:
             array = np.full((stop_frame-start_frame, len(indexes)), np.nan)
 
@@ -216,16 +216,7 @@ class Tracking():
             cv2.waitKey(1)
 
         # Start tracing
-        f = start_frame  # keep track of frame number
-        while True:
-            # Check that we can proceed with the analysis
-            f += 1
-            if f % 1000 == 0:
-                if not stop_frame == -1:
-                    print('             ... processing frame {} of {}'.format(f, stop_frame))
-                else:
-                    print('             ... processing frame {} of {}'.format(f, video_duration_frames))
-
+        for f in tqdm(range(start_frame, stop_frame)):
             if not stop_frame == -1 and f > stop_frame:
                 return self
 
@@ -241,8 +232,8 @@ class Tracking():
                 (x, y), radius = cv2.minEnclosingCircle(cnt[0])
                 centeroid = (int(x), int(y))
                 self.coord_l.append(centeroid)
-                self.data.loc[f-start_frame-1]['x'] = centeroid[0]
-                self.data.loc[f-start_frame-1]['y'] = centeroid[1]
+                self.data.loc[f-start_frame]['x'] = centeroid[0]
+                self.data.loc[f-start_frame]['y'] = centeroid[1]
 
                 # draw contours and trace and ROI
                 if self.cfg['preview']:
@@ -251,7 +242,7 @@ class Tracking():
 
                 if not justCoM:
                     # get mouse orientation
-                    self.data.loc[f-start_frame-1]['orientation']  = get_body_orientation(
+                    self.data.loc[f-start_frame]['orientation']  = get_body_orientation(
                                                         f, cnt[0], bg, display, frame, start_frame,
                                                         self.data['orientation'].values,
                                                         self.arena_floor, self.cfg['tail_th_scaling'])
@@ -261,6 +252,7 @@ class Tracking():
                 #  Control framerate and exit
                 # need to adjust this so that it waits for the correct amount to match fps
                 key = cv2.waitKey(10) & 0xFF
+        return self
 
     @staticmethod
     def tracking_use_dlc(database, clips_l):
