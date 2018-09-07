@@ -95,14 +95,29 @@ class ProcessingMaze():
         return True
 
     def get_intersections(self):
-        # TODO cleanup intersections to remove contigous points
+        # TODO finish cleaning up consecutive intersection points
         # TODO divide intersection between those occurring in the top and bottom halves of the frame
         # TODO divide intersections between escape and origin
-        th = 5
-        self.intersections = {'x_midline': np.where(abs(self.trace.x-self.boundaries.x_midline) < th)[0],
-                  'y_midline': np.where(abs(self.trace.y-self.boundaries.y_midline) < th)[0],
-                  'l_shelteredge': np.where(abs(self.trace.x-self.boundaries.l_shelteredge) < th)[0],
-                  'r_shelteredge': np.where(abs(self.trace.x-self.boundaries.r_shelteredge) < th)[0]}
+        th, th2 = 5, 2
+        # Find all points close to the boundary lines
+        temp_intersections = {'x_midline': np.where(abs(self.trace.x-self.boundaries.x_midline) < th)[0],
+                              'y_midline': np.where(abs(self.trace.y-self.boundaries.y_midline) < th)[0],
+                              'l_shelteredge': np.where(abs(self.trace.x-self.boundaries.l_shelteredge) < th)[0],
+                              'r_shelteredge': np.where(abs(self.trace.x-self.boundaries.r_shelteredge) < th)[0]}
+
+        # discart consecutive points [i.e. only keep real crossings
+        self.intersections = {}
+        for name, values in temp_intersections.items():
+            if len(values):
+                firstval = np.array(values[0])
+                goodvals = values[np.where(np.diff(values)>th2)[0]]
+                if np.diff(values)[-1]>th2:
+                    goods = np.insert(goodvals, 0, firstval)
+                    self.intersections[name] = np.insert(goods, 0, values[-1])
+                else:
+                    self.intersections[name] = np.insert(goodvals, 0, firstval)
+            else:
+                self.intersections[name] = np.array([])
 
     def debug_preview(self):
         """

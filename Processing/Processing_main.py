@@ -44,13 +44,12 @@ class Processing():
             # Store info in metadata
             self.define_processing_metadata()
 
-            # Call experiment specific processing tools [only implemented for maze experiments]
-            if exp_type == 'maze':
-                ProcessingMaze(self.session)
-
-
             # Extract pose   WORK IN PROGRESS
             # PoseReconstructor(self.tracking_data.dlc_tracking['Posture'])
+
+        # Call experiment specific processing tools [only implemented for maze experiments]
+        if exp_type == 'maze':
+            ProcessingMaze(self.session)
 
     def define_processing_metadata(self):
         self.tracking_data.metadata['Processing info'] = self.settings
