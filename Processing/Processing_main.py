@@ -5,12 +5,18 @@ from multiprocessing.dummy import Pool as ThreadPool
 from Processing.Processing_reconstruc_pose import PoseReconstructor
 from Utils.loadsave_funcs import load_yaml
 from Processing.Processing_utils import *
+from Processing.Processing_exp_maze import ProcessingMaze
 from Utils.maths import calc_angle_2d, calc_ang_velocity, calc_ang_acc
 
-from Config import processing_options
+from Config import processing_options, exp_type
 
 
 class Processing():
+    """
+    Apply a number of processing steps that are of general interest (i.e not experiment-specific)
+    Call experiment-specific processing classes when appropriate
+
+    """
     def __init__(self, session, database):
         # load processing settings from yaml file
         self.settings = load_yaml(processing_options['cfg'])
@@ -38,8 +44,13 @@ class Processing():
             # Store info in metadata
             self.define_processing_metadata()
 
-            # Extract pose
-            PoseReconstructor(self.tracking_data.dlc_tracking['Posture'])
+            # Call experiment specific processing tools [only implemented for maze experiments]
+            if exp_type == 'maze':
+                ProcessingMaze(self.session)
+
+
+            # Extract pose   WORK IN PROGRESS
+            # PoseReconstructor(self.tracking_data.dlc_tracking['Posture'])
 
     def define_processing_metadata(self):
         self.tracking_data.metadata['Processing info'] = self.settings
