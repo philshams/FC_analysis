@@ -12,23 +12,29 @@ def calc_distance_2d(data, vectors = True):
         return distance.euclidean(data[0], data[1])
     else:
         dist = []
-        for n, pos in enumerate(zip(data[0], data[1])):
-            # Get a pair of points
-            if n == 0:
-                p0 = pos
-                dist.append(0)
-            else:
-                p1 = pos
+        if isinstance(data[0], list) or isinstance(data[0], dict):
+            pass
+        else:
+            data = (data[0].values, data[1].valus)
 
-                # Calc distance
-                try:
-                    dist.append(distance.euclidean(p0, p1))
-                except:
-                    if np.isnan(p1).any():
-                        dist.append(np.nan)
+            for n, pos in enumerate(zip(data[0], data[1])):
+                # Get a pair of points
+                if n == 0:
+                    p0 = pos
+                    dist.append(0)
+                else:
+                    p1 = pos
 
-                # Prepare for next iteration
-                p0 = p1
+                    # Calc distance
+                    try:
+                        dist.append(distance.euclidean(p0, p1))
+                    except:
+                        if np.isnan(p1).any():
+                            dist.append(np.nan)
+
+                    # Prepare for next iteration
+                    p0 = p1
+
         return dist
 
 
