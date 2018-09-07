@@ -15,7 +15,7 @@ def calc_distance_2d(data, vectors = True):
         if isinstance(data[0], list) or isinstance(data[0], dict):
             pass
         else:
-            data = (data[0].values, data[1].valus)
+            data = (data[0].values, data[1].values)
 
             for n, pos in enumerate(zip(data[0], data[1])):
                 # Get a pair of points

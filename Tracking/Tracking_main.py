@@ -105,8 +105,8 @@ class Tracking():
                     start_frame = startf
                 else:
                     start_frame = 0
-                tracked = self.tracking(self.background, vid,
-                                        start_frame=start_frame, stop_frame=self.stop_frame, video_fps=self.fps)
+                tracked = self.tracking(self.background, vid[0],
+                                        start_frame=start_frame, stop_frame=-1, video_fps=self.fps)
                 self.session['Tracking']['Whole Session'] = tracked.data
 
                 if track_options['track_exploration']:
