@@ -72,8 +72,7 @@ class Analysis():
                     print('---------------\nTracking session {}'.format(session_name))
 
                     # TRACKING #######################################
-                    if extract_background or track_mouse:
-                        self.video_analysis(session)
+                    self.video_analysis(session)
 
                 if send_messages:
                     slack_chat_messenger('Finished STD tracking')

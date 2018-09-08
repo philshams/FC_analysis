@@ -1,7 +1,6 @@
 # Import packages
 import imageio
 imageio.plugins.ffmpeg.download()
-from tqdm import tqdm
 
 # Import functions and params from other scripts
 from Tracking import dlc_analyseVideos
@@ -98,20 +97,19 @@ class Tracking():
 
     def track_wholesession(self):
         # Check if tracking the whole session
-        if track_options['track whole session']:
-            print('     ... tracking the whole session')
-            for idx, vid in enumerate(self.session['Metadata'].video_file_paths):
-                if idx == 0:
-                    start_frame = startf
-                else:
-                    start_frame = 0
-                tracked = self.tracking(self.background, vid[0],
-                                        start_frame=start_frame, stop_frame=-1, video_fps=self.fps)
-                self.session['Tracking']['Whole Session'] = tracked.data
+        print('     ... tracking the whole session')
+        self.session['Tracking']['Whole Session'] = []
+        for idx, vid in enumerate(self.session['Metadata'].video_file_paths):
+            if idx == 0:
+                start_frame = startf
+            else:
+                start_frame = 0
+            tracked = self.tracking(self.background, vid[0],
+                                    start_frame=start_frame, stop_frame=-1, video_fps=self.fps)
+            self.session['Tracking']['Whole Session'].append(tracked.data)
 
-                if track_options['track_exploration']:
-                    print('Need to write a function to extract the exploration data from the whole session data')
-                    raise ValueError('This functionality is not implemented yet')
+            if track_options['track_exploration']:
+                print('Need to write a function to extract the exploration data from the whole session data')
 
     def track_trials(self):
         cfg = self.cfg
@@ -216,7 +214,7 @@ class Tracking():
             cv2.waitKey(1)
 
         # Start tracing
-        for f in tqdm(range(start_frame, stop_frame)):
+        for f in range(start_frame, stop_frame):
             if not stop_frame == -1 and f > stop_frame:
                 return self
 
