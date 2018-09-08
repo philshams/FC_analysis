@@ -24,10 +24,9 @@ class Tracking():
     Tracks position or posture from video data based on the user selected parameters
     The results are saved in self.database
     """
-    def __init__(self, session, database, TF_setup, TF_settings, clips_l):
+    def __init__(self, session, TF_setup, TF_settings, clips_l):
         # set up class variables
         self.session = session
-        self.database = database
 
         # TF set up -- check if TF is running already
         self.TF_setup = TF_setup

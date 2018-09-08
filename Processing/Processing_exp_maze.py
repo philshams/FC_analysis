@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt  # used for debugging
 import numpy as np
 from collections import namedtuple
+from copy import deepcopy
 
 
 class ProcessingMaze():
@@ -10,7 +11,7 @@ class ProcessingMaze():
         :param session:
         """
         self.session = session
-
+        self.debugging = debugging
         # Subdivide frame
         self.boundaries = self.subdivide_frame()
 
@@ -24,12 +25,17 @@ class ProcessingMaze():
             for item in tracking_items:
                 retval = self.get_trial_trace(item)
                 if retval:
-                    self.get_intersections()
+                    self.get_intersections(item)
+                    self.get_status_at_timepoint(item)
+                    self.get_origin_escape_arms(item)
                     if debugging:
                         self.plot_trace()
 
-        plt.show()
+                        plt.show()
 
+    """
+    Prep functions
+    """
     def subdivide_frame(self):
         """
         Subdivide the frame into regions: when the mouse is in one of those regions we know that it is on one
@@ -94,12 +100,15 @@ class ProcessingMaze():
             return False
         return True
 
-    def get_intersections(self):
-        # TODO finish cleaning up consecutive intersection points
+    """
+    Extract stuff
+    """
+    def get_intersections(self, item):
+        # TODO check min time inbetween crossings
         # TODO divide intersection between those occurring in the top and bottom halves of the frame
         # TODO divide intersections between escape and origin
-        th, th2 = 5, 2
-        # Find all points close to the boundary lines
+        th, th2 = 5, 5
+        # Find all points close to the boundary lines [ frames at which the mouse is crossing the boundaries]
         temp_intersections = {'x_midline': np.where(abs(self.trace.x-self.boundaries.x_midline) < th)[0],
                               'y_midline': np.where(abs(self.trace.y-self.boundaries.y_midline) < th)[0],
                               'l_shelteredge': np.where(abs(self.trace.x-self.boundaries.l_shelteredge) < th)[0],
@@ -118,6 +127,115 @@ class ProcessingMaze():
                     self.intersections[name] = np.insert(goodvals, 0, firstval)
             else:
                 self.intersections[name] = np.array([])
+
+        # Get position at intersection times
+        position_at_intersections = {}
+        for name, timepoints in self.intersections.items():
+            # print('Found {} intersection with {}'.format(len(timepoints), name))
+            if len(timepoints):
+                points = [c for idx, c in enumerate(zip(self.trace.x, self.trace.y)) if idx in timepoints]
+                position_at_intersections[name] = points
+            else:
+                position_at_intersections[name] = []
+
+        # Collate intersections timepoints and coordinates at intersections
+        per_line = namedtuple('each', 'timepoints coordinates')
+        all_lines = namedtuple('all', 'x_midline l_shelteredge r_shelteredge y_midline')
+        names = position_at_intersections.keys()
+
+        lines = []
+        for idx, name in enumerate(names):
+            line = per_line(self.intersections[name], position_at_intersections[name])
+            lines.append(line)
+        intersections_complete = all_lines(lines[0], lines[1], lines[2], lines[3])
+
+        # get tracking data
+        data = self.session.Tracking[item]
+        # If processing is not in the trackind data class. add it
+        if not 'processing' in data.__dict__.keys():
+            setattr(data, 'processing', {})
+        data.processing['boundaries intersections'] = intersections_complete
+
+    def get_status_at_timepoint(self, name, time: int = None, timename: str = 'stimulus'):
+        """
+        Get the status of the mouse [location, orientation...] at a specific timepoint.
+        If not time is give the midpoint is take
+        """
+        if not 'session' in name.lower() or 'exploration' in name.lower:
+            data = self.session.Tracking[name]
+
+            if time is None:  # if a time is not give take the midpoint
+                time = int(len(data.dlc_tracking['Posture']['body']['x'].values)/2)
+
+            # Create a named tuple with all the params from processing (e.g. head angle) and the selected time point
+            # and store the values
+            params = data.dlc_tracking['Posture']['body'].keys()
+            params = [x.replace(' ', '') for x in params]
+            params = namedtuple('params', list(params))
+            values = data.dlc_tracking['Posture']['body'].values[time]
+            status = params(*values)
+
+            # Make named tuple with posture data at timepoint
+            posture_names = namedtuple('posture', sorted(list(data.dlc_tracking['Posture'].keys())))
+            bodypart = namedtuple('bp', 'x y')
+            bodyparts = []
+            for bp, vals in sorted(data.dlc_tracking['Posture'].items()):
+                pos = bodypart(vals['x'].values[time], vals['y'].values[time])
+                bodyparts.append(pos)
+            posture = posture_names(*bodyparts)
+
+            complete = namedtuple('status', 'posture status')
+            complete = complete(posture, status)
+
+            data.processing['status at {}'.format(timename)] = complete
+
+    def get_origin_escape_arms(self, name):
+        # TODO improve by getting times the mouse leaves and enters the shelter and limiting the search to the interval
+        # between these times
+        """
+        Find escape and origin arm. Get timepoints at which the mouse intersected the boundary lines:
+        last and first intersections denote origin and escape arms, respectively
+        :param name:
+        :return:
+        """
+
+        data = self.session.Tracking[name]
+        stim_time = int(len(self.trace.x)/2)
+        inters = data.processing['boundaries intersections']
+
+        # Divide relevant intersection between those that happened before and after the stimulus
+        l_inters = inters.l_shelteredge
+        r_inters = inters.r_shelteredge
+        c_inters = inters.x_midline
+        y_inters = inters.y_midline
+
+        pre_l, post_l = [t for t in l_inters.timepoints if t<stim_time], [t for t in l_inters.timepoints if t>stim_time]
+        pre_r, post_r = [t for t in r_inters.timepoints if t<stim_time], [t for t in r_inters.timepoints if t>stim_time]
+        pre_c, post_c = [t for t in c_inters.timepoints if t<stim_time], [t for t in c_inters.timepoints if t>stim_time]
+        pre_cy, post_y = [t for t in y_inters.timepoints if t<stim_time], [t for t in y_inters.timepoints if t>stim_time]
+
+        pres = [max(l) if l else -1 for l in [pre_l, pre_r, pre_c]]  # empty lists get assigned values that are def wrong
+        poss = [min(l) if l else 10000 for l in [post_l, post_r, post_c]]
+
+        # get escape arms: last interaction before stim and first interaction after determine escape arms
+        arm_names = {'0':'left', '1':'right', '2':'centre'}
+        origin = arm_names[str(pres.index(max(pres)))]  # location of last boundary cross before stim
+        escape = arm_names[str(poss.index(min(poss)))]  # location of last boundary cross before stim
+
+        # check that escapes actually happened
+        if not post_y:
+            # No escape occurred
+            escape = False
+
+        # Store results
+        if self.debugging:
+            print('Origin - {}, Escape - {}'.format(origin, escape))
+        data.processing['Origin arm'] = origin
+        data.processing['Escape arm'] = escape
+
+    """
+    Debugging related stuff
+    """
 
     def debug_preview(self):
         """
@@ -145,6 +263,7 @@ class ProcessingMaze():
                 points = [c for idx, c in enumerate(zip(self.trace.x, self.trace.y)) if idx in timepoints]
                 self.ax.plot([point[0] for point in points], [point[1] for point in points], 'o', markersize=7,
                              color=colors[name])
+
 
 
 
