@@ -2,6 +2,7 @@ import platform
 import pandas as pd
 import yaml
 import os
+import dill as pickle
 
 
 def save_data(savelogpath, save_name, object=None, name_modifier='', saveas='pkl'):
@@ -14,16 +15,21 @@ def save_data(savelogpath, save_name, object=None, name_modifier='', saveas='pkl
         with open(save_name, 'ab') as output:
             if isinstance(object, pd.DataFrame):
                 if not saveas == 'h5':
-                    object.to_pickle(save_name)
+                    with open(save_name, "wb") as dill_file:
+                        pickle.dump(object, dill_file)
+
                 else:
-                    object.to_hdf(save_name, key='df', mode='a')
+                    """ https://glowingpython.blogspot.com/2014/08/quick-hdf5-with-pandas.html """
+                    store = pd.HDFStore(save_name)
+                    store.put('data', object, format='table', data_columns=True)
             else:
                 indexes = object.__dict__.keys()
                 data_to_save = pd.DataFrame([x for x in object.__dict__.values()], index=indexes)
                 if not saveas == 'h5':
-                    object.to_pickle(save_name)
+                    data_to_save.to_pickle(save_name)
                 else:
-                    object.to_hdf(save_name, key='df', mode='a')
+                    data_to_save.to_hdf(save_name, key='df', mode='a')
+            print('           ... data saved succefully ')
     except:
         print('           ... something went wrong with saving')
         """
@@ -37,7 +43,6 @@ def save_data(savelogpath, save_name, object=None, name_modifier='', saveas='pkl
         If this is the case then we can just ignore this error
         """
 
-    print('           ... data saved succefully ')
 
 
 def load_data(savelogpath, load_name, loadas='.pkl'):

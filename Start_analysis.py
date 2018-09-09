@@ -135,7 +135,6 @@ class Analysis():
         # Track animal on videos   <---!!!!
         if track_mouse:
             tracked = Tracking(session, self.TF_setup, self.TF_settings, self.clips_l)
-            self.db = tracked.database
             self.TF_setup = tracked.TF_setup
             self.TF_settings = tracked.TF_settings
             self.clips_l = tracked.clips_l
