@@ -40,7 +40,7 @@ def create_database(datalogpath, database=None):
         # Create empty database from template class
         database_template = DataBase()
         indexes = sorted(session_dict.keys())
-        database = pd.DataFrame(index=indexes, columns=database_template.sessions.keys())
+        database = pd.DataFrame(index=indexes, columns=database_template.sessions._fields)
 
         # Fill in metadata from the dictionary
         for sessname, metadata in sorted(session_dict.items()):

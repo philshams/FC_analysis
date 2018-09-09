@@ -1,6 +1,7 @@
 # Import packages
 import imageio
 imageio.plugins.ffmpeg.download()
+from collections import namedtuple
 
 # Import functions and params from other scripts
 from Tracking import dlc_analyseVideos
@@ -92,12 +93,17 @@ class Tracking():
                 stop_frame = -1
             tracked = self.tracking(self.background, self.session['Metadata'].video_file_paths[0][0],
                                     start_frame=start_frame, stop_frame=stop_frame, video_fps=self.fps)
-            self.session['Tracking']['Exploration'] = tracked.data
+            video_tracking_data = namedtuple('coordinates', 'x y ori')
+            self.session['Tracking']['Exploration'] = video_tracking_data(tracked.data.x,
+                                                                          tracked.data.y,
+                                                                          tracked.data.orientation)
 
     def track_wholesession(self):
         # Check if tracking the whole session
         print('     ... tracking the whole session')
-        self.session['Tracking']['Whole Session'] = []
+        self.session['Tracking']['Whole Session'] = {}
+        video_tracking_data = namedtuple('coordinates', 'x y ori')
+
         for idx, vid in enumerate(self.session['Metadata'].video_file_paths):
             if idx == 0:
                 start_frame = startf
@@ -105,7 +111,8 @@ class Tracking():
                 start_frame = 0
             tracked = self.tracking(self.background, vid[0],
                                     start_frame=start_frame, stop_frame=-1, video_fps=self.fps)
-            self.session['Tracking']['Whole Session'].append(tracked.data)
+            tracking_data = video_tracking_data(tracked.data.x, tracked.data.y, tracked.data.orientation)
+            self.session['Tracking']['Whole Session']['Video_{}'.format(idx)] = tracking_data
 
             if track_options['track_exploration']:
                 print('Need to write a function to extract the exploration data from the whole session data')
