@@ -47,7 +47,6 @@ def slack_chat_attachments(filepath):
     r = requests.post("https://slack.com/api/files.upload", params=payload, files=my_file)
     print(r.text)
 
-
 def upload_file( filepath ):
     """Upload file to channel
 
@@ -106,7 +105,7 @@ def send_email_attachments(filename, filepath):
     server = smtplib.SMTP('smtp.gmail.com:587')
     server.ehlo()
     server.starttls()
-    server.login('federicopython@gmail.com', 'FCpython21')
+    server.login('federicopython@gmail.com', '')
     server.sendmail('federicopython@gmail.com', 'federicoclaudi@gmail.com', msg.as_string())
     server.quit()
 
