@@ -86,6 +86,7 @@ class Analysis():
 
             self.save_results(obj=self.db, mod='_backupsave')
 
+        if processing or debug or plotting:
             # Loop over all the sessions - Other processes ================================================
             for session_name in tqdm(sorted(self.db.index)):
                 session = self.db.loc[session_name]

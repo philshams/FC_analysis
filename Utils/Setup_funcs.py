@@ -103,7 +103,7 @@ def create_database(datalogpath, database=None):
             session_metadata.created = datetime.datetime.now().strftime("%y-%m-%d-%H-%M")
             session_metadata.software = line['Software']
 
-            # LOOP OVER EACH SESSION'S SUBFOLDER
+            # If the paths are correct, loop over each subfolder again but this time load the data
             for recording in line['Recordings']:
                 path = os.path.join(line['Base fld'], line['Exp fld'], recording)
 
@@ -231,6 +231,15 @@ def create_database(datalogpath, database=None):
             'Recordings': line['Sub Folders'].split('; ')
         }
         all_metadata.append(temp)
+        
+    # Loop over each recordings subfolder and check that the paths are correct [fast check that everything
+    # is okay before loading the data]
+    for line in all_metadata:
+        for recording in line['Recordings']:
+            path = os.path.join(line['Base fld'], line['Exp fld'], recording)
+            if not os.path.exists(path):
+                raise ValueError('Folder not found\n{}'.format(path))
+    print('     Excel spreadsheet loaded correctly. Now loading metadata')
 
     # Use loaded metadata to create the database. Threadpooled for faster execution
     num_parallel_processes = 3

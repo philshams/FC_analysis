@@ -13,13 +13,9 @@ class ProcessingMaze():
         self.session = session
         self.debugging = debugging
         # Subdivide frame
-        self.boundaries = self.subdivide_frame()
+        self.rois, self.boundaries = self.subdivide_frame()
 
-        # Create window to display results
-        if debugging:
-            self.debug_preview()
-
-        # Process each trial
+       # Process each trial
         tracking_items =self.session.Tracking.keys()
         if tracking_items:
             for item in tracking_items:
@@ -28,7 +24,9 @@ class ProcessingMaze():
                     self.get_intersections(item)
                     self.get_status_at_timepoint(item)
                     self.get_origin_escape_arms(item)
+
                     if debugging:
+                        self.debug_preview()
                         self.plot_trace()
 
                         plt.show()
@@ -83,10 +81,14 @@ class ProcessingMaze():
 
             # now put everything together in the limits
             limits = boundaries(midpoint.x, midpoint.y, edges[0], edges[1])
-        return limits
+        return rois, limits
 
     def get_trial_trace(self, trial_name):
         data = self.session.Tracking[trial_name]
+
+        if isinstance(data, dict):
+            # Doesnt work for wholetrace or exploration data, which are saved as dictionaries
+            return False
 
         tracer = namedtuple('trace', 'x y')
         if 'Posture' in data.dlc_tracking.keys():
@@ -98,11 +100,160 @@ class ProcessingMaze():
                            data.std_tracking['y'])
         else:
             return False
+        window = int(len(self.trace.x) / 2)
+        tracer = namedtuple('trace', 'x y')
+
+        # Get prestim and after stim traces and those between leavinf and returning to shelter
+        self.prestim_trace = tracer(self.trace.x[:window], self.trace.y[:window])
+        self.poststim_trace = tracer(self.trace.x[window:], self.trace.y[window:])
+
+        self.shelter_to_stim, self.stim_to_shelter = self.get_leaveenter_shelter(tracer)
+
+        # Store these traces in the items processing
+        if not 'processing' in data.__dict__.keys():
+            setattr(data, 'processing', {})
+
+        if not 'PlottingItems' in data.processing.keys():
+            data.processing['PlottingItems'] = dict(prestim_trace=self.prestim_trace,
+                                                    poststim_trace=self.poststim_trace,
+                                                    shelt_to_stim_trace=self.shelter_to_stim,
+                                                    stim_to_shelt_trace=self.stim_to_shelter)
+
         return True
 
     """
     Extract stuff
     """
+
+    def get_leaveenter_shelter(self, tracer):
+        def get_leave_enter_time(shelter, trace, pre=True):
+            # Get the frames in which the mouse is in the shelter
+            x_inshelt = np.where((shelter[0] < trace.x) & (trace.x < shelter[1]))[0]
+            y_inshelt = np.where((shelter[2] < trace.y) & (trace.y < shelter[3]))[0]
+            inshelt = np.intersect1d(x_inshelt, y_inshelt)
+
+            if not len(inshelt):
+                return False
+            # If its before the stimulus we want the last frame, else we want the last frame
+            if pre:
+                if len(inshelt):  # means no point on the trace was in sheter
+                    return inshelt[-1]
+                else:
+                    return  len(trace)-1
+            else:
+                if len(inshelt):
+                    return inshelt[0]
+                else:
+                    return 0
+
+        tostim, fromstim = False, False
+        if 'Shelter' in self.rois.keys() and self.rois['Shelter'] is not None:
+            shelter = self.rois['Shelter']  # x, with, y, height
+            shelter = (shelter[0], shelter[0]+shelter[2], shelter[1], shelter[1]+shelter[3])  # x0, x1, y0, y1
+
+            leaves_shelter = get_leave_enter_time(shelter, self.prestim_trace)
+            enters_shelter = get_leave_enter_time(shelter, self.poststim_trace, pre=False)
+
+            tostim = tracer(self.prestim_trace.x[leaves_shelter:], self.prestim_trace.y[leaves_shelter:])
+            fromstim = tracer(self.poststim_trace.x[:enters_shelter+1], self.poststim_trace.y[:enters_shelter+1])
+
+        return tostim, fromstim
+
+    def get_status_at_timepoint(self, name, time: int = None, timename: str = 'stimulus'):
+        """
+        Get the status of the mouse [location, orientation...] at a specific timepoint.
+        If not time is give the midpoint is take
+        """
+        if not 'session' in name.lower() or 'exploration' in name.lower:
+            data = self.session.Tracking[name]
+
+            if time is None:  # if a time is not give take the midpoint
+                time = int(len(data.dlc_tracking['Posture']['body']['x'].values)/2)
+
+            # Create a named tuple with all the params from processing (e.g. head angle) and the selected time point
+            # and store the values
+            params = data.dlc_tracking['Posture']['body'].keys()
+            params = [x.replace(' ', '') for x in params]
+            params = namedtuple('params', list(params))
+            values = data.dlc_tracking['Posture']['body'].values[time]
+            status = params(*values)
+
+            # Make named tuple with posture data at timepoint
+            posture_names = namedtuple('posture', sorted(list(data.dlc_tracking['Posture'].keys())))
+            bodypart = namedtuple('bp', 'x y')
+            bodyparts = []
+            for bp, vals in sorted(data.dlc_tracking['Posture'].items()):
+                pos = bodypart(vals['x'].values[time], vals['y'].values[time])
+                bodyparts.append(pos)
+            posture = posture_names(*bodyparts)
+
+            complete = namedtuple('status', 'posture status')
+            complete = complete(posture, status)
+
+            data.processing['status at {}'.format(timename)] = complete
+
+    def get_origin_escape_arms(self, name):
+        def get_arm(trace, midline, halfwidth):
+            maxleft = abs(np.min(trace.x) - midline)
+            maxright = abs(np.max(trace.x) - midline)
+
+            if maxleft < halfwidth and maxright < halfwidth:
+                # Central arm
+                return 'Central'
+            else:
+                if maxleft > maxright:
+                    return 'Left'
+                else:
+                    return 'Right'
+
+        # Get origin and escape arms, check the leftmost and rightmost point in each trace and see which one is most
+        # distant from the midline
+        midline = self.boundaries.x_midline
+        central_corr_halfwidth = abs(self.boundaries.l_shelteredge - midline)
+
+        # Get arms and print results
+        origin = get_arm(self.shelter_to_stim, midline, central_corr_halfwidth)
+        escape = get_arm(self.stim_to_shelter, midline, central_corr_halfwidth)
+        if self.debugging:
+            print('Arm of origin: {}   -   Arm of escape: {}'.format(origin, escape))
+
+        # Store results
+        self.session.Tracking[name].processing['Origin'] = origin
+        self.session.Tracking[name].processing['Escape'] = escape
+
+    """
+    Debugging related stuff
+    """
+
+    def debug_preview(self):
+        """
+        Display the results of the processing so that we can check that everything went okay
+        """
+        f, self.ax = plt.subplots()
+        self.ax.imshow(self.bg, cmap='gray')
+        self.ax.axvline(self.boundaries.x_midline, color=[.8, .8, .8], linewidth=2, alpha=0.75)
+        self.ax.axvline(self.boundaries.l_shelteredge, color=[.8, .8, .8], linewidth=2, alpha=0.75)
+        self.ax.axvline(self.boundaries.r_shelteredge, color=[.8, .8, .8], linewidth=2, alpha=0.75)
+        self.ax.axhline(self.boundaries.y_midline, color=[.8, .8, .8], linewidth=2, alpha=0.75)
+
+    def plot_trace(self):
+        self.ax.plot(self.shelter_to_stim.x, self.shelter_to_stim.y, color=[.8, .2, .2], linewidth=2)
+        self.ax.plot(self.stim_to_shelter.x, self.stim_to_shelter.y, color=[.2, .2, .8], linewidth=2)
+
+        names = self.intersections.keys()
+        colors = [[.2, .5, .5], [.4, .6, .2], [.1, .1, .4], [.3, .8, .2]]
+        colors = dict(zip(names, colors))
+        # Plot intersection points
+        for name, timepoints in self.intersections.items():
+            # print('Found {} intersection with {}'.format(len(timepoints), name))
+            if len(timepoints):
+                points = [c for idx, c in enumerate(zip(self.trace.x, self.trace.y)) if idx in timepoints]
+                self.ax.plot([point[0] for point in points], [point[1] for point in points], 'o', markersize=7,
+                             color=colors[name])
+
+
+
+
     def get_intersections(self, item):
         # TODO check min time inbetween crossings
         # TODO divide intersection between those occurring in the top and bottom halves of the frame
@@ -155,119 +306,3 @@ class ProcessingMaze():
         if not 'processing' in data.__dict__.keys():
             setattr(data, 'processing', {})
         data.processing['boundaries intersections'] = intersections_complete
-
-    def get_status_at_timepoint(self, name, time: int = None, timename: str = 'stimulus'):
-        """
-        Get the status of the mouse [location, orientation...] at a specific timepoint.
-        If not time is give the midpoint is take
-        """
-        if not 'session' in name.lower() or 'exploration' in name.lower:
-            data = self.session.Tracking[name]
-
-            if time is None:  # if a time is not give take the midpoint
-                time = int(len(data.dlc_tracking['Posture']['body']['x'].values)/2)
-
-            # Create a named tuple with all the params from processing (e.g. head angle) and the selected time point
-            # and store the values
-            params = data.dlc_tracking['Posture']['body'].keys()
-            params = [x.replace(' ', '') for x in params]
-            params = namedtuple('params', list(params))
-            values = data.dlc_tracking['Posture']['body'].values[time]
-            status = params(*values)
-
-            # Make named tuple with posture data at timepoint
-            posture_names = namedtuple('posture', sorted(list(data.dlc_tracking['Posture'].keys())))
-            bodypart = namedtuple('bp', 'x y')
-            bodyparts = []
-            for bp, vals in sorted(data.dlc_tracking['Posture'].items()):
-                pos = bodypart(vals['x'].values[time], vals['y'].values[time])
-                bodyparts.append(pos)
-            posture = posture_names(*bodyparts)
-
-            complete = namedtuple('status', 'posture status')
-            complete = complete(posture, status)
-
-            data.processing['status at {}'.format(timename)] = complete
-
-    def get_origin_escape_arms(self, name):
-        # Get point maximally distant from x midline, check where it is and thats your arm
-
-
-        # TODO improve by getting times the mouse leaves and enters the shelter and limiting the search to the interval
-        # between these times
-        """
-        Find escape and origin arm. Get timepoints at which the mouse intersected the boundary lines:
-        last and first intersections denote origin and escape arms, respectively
-        :param name:
-        :return:
-        """
-
-        data = self.session.Tracking[name]
-        stim_time = int(len(self.trace.x)/2)
-        inters = data.processing['boundaries intersections']
-
-        # Divide relevant intersection between those that happened before and after the stimulus
-        l_inters = inters.l_shelteredge
-        r_inters = inters.r_shelteredge
-        c_inters = inters.x_midline
-        y_inters = inters.y_midline
-
-        pre_l, post_l = [t for t in l_inters.timepoints if t<stim_time], [t for t in l_inters.timepoints if t>stim_time]
-        pre_r, post_r = [t for t in r_inters.timepoints if t<stim_time], [t for t in r_inters.timepoints if t>stim_time]
-        pre_c, post_c = [t for t in c_inters.timepoints if t<stim_time], [t for t in c_inters.timepoints if t>stim_time]
-        pre_cy, post_y = [t for t in y_inters.timepoints if t<stim_time], [t for t in y_inters.timepoints if t>stim_time]
-
-        pres = [max(l) if l else -1 for l in [pre_l, pre_r, pre_c]]  # empty lists get assigned values that are def wrong
-        poss = [min(l) if l else 10000 for l in [post_l, post_r, post_c]]
-
-        # get escape arms: last interaction before stim and first interaction after determine escape arms
-        arm_names = {'0':'left', '1':'right', '2':'centre'}
-        origin = arm_names[str(pres.index(max(pres)))]  # location of last boundary cross before stim
-        escape = arm_names[str(poss.index(min(poss)))]  # location of last boundary cross before stim
-
-        # check that escapes actually happened
-        if not post_y:
-            # No escape occurred
-            escape = False
-
-        # Store results
-        if self.debugging:
-            print('Origin - {}, Escape - {}'.format(origin, escape))
-        data.processing['Origin arm'] = origin
-        data.processing['Escape arm'] = escape
-
-    """
-    Debugging related stuff
-    """
-
-    def debug_preview(self):
-        """
-        Display the results of the processing so that we can check that everything went okay
-        """
-        f, self.ax = plt.subplots()
-        self.ax.imshow(self.bg, cmap='gray')
-        self.ax.axvline(self.boundaries.x_midline, color=[.8, .8, .8], linewidth=2, alpha=0.75)
-        self.ax.axvline(self.boundaries.l_shelteredge, color=[.8, .8, .8], linewidth=2, alpha=0.75)
-        self.ax.axvline(self.boundaries.r_shelteredge, color=[.8, .8, .8], linewidth=2, alpha=0.75)
-        self.ax.axhline(self.boundaries.y_midline, color=[.8, .8, .8], linewidth=2, alpha=0.75)
-
-    def plot_trace(self):
-        window = int(len(self.trace.x)/2)
-        self.ax.plot(self.trace.x[:window], self.trace.y[:window], color=[.8, .2, .2], linewidth=2)
-        self.ax.plot(self.trace.x[window:], self.trace.y[window:], color=[.2, .2, .8], linewidth=2)
-
-        names = self.intersections.keys()
-        colors = [[.2, .5, .5], [.4, .6, .2], [.1, .1, .4], [.3, .8, .2]]
-        colors = dict(zip(names, colors))
-        # Plot intersection points
-        for name, timepoints in self.intersections.items():
-            # print('Found {} intersection with {}'.format(len(timepoints), name))
-            if len(timepoints):
-                points = [c for idx, c in enumerate(zip(self.trace.x, self.trace.y)) if idx in timepoints]
-                self.ax.plot([point[0] for point in points], [point[1] for point in points], 'o', markersize=7,
-                             color=colors[name])
-
-
-
-
-

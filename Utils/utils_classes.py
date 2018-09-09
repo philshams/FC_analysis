@@ -63,8 +63,9 @@ class Cohort():
     def __str__(self):
         return 'Cihirt {}'.format(self.name)
 
+
 class Processing_class():
     def __init__(self):
         self.velocity = {}
-s
+
 
