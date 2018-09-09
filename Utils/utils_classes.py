@@ -15,11 +15,18 @@ class Session_metadata():
         self.software = None
         self.videodata = []
 
+    def __repr__(self):
+        return 'Session {} Metadata'.format(self.session_id)
+
+    def __str__(self):
+        return 'Session {} Metadata'.format(self.session_id)
+
 
 class DataBase():
     def __init__(self):
         # self.sessions = {'Metadata': None, 'Tracking': None}
         self.sessions = namedtuple('sessions', 'Metadata Tracking')
+
 
 class Trial():
     def __init__(self):
@@ -29,6 +36,12 @@ class Trial():
         # self.std_tracking = {'x': None, 'y': None, 'orientation': None, 'direction': None, 'velocity': None}
         self.std_tracing = namedtuple('std_tracking', 'x y orientation direction velocity')
         self.dlc_tracking = {}
+
+    def __repr__(self):
+        return 'Trial: {}_{}'.format(self.name, self.id)
+
+    def __str__(self):
+        return 'Trial: {}'.format(self.name)
 
 
 class All_trials():
@@ -44,18 +57,14 @@ class Cohort():
         self.metadata = namedtuple('metadata', 'created selector_type selector sessions_in_cohort')
         self.tracking_data = namedtuple('tracking_data', 'explorations whole_sessions trials')
 
+    def __repr__(self):
+        return 'Cihirt {}'.format(self.name)
 
-        # self.metadata = {
-        #     'created':None,
-        #     'selector type':None,
-        #     'selector':None,
-        #     'sessions in cohort':None
-        # }
-        # self.tracking_data = {'explorations': [], 'whole sessions': [], 'trials': {}}
-
+    def __str__(self):
+        return 'Cihirt {}'.format(self.name)
 
 class Processing_class():
     def __init__(self):
         self.velocity = {}
-
+s
 

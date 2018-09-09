@@ -190,6 +190,9 @@ class ProcessingMaze():
             data.processing['status at {}'.format(timename)] = complete
 
     def get_origin_escape_arms(self, name):
+        # Get point maximally distant from x midline, check where it is and thats your arm
+
+
         # TODO improve by getting times the mouse leaves and enters the shelter and limiting the search to the interval
         # between these times
         """
