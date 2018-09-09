@@ -1,67 +1,65 @@
 import matplotlib.pyplot as plt   # Used to test stuff while writing new functions
-
 from multiprocessing.dummy import Pool as ThreadPool
 
-from Processing.Processing_reconstruc_pose import PoseReconstructor
 from Utils.loadsave_funcs import load_yaml
-from Processing.Processing_utils import *
-from Processing.Processing_exp_maze import ProcessingMaze
 from Utils.maths import calc_angle_2d, calc_ang_velocity, calc_ang_acc
+from Processing.Processing_reconstruc_pose import PoseReconstructor
+from Processing.Processing_exp_maze import ProcessingMaze
+from Processing.Processing_utils import *
 
 from Config import processing_options, exp_type
 
 
-class Processing():
+class Processing:
     """
     Apply a number of processing steps that are of general interest (i.e not experiment-specific)
     Call experiment-specific processing classes when appropriate
-
     """
     def __init__(self, session, database):
         # load processing settings from yaml file
         self.settings = load_yaml(processing_options['cfg'])
 
-        # get arguments
         self.session = session
         self.database = database
 
-        # Apply stuff to tracking data
-        for data_name, tracking_data in list(self.session.Tracking.items()):
+        # Process tracking data
+        for data_name, tracking_data in sorted(list(self.session.Tracking.items())):
             if data_name == 'Exploration' or data_name == 'Whole Session':
+                from warnings import warn
+                warn('Processing currently only supports processing of trial data, not {}'.format(data_name))
                 continue
 
-            # Process stuff [in parallel, 825x faster than calling each func one at the time]
+            # Save info about processing options in the metadata
+            self.define_processing_metadata()
+
+            # Apply processes in parallel
+            # TODO use decorator to make sure that functions are automatically added to the list, avoid bugs
             self.tracking_data = tracking_data
             funcs = [self.extract_bodylength, self.extract_velocity, self.extract_location_relative_shelter,
                      self.extract_orientation]
             pool = ThreadPool(len(funcs))
-
             [pool.apply(func) for func in funcs]
 
-            # Extract ang velocity
+            # Other processing steps will not be done in parallel
             self.extract_ang_velocity()
-
-            # Store info in metadata
-            self.define_processing_metadata()
-
-            # Extract pose   WORK IN PROGRESS
-            # PoseReconstructor(self.tracking_data.dlc_tracking['Posture'])
+            # PoseReconstructor(self.tracking_data.dlc_tracking['Posture'])  # WORK IN PROGRESS, buggy
 
         # Call experiment specific processing tools [only implemented for maze experiments]
         if exp_type == 'maze':
             ProcessingMaze(self.session)
+        else:
+            from warnings import warn
+            warn('Experiment type {} is not supported yet'.format(exp_type))
 
     def define_processing_metadata(self):
         self.tracking_data.metadata['Processing info'] = self.settings
-
-    # FUNCTIONS ===========================================================================================
+        if 'processing' not in self.tracking_data.__dict__.keys():
+            setattr(self.tracking_data, 'processing', {})
 
     def extract_location_relative_shelter(self):
-        """
-        This function extracts the mouse position relative to the shelter
-
-        """
+        """ Extracts the mouse position relative to the shelter """
         data = self.tracking_data
+
         # Get the position of the centre of the shelter
         if not 'shelter location' in data.metadata.keys():
             if self.settings['shelter location'] == 'roi':
@@ -86,7 +84,6 @@ class Processing():
                 if self.settings['dlc single bp']:
                     if bp != self.settings['dlc single bp']:
                         continue
-
                 # Extract velocity for a single bodypart as determined by the user
                 bp_data, _ = from_dlc_to_single_bp(data, bp)
                 adjusted_pos = calc_position_relative_point((bp_data['x'].values,
@@ -134,29 +131,21 @@ class Processing():
         data.dlc_tracking['Posture']['body']['Head angle'] = [x+360 for x in absolute_angle_head]
 
     def extract_bodylength(self):
-        data = self.tracking_data
-
-        # Get bodylength
-        avg_bodylength, bodylength = get_average_bodylength(data, head_tag=self.settings['head'],
-                                                            tail_tag=self.settings['tail'])
-
-        # Store results
-        data.metadata['avg body length'] = avg_bodylength
-
-        for bp in data.dlc_tracking['Posture'].keys():
+        """ gets the length of the mouse body at all frames and the avg length """
+        avg_bodylength, bodylength = get_bodylength(self.tracking_data, head_tag=self.settings['head'],
+                                                    tail_tag=self.settings['tail'])
+        self.tracking_data.metadata['avg body length'] = avg_bodylength
+        for bp in self.tracking_data.dlc_tracking['Posture'].keys():
             if self.settings['dlc single bp']:
                 if bp != self.settings['dlc single bp']:
                     continue
-
-            # Extract velocity for a single bodypart as determined by the user
-            bp_data, bodypart = from_dlc_to_single_bp(data, bp)
+            bp_data, bodypart = from_dlc_to_single_bp(self.tracking_data, bp)
             bp_data['Body length'] = bodylength
 
     def extract_velocity(self):
         data = self.tracking_data
 
-        """
-            Calculates the velocity of the mouse from tracking data.
+        """ Calculates the velocity of the mouse from tracking data.
 
             Should work for both individual sessions and whole cohorts
 
@@ -164,12 +153,7 @@ class Processing():
 
             Can give the velocity in px/frame, px/sec or bodylengths/s
 
-            ***
-            The results are saved in each tracking object's dataframe
-
-            ***
-            :return:
-            """
+            The results are saved in each tracking object's dataframe """
 
         # Get the unit velocity will be calculated as and save it in the metadata
         unit = self.settings['velocity unit']
@@ -186,16 +170,15 @@ class Processing():
                     bodylength = data.metadata['avg body length']
                 else:
                     # Extract body length from DLC data
-                    bodylength, _ = get_average_bodylength(data, head_tag=self.settings['head'],
-                                                            tail_tag=self.settings['tail'])
+                    bodylength, _ = get_bodylength(data, head_tag=self.settings['head'],
+                                                   tail_tag=self.settings['tail'])
         else:
             bodylength=False
-
         data.metadata['Velocity unit'] = unit
 
         fps = self.session.Metadata.videodata[0]['Frame rate'][0]
+        # Extract velocity using std tracking data
         if self.settings['std'] and self.tracking_data.std_tracking['x'] is not None:
-            # Extract velocity using std tracking data
             distance = calc_distance_2d((data.std_tracking['x'].values, data.std_tracking['y'].values))
             if not 'all' in unit:
                 data.std_tracking['Velocity'] = scale_velocity_by_unit(distance, unit=unit, fps=fps, bodylength=bodylength)
@@ -207,7 +190,7 @@ class Processing():
                                                                            bodylength=bodylength)
                     data.std_tracking['Acceleration_{}'.format(un)] = calc_acceleration(distance, unit=un, fps=fps,
                                                                           bodylength=bodylength)
-
+        # Extract velocity using dlc tracking data
         if self.settings['dlc']:
             if not data.dlc_tracking:
                 return
@@ -216,12 +199,9 @@ class Processing():
                 if self.settings['dlc single bp']:
                     if bp != self.settings['dlc single bp']:
                         continue
-
-                # Extract velocity for a single bodypart as determined by the user
                 bp_data, bodypart = from_dlc_to_single_bp(data, bp)
 
-                if self.settings['dlc single bp']:
-                    if bodypart != self.settings['dlc single bp']:
+                if self.settings['dlc single bp'] and bodypart != self.settings['dlc single bp']:
                         self.settings['dlc single bp'] = bodypart
 
                 distance = calc_distance_2d((bp_data['x'], bp_data['y']))
@@ -238,21 +218,15 @@ class Processing():
     def extract_ang_velocity(self):
         """
         Get orientation [calculated previously] and compute the velocity in it
-
         Returns the angular velocity in either deg per frame or deg per second
-
-        :param data:
-        :return:
         """
         data = self.tracking_data
-
         if self.settings['ang vel unit'] == 'degperframe':
             orientation = data.dlc_tracking['Posture'][self.settings['body']]['Orientation']
             data.dlc_tracking['Posture'][self.settings['body']]['Body ang vel'] = calc_ang_velocity(orientation)
 
             orientation = data.dlc_tracking['Posture'][self.settings['body']]['Head angle']
             data.dlc_tracking['Posture'][self.settings['body']]['Head ang vel'] = calc_ang_velocity(orientation)
-
         else:
             if data.dlc_tracking:
                 fps = self.session.Metadata.videodata[0]['Frame rate'][0]

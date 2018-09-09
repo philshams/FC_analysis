@@ -5,16 +5,17 @@ import warnings
 from Utils import Image_processing
 from Utils.loadsave_funcs import save_data, load_data, load_paths
 from Utils.Setup_funcs import create_database
-from Plotting import Single_trial_summary
-from Tracking.Tracking_main import Tracking
 from Utils.Data_rearrange_funcs import create_cohort, check_session_selected
-from Processing import Processing_main
-from Debug.DebugTrack_GUI_Main import start_gui
 from Utils.Messaging import slack_chat_messenger
+
+from Tracking.Tracking_main import Tracking
+from Processing import Processing_main
+from Plotting import Single_trial_summary
+from Debug.DebugTrack_GUI_Main import start_gui
 
 from Config import load_database, update_database, load_name, save_name\
     , selector_type, selector,\
-    extract_background, track_mouse, track_options, \
+    extract_rois_background, track_mouse, track_options, \
     plotting, cohort, processing, debug, send_messages
 
 
@@ -34,7 +35,7 @@ class Analysis():
         # Show what we are planning to do
         self.print_planned_processing()
 
-        # Get path used throughout the analysis
+        # Get paths for data loading and saving
         paths = load_paths()
         self.save_fld = paths['save fld']
         self.datalog_path = paths['datalog']
@@ -47,7 +48,7 @@ class Analysis():
         # Load the database
         self.load_database()
 
-        # Call the main funct that orchestrates the application of the subprocesses
+        # Call the main func that orchestrates the application of the processes
         self.main()
 
         # Save the final results
@@ -60,85 +61,71 @@ class Analysis():
         """"
         Once all is set up we apply sub-processes to individual sessions or cohorts
         """
-        ################################################
-        ## WORK ON SINGLE COHORTS
-        ################################################
+        # TRACK SINGLE SESSIONS
         if not selector_type == 'cohort':
-            # Loop over all the sessions - Tracking ========================================================
-            if track_mouse or extract_background:
+            # Loop over all the sessions - Tracking 
+            if track_mouse or extract_rois_background:
                 for session_name in tqdm(sorted(self.db.index)):
                     session = self.db.loc[session_name]
-                    # Check if this is one of th sessions we should be processing
+                    
+                    # Check if this is one of the sessions we should be processing
                     selected = check_session_selected(session.Metadata, selector_type, selector)
-                    if not selected:
-                        continue
+                    if selected:
+                        print('---------------\nTracking session {}'.format(session_name))
 
-                    # Process the session, appply the selected subprocesses
-                    print('---------------\nTracking session {}'.format(session_name))
-
-                    # TRACKING #######################################
-                    self.video_analysis(session)
+                        self.video_analysis(session) # <-- main tracking function
 
                 if send_messages:
                     slack_chat_messenger('Finished STD tracking')
 
                 if track_mouse:
                     # Finish DLC tracking [extract pose on saved clips]
-                    self.db = Tracking.tracking_use_dlc(self.db, self.clips_l)
+                    try:
+                        self.db = Tracking.tracking_use_dlc(self.db, self.clips_l)
+                    except:
+                        warnings.warn('Something went wront with DLC tracking ')
 
                     if send_messages:
                         slack_chat_messenger('Finished DLC tracking')
-
             self.save_results(obj=self.db, mod='_backupsave')
 
+        # PROCESS SINGLE SESSIONS
         if processing or debug or plotting:
-            # Loop over all the sessions - Other processes ================================================
+            # Loop over all the sessions - Other processes
             for session_name in tqdm(sorted(self.db.index)):
                 session = self.db.loc[session_name]
-                # Check if this is one of th sessions we should be processing
                 selected = check_session_selected(session.Metadata, selector_type, selector)
-                if not selected:
-                    continue
+                if selected:
+                    print('---------------\nProcessing session {}'.format(session_name))
 
-                print('---------------\nProcessing session {}'.format(session_name))
+                    if processing:
+                        self.processing_session(session)
 
-                # PROCESSING
-                if processing:
-                    self.processing_session(session)
+                    if debug:
+                        start_gui(session)
 
-
-                # Debug
-                if debug:
-                    start_gui(session)
-
-                # PLOTTING INDIVIDUAL
-                if plotting:  # individuals - work in progress
-                    self.plotting_session(session)
+                    if plotting:
+                        self.plotting_session(session)
             if send_messages:
                 slack_chat_messenger('Finished processing')
-        ################################################
-        ## WORK ON COHORTS
-        ################################################
-        # COHORT
+
+        # WORK ON COHORTS
         if cohort:
             self.cohort_analysis()
 
+########################################################################################################################
 
-########################################################################################################################
-########################################################################################################################
-    # WORK ON SINGLE SESSIONS
     def video_analysis(self, session):
+        """ EXTRACT useful information from the videos for one session"""
         # Process background: get maze edges and user selected ROIs
-        if extract_background:
-            # Get bg and save
+        if extract_rois_background:
             maze_edges, user_rois = Image_processing.process_background(session['Metadata'].videodata[0]['Background'],
                                                                         track_options)
             session.Metadata.videodata[0]['Maze Edges'] = maze_edges
             session.Metadata.videodata[0]['User ROIs'] = user_rois
-
             self.save_results(obj=self.db, mod='_bg')
 
-        # Track animal on videos   <---!!!!
+        # Tracking
         if track_mouse:
             try:
                 tracked = Tracking(session, self.TF_setup, self.TF_settings, self.clips_l)
@@ -150,20 +137,14 @@ class Analysis():
         self.save_results(obj=self.db, mod='_tracking')
 
     def processing_session(self, session):
-            # Processing
             Processing_main.Processing(session, self.db)
-
             self.save_results(obj=self.db, mod='_processing')
 
     def plotting_session(self, session):
-            # Plot for individual mice
-            # Plotting_main.setup_plotting(session, self.db)
             Single_trial_summary.Plotter(session)
 
 
 ########################################################################################################################
-########################################################################################################################
-    # WORK ON COHORTS
     def cohort_analysis(self):
         # Create a cohort and store it in database
         self.db = create_cohort(self.db)  # Get all the trial data in one place
@@ -173,30 +154,27 @@ class Analysis():
 ########################################################################################################################
     # LOADING AND SAVING
     def save_results(self, obj=None, mod=None):
+        """ calse savedata to handle saving database to file """
         save_data(self.save_fld, save_name, object=obj, name_modifier=mod)
 
     def load_database(self):
         """
-        Take care of creating a new database from scratch, using the metadata in the datalog.csv file, or
-        loading a pre-existing database
+        Take care of creating a new database from scratch, using the metadata in the datalog.csv file unless the
+        user wants to load a database from a pre-existing file
         """
-
-        # Load database
         if load_database:
             self.db = load_data(self.save_fld, load_name)
-            # Update database with recently added sessions
-            if update_database:
+
+            if update_database:  # add new sessions from datalog.csv
                 self.db = create_database(self.datalog_path, database=self.db)
 
-        else:
-            # Create database from scratch
+        else:  # Create database from scratch
             self.db = create_database(self.datalog_path)
         self.save_results(obj=self.db, mod='Metadata')
 
-
     def print_planned_processing(self):
+        """ When starting a new run, print the options specified in Config.py for the user to check """
         import json
-        import pprint
         print('\n\n', '='*25, '\n', '='*25)
         print(""""
                 Load database: {}
@@ -219,14 +197,12 @@ class Analysis():
                 
                 Send Messages: {}
         """.format(load_database, update_database, load_name, save_name,
-                   selector_type,selector, extract_background, track_mouse,
+                   selector_type, selector, extract_rois_background, track_mouse,
                    json.dumps(track_options, indent=30), plotting, cohort, processing, debug, send_messages))
         print('\n\n', '='*25, '\n', '='*25)
 
 
-######################
-#  START              #
-#######################
+#  START
 if __name__ == "__main__":
     Analysis()
 

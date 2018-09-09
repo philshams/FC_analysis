@@ -3,21 +3,15 @@ import numpy as np
 import math
 import time
 
-from Utils.maths import calc_distance_2d, calc_acceleration, calc_angle_2d
+from Utils.maths import calc_distance_2d, calc_angle_2d
 
 
-def from_dlc_to_single_bp(data, bp_tag):
+def from_dlc_to_single_bp(data, bp_tag:str):
     """
-    Currently it extracts position of velocity of the mouse given a user defined tag for a body part
-
-    :param data: dlc tracking data
-    :param bp_tag: name of the body part to extract
-    :return:
+    returns the data from the bodypart with name bp_tag from a pandas DF (data) with dlc tracking data
     """
-
     if 'Posture' not in data.dlc_tracking.keys():
         return  # Trial was not analysed using DLC
-
     else:
         # check that the user selected bp is one of the ones present in the data
         bodyparts = data.dlc_tracking['Posture'].keys()
@@ -26,13 +20,13 @@ def from_dlc_to_single_bp(data, bp_tag):
                   'Please select an alternative among {}'.format(bp_tag, bodyparts))
             bp_tag = input()
             if not bp_tag in bodyparts:
-                raise ValueError('Couldnt find a body part that matched your selection')
-
+                Warning('Couldnt find a body part that matched your selection')
         output = data.dlc_tracking['Posture'][bp_tag]
     return output, bp_tag
 
 
-def get_average_bodylength(data, tail_tag='', head_tag=''):
+def get_bodylength(data, tail_tag: str='', head_tag: str=''):
+    """ get length of mouse body at all frames and avg length"""
     if not tail_tag or not head_tag:
         print('Need to have the name of the head and tail bodyparts to extract bodylength from DLC data')
         return False
@@ -46,9 +40,7 @@ def get_average_bodylength(data, tail_tag='', head_tag=''):
         for idx in range(numframes):
             headpoint = (head_position['x'][idx], head_position['y'][idx])
             tailpoint = (tail_position['x'][idx], tail_position['y'][idx])
-
             lengths[idx] = calc_distance_2d((headpoint, tailpoint), vectors=False)
-
         return np.mean(lengths), lengths
 
 
@@ -102,6 +94,7 @@ def pose_reconstruction(head, body, tail, debug=False):
 
 
 def get_shelter_location(tag, data):
+    """ location of the shelter """
     # Get the position of the centre of the shelter
     if tag == 'roi':
         # Get centre of shelter roi
@@ -130,6 +123,7 @@ def calc_position_relative_point(data, point):
 
 
 def scale_velocity_by_unit(data, unit=False, fps=False, bodylength=False):
+    """ scale values from px/frame to user selected unit for velocity """
     if not unit or unit == 'pxperframe':
         # Return the velocity in px per frame
         return data
@@ -147,8 +141,8 @@ def scale_velocity_by_unit(data, unit=False, fps=False, bodylength=False):
 
         if unit =='blpersec':
             if not bodylength:
-                print('No body length was found when calculating velocity as bodylengths per second\nUsing px per second'
-                      'instead')
+                print('No body length was found when calculating velocity as bodylengths per second\n'
+                      'Using px per second instead')
                 return data*fps
             else:
                 data = np.multiply(data, fps)

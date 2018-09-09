@@ -5,6 +5,8 @@ from Tracking.Tracking_utils import calc_distance, check_orientation_errors, get
 
 
 def get_body_orientation(f, cnt, bg, display, frame, start_frame, orientation, arena_floor, tail_threshold_scaling):
+    """ Get orentation of mouse for STD tracking
+    --- OBSOLETE ---"""
     # Fit ellipse on mouse contour
     (x, y), (MA, ma), angle = cv2.fitEllipse(cnt)
     angle -= 90
@@ -39,6 +41,8 @@ def get_body_orientation(f, cnt, bg, display, frame, start_frame, orientation, a
 
 
 def get_velocity(fps, coord_l):
+    """ -- obsolete --
+    get velocity for std tracking"""
     vel = 0
     if len(coord_l)>1:
         prev_pos = coord_l[-2]
@@ -51,6 +55,8 @@ def get_velocity(fps, coord_l):
 
 
 def get_mvmt_direction(coord_l):
+    """ -- obsolete --
+    get direction of movement for std tracking"""
     ang = 0
     if len(coord_l)>1:
         prev_pos = coord_l[-2]

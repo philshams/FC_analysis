@@ -1,45 +1,41 @@
 import matplotlib.pyplot as plt  # used for debugging
 import numpy as np
 from collections import namedtuple
-from copy import deepcopy
 
 
 class ProcessingMaze():
+    """ Applies processsing steps that are specific to maze experiments (e.g. get arm of escape) """
+
+    # TODO create images-heatmaps of traces for plotting
+
     def __init__(self, session, debugging=True):
-        """
-        Processing steps that are specific to maze experiments (e.g. extract arm of escape, orgin...)
-        :param session:
-        """
         self.session = session
         self.debugging = debugging
+
         # Subdivide frame
         self.rois, self.boundaries = self.subdivide_frame()
 
-       # Process each trial
+        # Process each trial
         tracking_items =self.session.Tracking.keys()
         if tracking_items:
             for item in tracking_items:
-                retval = self.get_trial_trace(item)
-                if retval:
-                    self.get_intersections(item)
-                    self.get_status_at_timepoint(item)
-                    self.get_origin_escape_arms(item)
+                retval = self.get_trial_traces(item)  # get coordinates
 
-                    if debugging:
+                if retval:
+                    # self.get_intersections(item)
+                    self.get_status_at_timepoint(item)  # get status at stim
+                    self.get_origin_escape_arms(item)   # get escape arms
+
+                    if debugging:                  # display results for debugging
                         self.debug_preview()
                         self.plot_trace()
-
                         plt.show()
 
-    """
-    Prep functions
-    """
     def subdivide_frame(self):
         """
         Subdivide the frame into regions: when the mouse is in one of those regions we know that it is on one
         of the arms. This can be done using user defined ROIs if present, alternative it is assumed that the maze
         is centered on the frame
-        :return:
         """
         # handles to metadata items
         rois = self.session.Metadata.videodata[0]['User ROIs']
@@ -64,7 +60,6 @@ class ProcessingMaze():
 
         else:
             # Split the video using the user defined rois
-            # Get the centres of the rois
             shelter = rois['Shelter']
             threat = rois['Threat']
 
@@ -83,9 +78,8 @@ class ProcessingMaze():
             limits = boundaries(midpoint.x, midpoint.y, edges[0], edges[1])
         return rois, limits
 
-    def get_trial_trace(self, trial_name):
+    def get_trial_traces(self, trial_name):
         data = self.session.Tracking[trial_name]
-
         if isinstance(data, dict):
             # Doesnt work for wholetrace or exploration data, which are saved as dictionaries
             return False
@@ -99,20 +93,19 @@ class ProcessingMaze():
             self.trace = tracer(data.std_tracking['x'],
                            data.std_tracking['y'])
         else:
+            print('Could not find trial data for trial {}'.format(trial_name))
             return False
+
+        # Get traces
         window = int(len(self.trace.x) / 2)
         tracer = namedtuple('trace', 'x y')
-
-        # Get prestim and after stim traces and those between leavinf and returning to shelter
         self.prestim_trace = tracer(self.trace.x[:window], self.trace.y[:window])
         self.poststim_trace = tracer(self.trace.x[window:], self.trace.y[window:])
-
         self.shelter_to_stim, self.stim_to_shelter = self.get_leaveenter_shelter(tracer)
 
-        # Store these traces in the items processing
+        # Store results
         if not 'processing' in data.__dict__.keys():
             setattr(data, 'processing', {})
-
         if not 'PlottingItems' in data.processing.keys():
             data.processing['PlottingItems'] = dict(prestim_trace=self.prestim_trace,
                                                     poststim_trace=self.poststim_trace,
@@ -162,16 +155,15 @@ class ProcessingMaze():
     def get_status_at_timepoint(self, name, time: int = None, timename: str = 'stimulus'):
         """
         Get the status of the mouse [location, orientation...] at a specific timepoint.
-        If not time is give the midpoint is take
+        If not time is give the midpoint of the tracking traces is taken as stim time
         """
         if not 'session' in name.lower() or 'exploration' in name.lower:
             data = self.session.Tracking[name]
 
             if time is None:  # if a time is not give take the midpoint
-                time = int(len(data.dlc_tracking['Posture']['body']['x'].values)/2)
+                time = int(len(self.trace.x)/2)
 
             # Create a named tuple with all the params from processing (e.g. head angle) and the selected time point
-            # and store the values
             params = data.dlc_tracking['Posture']['body'].keys()
             params = [x.replace(' ', '') for x in params]
             params = namedtuple('params', list(params))
@@ -189,16 +181,13 @@ class ProcessingMaze():
 
             complete = namedtuple('status', 'posture status')
             complete = complete(posture, status)
-
             data.processing['status at {}'.format(timename)] = complete
 
     def get_origin_escape_arms(self, name):
         def get_arm(trace, midline, halfwidth):
             maxleft = abs(np.min(trace.x) - midline)
             maxright = abs(np.max(trace.x) - midline)
-
             if maxleft < halfwidth and maxright < halfwidth:
-                # Central arm
                 return 'Central'
             else:
                 if maxleft > maxright:
@@ -243,66 +232,58 @@ class ProcessingMaze():
         names = self.intersections.keys()
         colors = [[.2, .5, .5], [.4, .6, .2], [.1, .1, .4], [.3, .8, .2]]
         colors = dict(zip(names, colors))
-        # Plot intersection points
-        for name, timepoints in self.intersections.items():
-            # print('Found {} intersection with {}'.format(len(timepoints), name))
-            if len(timepoints):
-                points = [c for idx, c in enumerate(zip(self.trace.x, self.trace.y)) if idx in timepoints]
-                self.ax.plot([point[0] for point in points], [point[1] for point in points], 'o', markersize=7,
-                             color=colors[name])
 
 
 
-
-    def get_intersections(self, item):
-        # TODO check min time inbetween crossings
-        # TODO divide intersection between those occurring in the top and bottom halves of the frame
-        # TODO divide intersections between escape and origin
-        th, th2 = 5, 5
-        # Find all points close to the boundary lines [ frames at which the mouse is crossing the boundaries]
-        temp_intersections = {'x_midline': np.where(abs(self.trace.x-self.boundaries.x_midline) < th)[0],
-                              'y_midline': np.where(abs(self.trace.y-self.boundaries.y_midline) < th)[0],
-                              'l_shelteredge': np.where(abs(self.trace.x-self.boundaries.l_shelteredge) < th)[0],
-                              'r_shelteredge': np.where(abs(self.trace.x-self.boundaries.r_shelteredge) < th)[0]}
-
-        # discart consecutive points [i.e. only keep real crossings
-        self.intersections = {}
-        for name, values in temp_intersections.items():
-            if len(values):
-                firstval = np.array(values[0])
-                goodvals = values[np.where(np.diff(values)>th2)[0]]
-                if np.diff(values)[-1]>th2:
-                    goods = np.insert(goodvals, 0, firstval)
-                    self.intersections[name] = np.insert(goods, 0, values[-1])
-                else:
-                    self.intersections[name] = np.insert(goodvals, 0, firstval)
-            else:
-                self.intersections[name] = np.array([])
-
-        # Get position at intersection times
-        position_at_intersections = {}
-        for name, timepoints in self.intersections.items():
-            # print('Found {} intersection with {}'.format(len(timepoints), name))
-            if len(timepoints):
-                points = [c for idx, c in enumerate(zip(self.trace.x, self.trace.y)) if idx in timepoints]
-                position_at_intersections[name] = points
-            else:
-                position_at_intersections[name] = []
-
-        # Collate intersections timepoints and coordinates at intersections
-        per_line = namedtuple('each', 'timepoints coordinates')
-        all_lines = namedtuple('all', 'x_midline l_shelteredge r_shelteredge y_midline')
-        names = position_at_intersections.keys()
-
-        lines = []
-        for idx, name in enumerate(names):
-            line = per_line(self.intersections[name], position_at_intersections[name])
-            lines.append(line)
-        intersections_complete = all_lines(lines[0], lines[1], lines[2], lines[3])
-
-        # get tracking data
-        data = self.session.Tracking[item]
-        # If processing is not in the trackind data class. add it
-        if not 'processing' in data.__dict__.keys():
-            setattr(data, 'processing', {})
-        data.processing['boundaries intersections'] = intersections_complete
+    # def get_intersections(self, item):
+    #     # TODO check min time inbetween crossings
+    #     # TODO divide intersection between those occurring in the top and bottom halves of the frame
+    #     # TODO divide intersections between escape and origin
+    #     th, th2 = 5, 5
+    #     # Find all points close to the boundary lines [ frames at which the mouse is crossing the boundaries]
+    #     temp_intersections = {'x_midline': np.where(abs(self.trace.x-self.boundaries.x_midline) < th)[0],
+    #                           'y_midline': np.where(abs(self.trace.y-self.boundaries.y_midline) < th)[0],
+    #                           'l_shelteredge': np.where(abs(self.trace.x-self.boundaries.l_shelteredge) < th)[0],
+    #                           'r_shelteredge': np.where(abs(self.trace.x-self.boundaries.r_shelteredge) < th)[0]}
+    #
+    #     # discart consecutive points [i.e. only keep real crossings
+    #     self.intersections = {}
+    #     for name, values in temp_intersections.items():
+    #         if len(values):
+    #             firstval = np.array(values[0])
+    #             goodvals = values[np.where(np.diff(values)>th2)[0]]
+    #             if np.diff(values)[-1]>th2:
+    #                 goods = np.insert(goodvals, 0, firstval)
+    #                 self.intersections[name] = np.insert(goods, 0, values[-1])
+    #             else:
+    #                 self.intersections[name] = np.insert(goodvals, 0, firstval)
+    #         else:
+    #             self.intersections[name] = np.array([])
+    #
+    #     # Get position at intersection times
+    #     position_at_intersections = {}
+    #     for name, timepoints in self.intersections.items():
+    #         # print('Found {} intersection with {}'.format(len(timepoints), name))
+    #         if len(timepoints):
+    #             points = [c for idx, c in enumerate(zip(self.trace.x, self.trace.y)) if idx in timepoints]
+    #             position_at_intersections[name] = points
+    #         else:
+    #             position_at_intersections[name] = []
+    #
+    #     # Collate intersections timepoints and coordinates at intersections
+    #     per_line = namedtuple('each', 'timepoints coordinates')
+    #     all_lines = namedtuple('all', 'x_midline l_shelteredge r_shelteredge y_midline')
+    #     names = position_at_intersections.keys()
+    #
+    #     lines = []
+    #     for idx, name in enumerate(names):
+    #         line = per_line(self.intersections[name], position_at_intersections[name])
+    #         lines.append(line)
+    #     intersections_complete = all_lines(lines[0], lines[1], lines[2], lines[3])
+    #
+    #     # get tracking data
+    #     data = self.session.Tracking[item]
+    #     # If processing is not in the trackind data class. add it
+    #     if not 'processing' in data.__dict__.keys():
+    #         setattr(data, 'processing', {})
+    #     data.processing['boundaries intersections'] = intersections_complete

@@ -1,6 +1,8 @@
 from collections import namedtuple
 
+
 class Session_metadata():
+    """  class to store metadata for a session """
     def __init__(self):
         self.session_id = None
         self.experiment = None
@@ -23,17 +25,18 @@ class Session_metadata():
 
 
 class DataBase():
+    """ Class to initialise an empty database """
     def __init__(self):
         # self.sessions = {'Metadata': None, 'Tracking': None}
         self.sessions = namedtuple('sessions', 'Metadata Tracking')
 
 
 class Trial():
+    """ Class to initialise and empty Trial object """
     def __init__(self):
         self.name = None
         self.id = None
         self.metadata = None
-        # self.std_tracking = {'x': None, 'y': None, 'orientation': None, 'direction': None, 'velocity': None}
         self.std_tracing = namedtuple('std_tracking', 'x y orientation direction velocity')
         self.dlc_tracking = {}
 
@@ -44,14 +47,8 @@ class Trial():
         return 'Trial: {}'.format(self.name)
 
 
-class All_trials():
-    def __init__(self):
-        self.visual = []
-        self.audio = []
-        self.digital = []
-
-
 class Cohort():
+    """ Class to initialise empty cohorts """
     def __init__(self):
         self.name = None
         self.metadata = namedtuple('metadata', 'created selector_type selector sessions_in_cohort')
@@ -63,9 +60,5 @@ class Cohort():
     def __str__(self):
         return 'Cihirt {}'.format(self.name)
 
-
-class Processing_class():
-    def __init__(self):
-        self.velocity = {}
 
 

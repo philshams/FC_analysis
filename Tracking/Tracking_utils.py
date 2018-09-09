@@ -16,13 +16,11 @@ from Utils.Data_rearrange_funcs import arrange_dlc_data
 from Config import track_options
 
 ########################################################################################################################
-########################################################################################################################
-    # Trial data handling
-########################################################################################################################
-########################################################################################################################
+# Trial data handling
 
 
 def create_trial_metadata(trial_name, stim_type, start_frame, stop_frame, video_path):
+    """ organise trial metadata """
     tr_metadata = {
         'Name': trial_name,
         'Stim type': stim_type,
@@ -38,6 +36,7 @@ def create_trial_metadata(trial_name, stim_type, start_frame, stop_frame, video_
 
 
 def merge_std_dlc_trials(old_trial, new_trial):
+    """ merge data from the two ways of tracking """
     try:
         if new_trial.std_tracking['x'].any():
             old_trial.std_tracking = new_trial.std_tracking
@@ -47,13 +46,105 @@ def merge_std_dlc_trials(old_trial, new_trial):
         old_trial.dlc_tracking = new_trial.dlc_tracking
     return old_trial
 
+
 ########################################################################################################################
-########################################################################################################################
-    # Traditional tracking utils functions
-########################################################################################################################
-########################################################################################################################
+# Deep Lab Cut utils functions
+def save_trial_clips(clips, dlc_videos_folder):
+    """ save trials clips to .avi during std tracking"""
+    clips_names = []
+    # save clips
+    for stim_type in clips.keys():
+        for clip_name, clip in clips[stim_type].items():
+            clips_names.append(clip_name)
+            if not clip_name + '.avi' in os.listdir(dlc_videos_folder):
+                clip.write_videofile(os.path.join(dlc_videos_folder, clip_name + '.avi'), codec='png')
+    return clips_names
 
 
+def dlc_setupTF(options):
+    dlc_config_settings = load_yaml(options['cfg_dlc'])
+    cfg = load_config(dlc_config_settings['dlc_network_posecfg'])
+    cfg['init_weights'] = dlc_config_settings['dlc_network_snapshot']
+    scorer = dlc_config_settings['scorer']
+    sess, inputs, outputs = predict.setup_pose_prediction(cfg)
+
+    return {'scorer': scorer, 'sess': sess, 'inputs': inputs, 'outputs': outputs, 'cfg': cfg}
+
+
+def dlc_retreive_data(datafolder, database, clips_l):
+    """
+    Get the data saved as a result of dlc_analyseVideos.py and save them as trial data into the database
+
+    From the .h5 file get to which session the belong to and load the DLC data into the database
+    Loop over all .h5 files, create a container for each session, load and rearrange .h5 into a pandas DF and then
+    put that into the database
+    """
+
+    # Organise the data generated from DLC
+    sessions_data = {}  # Dict holding the pandas DF for each trial in each processed session
+    clips_l = [item for sublist in clips_l for item in sublist]
+    sessions_to_analyse = set([int(x.split('-')[0]) for x in clips_l])
+    for fname in os.listdir(datafolder):
+        if '.' in fname:
+            if fname.split('.')[1] == 'h5':
+                # Check if the .h5 file belongs to one of the sessions we are analysing
+                sessid = fname.split('-')[0]
+                if not int(sessid) in sessions_to_analyse:
+                    continue
+
+                print('            ... found Pandas dataframe: {}'.format(fname))
+                trial_name = fname.split('_')[0] + "_" + fname.split('_')[1]
+                trial_name = trial_name.split('D')[0]
+                stim_type = fname.split('-')[:-2]
+
+                if not sessid in sessions_data.keys():
+                    sessions_data[sessid] = {}  # For each session create a dict to hold the DF for each trial
+
+                # read pandas dataframe (DLC output) and rearrange them for easier access
+                Dataframe = pd.read_hdf(os.path.join(datafolder, fname))
+                dlc_data = arrange_dlc_data(Dataframe)
+
+                # create trial object
+                trial = Trial()
+                trial_metadata = create_trial_metadata(trial_name, None, None, None, None)
+                trial.metadata = trial_metadata
+                trial.dlc_tracking['Posture'] = dlc_data
+                sessions_data[sessid][trial_name] = trial
+
+    # Return the list of trials for each session
+    for session_name in database.index:
+        sess_num = session_name.split('_')[0]
+        if sess_num in sessions_data.keys():
+            session = database.loc[session_name]
+            dlc_trials = sessions_data[sess_num]
+
+            for trial_name, trial in dlc_trials.items():
+                old_trial = session['Tracking'][trial_name]
+                session['Tracking'][trial_name] = merge_std_dlc_trials(old_trial, trial)
+
+    return database
+
+
+def dlc_clear_folder(datafolder, keepvids=True):
+    """
+    After running the dlc_analyseVideos.py function and having extracted the data, clean up the folder.
+    If selected can store the trial vids.
+    """
+    storefld = 'D:\\Dropbox (UCL - SWC)\\Dropbox (UCL - SWC)\\Rotation_vte\\data\\Trial videos'
+    for fname in os.listdir(datafolder):
+        if '.' in fname:
+            if fname.split('.')[1] == 'avi':
+                if keepvids:
+                    vidname = os.path.join(datafolder, fname)
+                    shutil.move(vidname, os.path.join(storefld, fname))
+                else:
+                    os.remove(os.path.join(datafolder, fname))
+            else:
+                os.remove(os.path.join(datafolder, fname))
+
+
+########################################################################################################################
+    # STD tracking utils functions
 def get_contours(bg, frame, th_scaling, num_exp_cnts=1, max_cnt_area=5000, min_cnt_area=200):
     """
     Performas a number of image processing steps to extract contours from bg subtracted frame
@@ -119,6 +210,7 @@ def drawtrace(frame, coords, col, trace_length):
 
 
 def calc_distance(p1, p2):
+    """ calculates a distance on a 2d euclidean space, between two points"""
     dist = math.sqrt((p2[0] - p1[0]) ** 2 + (p2[1] - p1[1]) ** 2)
     return dist
 
@@ -217,121 +309,5 @@ def display_results(f, frame, threshold, magnif_factor, tracking):
     cv2.imshow('th', largth)
     cv2.moveWindow('frame', 0, 0)
     cv2.moveWindow('th', 0, 900)
-
-
-########################################################################################################################
-########################################################################################################################
-    # Deep Lab Cut utils functions
-########################################################################################################################
-########################################################################################################################
-
-
-def save_trial_clips(clips, dlc_videos_folder):
-    clips_names = []
-    # save clips
-    for stim_type in clips.keys():
-        for clip_name, clip in clips[stim_type].items():
-            clips_names.append(clip_name)
-            if not clip_name + '.avi' in os.listdir(dlc_videos_folder):
-                clip.write_videofile(os.path.join(dlc_videos_folder, clip_name + '.avi'), codec='png')
-
-    return clips_names
-
-
-def dlc_retreive_data(datafolder, database, clips_l):
-    """
-    Get the data saved as a result of dlc_analyseVideos.py and save them as trial data into the database
-
-
-    From the .h5 file get to which session the belong to and load the DLC data into the database
-    Loop over all .h5 files, create a container for each session, load and rearrange .h5 into a pandas DF and then
-    put that into the database
-    """
-
-    # Organise the data generated from DLC
-    sessions_data = {}  # Dict holding the pandas DF for each trial in each processed session
-    clips_l = [item for sublist in clips_l for item in sublist]
-    sessions_to_analyse = set([int(x.split('-')[0]) for x in clips_l])
-    for fname in os.listdir(datafolder):
-        if '.' in fname:
-            if fname.split('.')[1] == 'h5':
-                # Check if the .h5 file belongs to one of the sessions we are analysing
-                sessid = fname.split('-')[0]
-                if not int(sessid) in sessions_to_analyse:
-                    continue
-
-                print('            ... found Pandas dataframe: {}'.format(fname))
-                trial_name = fname.split('_')[0] + "_" + fname.split('_')[1]
-                trial_name = trial_name.split('D')[0]
-                stim_type = fname.split('-')[:-2]
-
-                if not sessid in sessions_data.keys():
-                    sessions_data[sessid] = {}  # For each session create a dict to hold the DF for each trial
-
-                # read pandas dataframe (DLC output) and rearrange them for easier access
-                Dataframe = pd.read_hdf(os.path.join(datafolder, fname))
-                dlc_data = arrange_dlc_data(Dataframe)
-
-                # create trial object
-                trial = Trial()
-                trial_metadata = create_trial_metadata(trial_name, None, None, None, None)
-                trial.metadata = trial_metadata
-                trial.dlc_tracking['Posture'] = dlc_data
-                sessions_data[sessid][trial_name] = trial
-
-    # Return the list of trials for each session
-    for session_name in database.index:
-        sess_num = session_name.split('_')[0]
-        if sess_num in sessions_data.keys():
-            session = database.loc[session_name]
-            dlc_trials = sessions_data[sess_num]
-
-            for trial_name, trial in dlc_trials.items():
-                old_trial = session['Tracking'][trial_name]
-                session['Tracking'][trial_name] = merge_std_dlc_trials(old_trial, trial)
-
-    return database
-
-
-def dlc_clear_folder(datafolder, keepvids=True):
-    """
-    After running the dlc_analyseVideos.py function and having extracted the data, clean up the folder.
-    If selected can store the trial vids.
-
-    :return:
-    """
-
-    storefld = 'D:\\Dropbox (UCL - SWC)\\Dropbox (UCL - SWC)\\Rotation_vte\\data\\Trial videos'
-
-    for fname in os.listdir(datafolder):
-        if '.' in fname:
-            if fname.split('.')[1] == 'avi':
-                if keepvids:
-                    vidname = os.path.join(datafolder, fname)
-                    shutil.move(vidname, os.path.join(storefld, fname))
-                else:
-                    os.remove(os.path.join(datafolder, fname))
-            else:
-                os.remove(os.path.join(datafolder, fname))
-
-
-def dlc_setupTF(options):
-    ####################################################
-    # Loading data, and defining model folder
-    ####################################################
-    dlc_config_settings = load_yaml(options['cfg_dlc'])
-    cfg = load_config(dlc_config_settings['dlc_network_posecfg'])
-    cfg['init_weights'] = dlc_config_settings['dlc_network_snapshot']
-
-    ##################################################
-    # Compute predictions over images
-    ##################################################
-    scorer = dlc_config_settings['scorer']
-    sess, inputs, outputs = predict.setup_pose_prediction(cfg)
-
-    return {'scorer': scorer, 'sess': sess, 'inputs': inputs, 'outputs': outputs, 'cfg': cfg}
-
-
-
 
 

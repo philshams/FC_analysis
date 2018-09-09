@@ -1,22 +1,29 @@
+"""
+Video analysis using a trained network, based on code by
+DeepLabCut Toolbox
+https://github.com/AlexEMG/DeepLabCut
+A Mathis, alexander.mathis@bethgelab.org
+M Mathis, mackenzie@post.harvard.edu
+"""
+
 import os.path
 import sys
-
-subfolder = 'C:\\Users\\Federico\\Documents\\GitHub\\DeepLabCut'
+from  Utils.loadsave_funcs import load_paths
+paths = load_paths()
+dlc_folder = paths['DLC folder:']
 
 # add parent directory: (where nnet & config are!)
-sys.path.append(os.path.join(subfolder, "pose-tensorflow"))
-sys.path.append(os.path.join(subfolder, "Generating_a_Training_Set"))
+sys.path.append(os.path.join(dlc_folder, "pose-tensorflow"))
+sys.path.append(os.path.join(dlc_folder, "Generating_a_Training_Set"))
 
-from Tracking.dlc_analysis_config import cropping, Task, date, \
-    trainingsFraction, resnet, snapshotindex, shuffle, x1, x2, y1, y2, videotype, storedata_as_csv
+from Tracking.dlc_analysis_config import cropping, x1, x2, y1, y2, videotype
 
 # Deep-cut dependencies
 from nnet import predict
 from dataset.pose_dataset import data_to_input
 
-# Dependencies for video:
+
 import pickle
-# import matplotlib.pyplot as plt
 import imageio
 imageio.plugins.ffmpeg.download()
 from skimage.util import img_as_ubyte
@@ -42,7 +49,9 @@ def getpose(sess, inputs, image, cfg, outputs, outall=False):
         return pose
 
 
-def analyse(tf_setting, videofolder, clips_l):
+def analyse(tf_setting, videofolder:str, clips_l:list):
+    """  analyse the videos in videofolder that are also listed in clips_l"""
+    # Load TENSORFLOW settings
     cfg = tf_setting['cfg']
     scorer = tf_setting['scorer']
     sess = tf_setting['sess']
@@ -52,16 +61,14 @@ def analyse(tf_setting, videofolder, clips_l):
     pdindex = pd.MultiIndex.from_product(
         [[scorer], cfg['all_joints_names'], ['x', 'y', 'likelihood']],
         names=['scorer', 'bodyparts', 'coords'])
-
     frame_buffer = 10
 
     os.chdir(videofolder)
     videos = np.sort([fn for fn in os.listdir(os.curdir) if (videotype in fn)])
     clips_l = [item for sublist in clips_l for item in sublist]
-
     for video in videos:
         try:
-            if not video.split('.')[0] in clips_l:
+            if video.split('.')[0] in clips_l:
                 continue
 
             dataname = video.split('.')[0] + scorer + '.h5'
@@ -126,12 +133,11 @@ def analyse(tf_setting, videofolder, clips_l):
                                            index=range(nframes))  # slice pose data to have same # as # of frames.
                 DataMachine.to_hdf(dataname, 'df_with_missing', format='table', mode='w')
 
-                # np.save(dataname.split('.')[0] + 'scmap', PredictedScmap)
-
                 with open(dataname.split('.')[0] + 'includingmetadata.pickle',
                           'wb') as f:
                     pickle.dump(metadata, f, pickle.HIGHEST_PROTOCOL)
         except:
-            print('Could not do DLC tracking on video {}'.format(video))
+            from warnings import warn
+            warn('Could not do DLC tracking on video {}'.format(video))
 
 

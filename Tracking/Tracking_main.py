@@ -5,7 +5,7 @@ from collections import namedtuple
 from warnings import warn
 # Import functions and params from other scripts
 from Tracking import dlc_analyseVideos
-from Tracking.Tracking_functions import get_body_orientation, get_mvmt_direction, get_velocity
+from Tracking.std_tracking_functions import get_body_orientation, get_mvmt_direction, get_velocity
 from Tracking.Tracking_utils import *
 from Utils.Custom_funcs import cut_crop_video
 from Utils import Data_rearrange_funcs

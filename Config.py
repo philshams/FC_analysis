@@ -4,14 +4,13 @@ import platform
 Script to set up the analysis of behavioural data: defines relevant parameters and flags to control
 the different functionalities of the analysis scripts
 """
-# If loading a pre-existant database, specify name of the .h5 file it was saved to. otherwise db is generated from
+# If loading a pre-existant database, specify name of the file it was saved to. otherwise db is generated from
 # scratch from the datalog.csv file
-load_database = True  # This is False only if you are creating a new database, if you are working on a pre-existing
-# database it will be set as True
+load_database = True  # This is False only if you are creating a new database
 
-# Specify if you want to update the database loading info from datalog.csv to add recently added sessions to database
+# Specify if you want to update the database to add recently added sessions to database
 update_database = False
-load_name = 'alldata'
+load_name = 'alldata'  # name of file to load
 
 # Specify name with which to save the results of the analysis
 save_name = 'alldata'
@@ -29,10 +28,8 @@ Selector [e.g. the specific date selected] depends on the type being used,
 
 Experiment_type specifies which kind of experiment we are analysing (e.g. maze or fearcond), some scripts
 might behave differently depending on the type of experiment
-
-
 """
-
+# TODO add "new" to selector type
 selector_type = 'date'  # selects which session to an 'new', 'experiment', 'session', 'date'
 selector = ['180603', '180604', '180605', '180606', '180607', '180625', '180626', '180628',
             '180801', '180823', '180830', '180901', '180907', '180909']
@@ -45,12 +42,11 @@ Flags and params that control the execution of the different parts of the code
 #######################
 #  TRACKING           #
 #######################
-# analysis start frame: beginning of videos is usually empty, we can skip that
-startf = 4000  # Skip the first n frames of the first video when tracking [
+startf = 4000  # Skip the first n frames of the first video when tracking
 
-extract_background = False
+extract_rois_background = False  # If 'bg get rois' = True, set this to True to manually extract the rois from bg
 
-track_mouse = True             # <----- !!!!!!!!!!
+track_mouse = True             # <----- !!!!!!!!!!  Run tracking
 track_options = {
     'bg get rois': True,          # allow user to define 3 ROIs when extracting background [threat, shelter variable]
     'track whole session': True,  # Track the mouse for the entire session
@@ -60,8 +56,8 @@ track_options = {
     'stdtracking_justCoM': True,   # When using the standard tracking just extract the Centre of Mass and
                                    # not other variables [e.g. orientation]. This is TRUE by default
     'use_deeplabcut': True,        # Use deepLabCut to track the mouse
-    'cfg_std': 'C:\\Users\\Federico\\Documents\\GitHub\\FC_analysis\\Tracking\\Configs\\cfg_std_maze.yml',
     # configure yaml files for std and dlc tracking
+    'cfg_std': 'C:\\Users\\Federico\\Documents\\GitHub\\FC_analysis\\Tracking\\Configs\\cfg_std_maze.yml',
     'cfg_dlc': 'C:\\Users\\Federico\\Documents\\GitHub\\FC_analysis\\Tracking\\Configs\\cfg_dlc_maze.yml'
     }
 
@@ -69,15 +65,18 @@ track_options = {
 #######################
 #  PROCESSING         #
 #######################
+"""
+Process tracking data (e.g. extract velocity trace from coordinates)
+"""
 processing = True
 processing_options = {
-    'cfg': 'C:\\Users\\Federico\\Documents\\GitHub\\FC_analysis\\Processing\\processing_cfg.yml'
+    'cfg': 'C:\\Users\\Federico\\Documents\\GitHub\\FC_analysis\\Processing\\processing_cfg.yml' 
 }
 
 #######################
 #  DEBUGGING          #
 #######################
-debug = False
+debug = False  # If true runs a gui to debug tracking data
 
 #######################
 #  COHORT #
@@ -112,19 +111,6 @@ plotting_cohort = True
 For each sessions bein processed save a .avi video of each peri-stimulus period
 """
 get_trials_clips = False
-
-
-#######################
-#  PATHS              #
-#######################
-""" where to find the Datalog.csv file, where to save the results of the analysis"""
-
-if platform.system() == 'Windows':
-    datalog_path = 'D:\\Dropbox (UCL - SWC)\\Dropbox (UCL - SWC)\\Rotation_vte\\analysis\\squared_maze_datalog.xls'
-    savelogpath = 'D:\\Dropbox (UCL - SWC)\\Dropbox (UCL - SWC)\\Rotation_vte\\analysis'
-else:
-    savelogpath = '/Users/federicoclaudi/Desktop'
-    
 
 
 #######################

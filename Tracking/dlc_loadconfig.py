@@ -1,13 +1,23 @@
-import os
 import sys
 import pprint
 import logging
-
+import os
 import yaml
 from easydict import EasyDict as edict
 
-sys.path.append('C:\\Users\\Federico\\Documents\\GitHub\\DeepLabCut\\pose-tensorflow')
-import default_config
+from  Utils.loadsave_funcs import load_paths
+paths = load_paths()
+sys.path.append(paths['DLC folder'])
+
+import default_config  # FROM DLC original scripts
+
+"""
+Video analysis using a trained network, based on code by
+DeepLabCut Toolbox
+https://github.com/AlexEMG/DeepLabCut
+A Mathis, alexander.mathis@bethgelab.org
+M Mathis, mackenzie@post.harvard.edu
+"""
 
 cfg = default_config.cfg
 
@@ -40,15 +50,13 @@ def cfg_from_file(filename):
     """
     with open(filename, 'r') as f:
         yaml_cfg = edict(yaml.load(f))
-
     _merge_a_into_b(yaml_cfg, cfg)
-
     logging.info("Config:\n"+pprint.pformat(cfg))
     return cfg
 
 
 def load_config(path, filename = "pose_cfg.yaml"):
-    filename = path + '\\' + filename
+    filename = os.path.join(path, filename)
     return cfg_from_file(filename)
 
 
