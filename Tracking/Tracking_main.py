@@ -2,7 +2,7 @@
 import imageio
 imageio.plugins.ffmpeg.download()
 from collections import namedtuple
-
+from warnings import warn
 # Import functions and params from other scripts
 from Tracking import dlc_analyseVideos
 from Tracking.Tracking_functions import get_body_orientation, get_mvmt_direction, get_velocity
@@ -52,7 +52,10 @@ class Tracking():
         self.coord_l = []
 
         #### NOW TRACK ####
-        self.main()
+        try:
+            self.main()
+        except:
+            warn('Something went wrong with tracking')
 
     def main(self):
         """
@@ -71,7 +74,7 @@ class Tracking():
             if track_options['track whole session']:
                 self.track_wholesession()
         except:
-            print('Could not succesfully complete whole session tracking for {}'.format(str(self.session)))
+            warn('Could not succesfully complete whole session tracking for {}'.format(str(self.session)))
 
         # Track single trials
         if track_options['track_mouse_fast']:
@@ -178,7 +181,7 @@ class Tracking():
                                                         save_format=None, ret=True)
                             self.dlc_config_settings['clips'][stim_type][self.videoname] = trial_clip
                     except:
-                        print('Could not succesfully completestd tracking for session {}'.format(str(self.session)))
+                        warn('Could not succesfully completestd tracking for session {}'.format(str(self.session)))
 
         # DLC TRACKING - SAVE CLIPS - ######################################
         if track_options['use_deeplabcut']:

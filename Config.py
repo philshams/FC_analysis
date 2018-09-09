@@ -11,10 +11,10 @@ load_database = True  # This is False only if you are creating a new database, i
 
 # Specify if you want to update the database loading info from datalog.csv to add recently added sessions to database
 update_database = False
-load_name = 'SquareMazeAllSessions_completed'
+load_name = 'alldata'
 
 # Specify name with which to save the results of the analysis
-save_name = 'SquareMazeAllSessions'
+save_name = 'alldata'
 
 """
 Specify set of sessions to analyse 
@@ -33,8 +33,9 @@ might behave differently depending on the type of experiment
 
 """
 
-selector_type = 'session'  # selects which session to an 'new', 'experiment', 'session', 'date'
-selector = [74]  # ['180603', '180604', '180605', '180606', '180607', '180625', '180626', '080628']  # [74, 75, 78, 79, 80, 81]  #
+selector_type = 'date'  # selects which session to an 'new', 'experiment', 'session', 'date'
+selector = ['180603', '180604', '180605', '180606', '180607', '180625', '180626', '180628',
+            '180801', '180823', '180830', '180901', '180907', '180909']
 exp_type = 'maze'
 
 
@@ -45,15 +46,15 @@ Flags and params that control the execution of the different parts of the code
 #  TRACKING           #
 #######################
 # analysis start frame: beginning of videos is usually empty, we can skip that
-startf = 8000  # Skip the first n frames of the first video when tracking [
+startf = 4000  # Skip the first n frames of the first video when tracking [
 
 extract_background = False
 
-track_mouse = False             # <----- !!!!!!!!!!
+track_mouse = True             # <----- !!!!!!!!!!
 track_options = {
     'bg get rois': True,          # allow user to define 3 ROIs when extracting background [threat, shelter variable]
-    'track whole session': False,  # Track the mouse for the entire session
-    'track_exploration': True,    # Track the mouse during the exploration using the standard tracking
+    'track whole session': True,  # Track the mouse for the entire session
+    'track_exploration': False,    # Track the mouse during the exploration using the standard tracking
     'track_mouse_fast': True,      # if true only track segments of videos around the stimuli
     'use_stdtracking': True,       # Use standard tracking (written by FC)
     'stdtracking_justCoM': True,   # When using the standard tracking just extract the Centre of Mass and
@@ -68,7 +69,7 @@ track_options = {
 #######################
 #  PROCESSING         #
 #######################
-processing = RecursionError
+processing = True
 processing_options = {
     'cfg': 'C:\\Users\\Federico\\Documents\\GitHub\\FC_analysis\\Processing\\processing_cfg.yml'
 }
@@ -99,7 +100,7 @@ cohort_options = {
 """
 Plotting still needs to be implemented 
 """
-plotting = True
+plotting = False
 plotting_individuals = False
 plotting_cohort = True
 
@@ -119,7 +120,7 @@ get_trials_clips = False
 """ where to find the Datalog.csv file, where to save the results of the analysis"""
 
 if platform.system() == 'Windows':
-    datalog_path = 'D:\\Dropbox (UCL - SWC)\\Dropbox (UCL - SWC)\\Rotation_vte\\analysis\\datalog.xls'
+    datalog_path = 'D:\\Dropbox (UCL - SWC)\\Dropbox (UCL - SWC)\\Rotation_vte\\analysis\\squared_maze_datalog.xls'
     savelogpath = 'D:\\Dropbox (UCL - SWC)\\Dropbox (UCL - SWC)\\Rotation_vte\\analysis'
 else:
     savelogpath = '/Users/federicoclaudi/Desktop'

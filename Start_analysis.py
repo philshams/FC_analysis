@@ -1,5 +1,6 @@
 from tqdm import tqdm
 import sys
+import warnings
 
 from Utils import Image_processing
 from Utils.loadsave_funcs import save_data, load_data, load_paths
@@ -139,12 +140,13 @@ class Analysis():
 
         # Track animal on videos   <---!!!!
         if track_mouse:
-            tracked = Tracking(session, self.TF_setup, self.TF_settings, self.clips_l)
-            self.db = tracked.database
-            self.TF_setup = tracked.TF_setup
-            self.TF_settings = tracked.TF_settings
-            self.clips_l = tracked.clips_l
-
+            try:
+                tracked = Tracking(session, self.TF_setup, self.TF_settings, self.clips_l)
+                self.TF_setup = tracked.TF_setup
+                self.TF_settings = tracked.TF_settings
+                self.clips_l = tracked.clips_l
+            except:
+                warnings.warn('Something went wrong with tracking')
         self.save_results(obj=self.db, mod='_tracking')
 
     def processing_session(self, session):
@@ -189,6 +191,8 @@ class Analysis():
         else:
             # Create database from scratch
             self.db = create_database(self.datalog_path)
+        self.save_results(obj=self.db, mod='Metadata')
+
 
     def print_planned_processing(self):
         import json
