@@ -67,8 +67,11 @@ class Tracking():
             self.track_exploration()
 
         # Track whole session
-        if track_options['track whole session']:
-            self.track_wholesession()
+        try:
+            if track_options['track whole session']:
+                self.track_wholesession()
+        except:
+            print('Could not succesfully complete whole session tracking for {}'.format(str(self.session)))
 
         # Track single trials
         if track_options['track_mouse_fast']:
@@ -127,52 +130,55 @@ class Tracking():
 
             for vid_num, stims_video in enumerate(stims):  # Loop over each video in the session
                 for idx, stim in enumerate(stims_video):  # Loop over each stim for each video
-                    # SET UP - ######################################
-                    self.videoname = '{}-{}_{}-{}'.format(self.session['Metadata'].session_id, stim_type, vid_num, idx)
+                    try:
+                        # SET UP - ######################################
+                        self.videoname = '{}-{}_{}-{}'.format(self.session['Metadata'].session_id, stim_type, vid_num, idx)
 
-                    start_frame = int(stim-(cfg['fast track wnd']*self.fps))
-                    stop_frame = int(stim+(cfg['fast track wnd']*self.fps))
+                        start_frame = int(stim-(cfg['fast track wnd']*self.fps))
+                        stop_frame = int(stim+(cfg['fast track wnd']*self.fps))
 
-                    # Generate empty trial object and add it into the database
-                    trial_metadata = create_trial_metadata(self.videoname, stim_type, start_frame, stop_frame,
-                                                           self.session['Metadata'].video_file_paths[vid_num])
-                    empty_trial = Trial()
-                    empty_trial.metadata = trial_metadata
-                    empty_trial.name = trial_metadata['Name']
-                    self.session['Tracking'][empty_trial.metadata['Name']] = empty_trial
+                        # Generate empty trial object and add it into the database
+                        trial_metadata = create_trial_metadata(self.videoname, stim_type, start_frame, stop_frame,
+                                                               self.session['Metadata'].video_file_paths[vid_num])
+                        empty_trial = Trial()
+                        empty_trial.metadata = trial_metadata
+                        empty_trial.name = trial_metadata['Name']
+                        self.session['Tracking'][empty_trial.metadata['Name']] = empty_trial
 
-                    # STD TRACKING - ######################################
-                    """
-                    For STD tracking extract the position of the mouse contour using self.tracking()
-                    """
-                    if track_options['use_stdtracking']:
-                        print('     ... processing trial {} - Standard tracking'.format(self.videoname))
+                        # STD TRACKING - ######################################
+                        """
+                        For STD tracking extract the position of the mouse contour using self.tracking()
+                        """
+                        if track_options['use_stdtracking']:
+                            print('     ... processing trial {} - Standard tracking'.format(self.videoname))
 
-                        trial = self.tracking(self.background, self.session['Metadata'].video_file_paths[vid_num][0],
-                                              start_frame=start_frame, stop_frame=stop_frame, video_fps=self.fps)
+                            trial = self.tracking(self.background, self.session['Metadata'].video_file_paths[vid_num][0],
+                                                  start_frame=start_frame, stop_frame=stop_frame, video_fps=self.fps)
 
-                        trial = Data_rearrange_funcs.restructure_trial_data(trial, stim_type, idx, vid_num)
-                        trial.metadata = trial_metadata
+                            trial = Data_rearrange_funcs.restructure_trial_data(trial, stim_type, idx, vid_num)
+                            trial.metadata = trial_metadata
 
-                        # Merge into database
-                        old_trial = self.session['Tracking'][trial.metadata['Name']]
-                        self.session['Tracking'][trial.metadata['Name']] = merge_std_dlc_trials(old_trial, trial)
+                            # Merge into database
+                            old_trial = self.session['Tracking'][trial.metadata['Name']]
+                            self.session['Tracking'][trial.metadata['Name']] = merge_std_dlc_trials(old_trial, trial)
 
-                    # DLC TRACKING - PREPARE CLIPS - ######################################
-                    """
-                    for DLC tracking, extract videoclips for the peri-stimulus time which will be analysed using
-                    DeepLabCut in a second moment
-                    """
-                    if track_options['use_deeplabcut']:
-                        # set up
-                        start_sec = start_frame * (1 / self.fps)
-                        stop_sec = stop_frame * (1 / self.fps)
+                        # DLC TRACKING - PREPARE CLIPS - ######################################
+                        """
+                        for DLC tracking, extract videoclips for the peri-stimulus time which will be analysed using
+                        DeepLabCut in a second moment
+                        """
+                        if track_options['use_deeplabcut']:
+                            # set up
+                            start_sec = start_frame * (1 / self.fps)
+                            stop_sec = stop_frame * (1 / self.fps)
 
-                        # Extract trial clip and store it so that we can save all trials at the same time
-                        trial_clip = cut_crop_video(self.session['Metadata'].video_file_paths[vid_num][0],
-                                                    cut=True, starts=start_sec, fins=stop_sec,
-                                                    save_format=None, ret=True)
-                        self.dlc_config_settings['clips'][stim_type][self.videoname] = trial_clip
+                            # Extract trial clip and store it so that we can save all trials at the same time
+                            trial_clip = cut_crop_video(self.session['Metadata'].video_file_paths[vid_num][0],
+                                                        cut=True, starts=start_sec, fins=stop_sec,
+                                                        save_format=None, ret=True)
+                            self.dlc_config_settings['clips'][stim_type][self.videoname] = trial_clip
+                    except:
+                        print('Could not succesfully completestd tracking for session {}'.format(str(self.session)))
 
         # DLC TRACKING - SAVE CLIPS - ######################################
         if track_options['use_deeplabcut']:

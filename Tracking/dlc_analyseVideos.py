@@ -60,75 +60,78 @@ def analyse(tf_setting, videofolder, clips_l):
     clips_l = [item for sublist in clips_l for item in sublist]
 
     for video in videos:
-        if not video.split('.')[0] in clips_l:
-            continue
-
-        dataname = video.split('.')[0] + scorer + '.h5'
         try:
-            # Attempt to load data...
-            pd.read_hdf(dataname)
-            print("            ... video already analyzed!", dataname)
-        except FileNotFoundError:
-            print("                 ... loading ", video)
-            clip = VideoFileClip(video)
-            ny, nx = clip.size  # dimensions of frame (height, width)
-            fps = clip.fps
-            nframes_approx = int(np.ceil(clip.duration * clip.fps) + frame_buffer)
+            if not video.split('.')[0] in clips_l:
+                continue
 
-            if cropping:
-                clip = clip.crop(
-                    y1=y1, y2=y2, x1=x1, x2=x2)  # one might want to adjust
+            dataname = video.split('.')[0] + scorer + '.h5'
+            try:
+                # Attempt to load data...
+                pd.read_hdf(dataname)
+                print("            ... video already analyzed!", dataname)
+            except FileNotFoundError:
+                print("                 ... loading ", video)
+                clip = VideoFileClip(video)
+                ny, nx = clip.size  # dimensions of frame (height, width)
+                fps = clip.fps
+                nframes_approx = int(np.ceil(clip.duration * clip.fps) + frame_buffer)
 
-            start = time.time()
-            PredicteData = np.zeros((nframes_approx, 3 * len(cfg['all_joints_names'])))
+                if cropping:
+                    clip = clip.crop(
+                        y1=y1, y2=y2, x1=x1, x2=x2)  # one might want to adjust
 
-            temp_image = img_as_ubyte(clip.get_frame(0))
-            scmap, locref, pose = getpose(sess, inputs, temp_image, cfg, outputs, outall=True)
-            PredictedScmap = np.zeros((nframes_approx, scmap.shape[0], scmap.shape[1], len(cfg['all_joints_names'])))
+                start = time.time()
+                PredicteData = np.zeros((nframes_approx, 3 * len(cfg['all_joints_names'])))
 
-            for index in tqdm(range(nframes_approx)):
-                image = img_as_ubyte(clip.reader.read_frame())
+                temp_image = img_as_ubyte(clip.get_frame(0))
+                scmap, locref, pose = getpose(sess, inputs, temp_image, cfg, outputs, outall=True)
+                PredictedScmap = np.zeros((nframes_approx, scmap.shape[0], scmap.shape[1], len(cfg['all_joints_names'])))
 
-                if index == int(nframes_approx - frame_buffer * 2):
-                    last_image = image
-                elif index > int(nframes_approx - frame_buffer * 2):
-                    if (image == last_image).all():
-                        nframes = index
-                        print("Detected frames: ", nframes)
-                        break
-                    else:
+                for index in tqdm(range(nframes_approx)):
+                    image = img_as_ubyte(clip.reader.read_frame())
+
+                    if index == int(nframes_approx - frame_buffer * 2):
                         last_image = image
-                try:
-                    pose = getpose(sess, inputs,image, cfg, outputs, outall=True)
-                    PredicteData[index, :] = pose.flatten()
-                except:
-                    scmap, locref, pose = getpose(sess, inputs, image, cfg, outputs, outall=True)
-                    PredicteData[index, :] = pose.flatten()
-                    PredictedScmap[index, :, :, :] = scmap
+                    elif index > int(nframes_approx - frame_buffer * 2):
+                        if (image == last_image).all():
+                            nframes = index
+                            print("Detected frames: ", nframes)
+                            break
+                        else:
+                            last_image = image
+                    try:
+                        pose = getpose(sess, inputs,image, cfg, outputs, outall=True)
+                        PredicteData[index, :] = pose.flatten()
+                    except:
+                        scmap, locref, pose = getpose(sess, inputs, image, cfg, outputs, outall=True)
+                        PredicteData[index, :] = pose.flatten()
+                        PredictedScmap[index, :, :, :] = scmap
 
-            stop = time.time()
+                stop = time.time()
 
-            dictionary = {
-                "start": start,
-                "stop": stop,
-                "run_duration": stop - start,
-                "Scorer": scorer,
-                "config file": cfg,
-                "fps": fps,
-                "frame_dimensions": (ny, nx),
-                "nframes": nframes
-            }
-            metadata = {'data': dictionary}
+                dictionary = {
+                    "start": start,
+                    "stop": stop,
+                    "run_duration": stop - start,
+                    "Scorer": scorer,
+                    "config file": cfg,
+                    "fps": fps,
+                    "frame_dimensions": (ny, nx),
+                    "nframes": nframes
+                }
+                metadata = {'data': dictionary}
 
-            print("Saving results...")
-            DataMachine = pd.DataFrame(PredicteData[:nframes, :], columns=pdindex,
-                                       index=range(nframes))  # slice pose data to have same # as # of frames.
-            DataMachine.to_hdf(dataname, 'df_with_missing', format='table', mode='w')
+                print("Saving results...")
+                DataMachine = pd.DataFrame(PredicteData[:nframes, :], columns=pdindex,
+                                           index=range(nframes))  # slice pose data to have same # as # of frames.
+                DataMachine.to_hdf(dataname, 'df_with_missing', format='table', mode='w')
 
-            # np.save(dataname.split('.')[0] + 'scmap', PredictedScmap)
+                # np.save(dataname.split('.')[0] + 'scmap', PredictedScmap)
 
-            with open(dataname.split('.')[0] + 'includingmetadata.pickle',
-                      'wb') as f:
-                pickle.dump(metadata, f, pickle.HIGHEST_PROTOCOL)
+                with open(dataname.split('.')[0] + 'includingmetadata.pickle',
+                          'wb') as f:
+                    pickle.dump(metadata, f, pickle.HIGHEST_PROTOCOL)
+        except:
+            print('Could not do DLC tracking on video {}'.format(video))
 
 

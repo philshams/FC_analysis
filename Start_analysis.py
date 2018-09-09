@@ -29,6 +29,10 @@ class Analysis():
         - load database
         - call relevant functions [e.g. tracking, plotting...]
         """
+
+        # Show what we are planning to do
+        self.print_planned_processing()
+
         # Get path used throughout the analysis
         paths = load_paths()
         self.save_fld = paths['save fld']
@@ -186,8 +190,37 @@ class Analysis():
             # Create database from scratch
             self.db = create_database(self.datalog_path)
 
+    def print_planned_processing(self):
+        import json
+        import pprint
+        print('\n\n', '='*25, '\n', '='*25)
+        print(""""
+                Load database: {}
+                    update database: {}
+                    load name: {}
+                    save name: {}
+                    
+                Selector type: {}
+                    selector:  {}
+                
+                Extract background: {}
+                Tracking: {}
+                    track options: {}
+                    
+                Processing: {}
+                Plotting: {}
+                Debug: {}
+                
+                Cohort; {}
+                
+                Send Messages: {}
+        """.format(load_database, update_database, load_name, save_name,
+                   selector_type,selector, extract_background, track_mouse,
+                   json.dumps(track_options, indent=30), plotting, cohort, processing, debug, send_messages))
+        print('\n\n', '='*25, '\n', '='*25)
 
-#######################
+
+######################
 #  START              #
 #######################
 if __name__ == "__main__":

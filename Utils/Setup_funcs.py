@@ -231,7 +231,7 @@ def create_database(datalogpath, database=None):
             'Recordings': line['Sub Folders'].split('; ')
         }
         all_metadata.append(temp)
-        
+
     # Loop over each recordings subfolder and check that the paths are correct [fast check that everything
     # is okay before loading the data]
     for line in all_metadata:
