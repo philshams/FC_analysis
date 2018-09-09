@@ -105,7 +105,7 @@ def send_email_attachments(filename, filepath):
     server = smtplib.SMTP('smtp.gmail.com:587')
     server.ehlo()
     server.starttls()
-    server.login('federicopython@gmail.com', 'FCpython21')
+    server.login('federicopython@gmail.com', '')
     server.sendmail('federicopython@gmail.com', 'federicoclaudi@gmail.com', msg.as_string())
     server.quit()
 
