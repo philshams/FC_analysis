@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt   # Used to test stuff while writing new functions
 from multiprocessing.dummy import Pool as ThreadPool
+import warnings
 
 from Utils.loadsave_funcs import load_yaml
 from Utils.maths import calc_acceleration, calc_angle_2d, calc_ang_velocity, calc_ang_acc
@@ -7,6 +8,7 @@ from Utils.decorators import clock, register
 from Processing.Processing_reconstruc_pose import PoseReconstructor
 from Processing.Processing_exp_maze import ProcessingMaze
 from Processing.Processing_utils import *
+from Utils.Messaging import slack_chat_messenger
 
 from Config import processing_options, exp_type
 
@@ -24,30 +26,35 @@ class Processing:
 
         # Process tracking data
         for data_name, tracking_data in sorted(list(self.session.Tracking.items())):
-            if data_name == 'Exploration' or data_name == 'Whole Session':
-                from warnings import warn
-                warn('Processing currently only supports processing of trial data, not {}'.format(data_name))
-                continue
+            try:
+                if data_name == 'Exploration' or data_name == 'Whole Session':
+                    warnings.warn('Processing currently only supports processing of trial data, not {}'.format(data_name))
+                    continue
 
-            print('        Trial {}'.format(data_name))
-            self.tracking_data = tracking_data
+                print('        Trial {}'.format(data_name))
+                self.tracking_data = tracking_data
 
-            # Save info about processing options in the metadata
-            self.define_processing_metadata()
-            t0 = time.perf_counter()
-            # Apply processes in parallel
-            # TODO use decorator to make sure that functions are automatically added to the list, avoid bugs
-            funcs = [self.extract_bodylength, self.extract_velocity, self.extract_location_relative_shelter,
-                      self.extract_orientation]
-            pool = ThreadPool(len(funcs))
-            [pool.apply(func) for func in funcs]
+                # Save info about processing options in the metadata
+                self.define_processing_metadata()
+                t0 = time.perf_counter()
+                # Apply processes in parallel
+                # TODO use decorator to make sure that functions are automatically added to the list, avoid bugs
+                funcs = [self.extract_bodylength, self.extract_velocity, self.extract_location_relative_shelter,
+                          self.extract_orientation]
+                pool = ThreadPool(len(funcs))
+                [pool.apply(func) for func in funcs]
 
-            # Other processing steps will not be done in parallel
-            self.extract_ang_velocity()
-            # PoseReconstructor(self.tracking_data.dlc_tracking['Posture'])  # WORK IN PROGRESS, buggy
+                # Other processing steps will not be done in parallel
+                self.extract_ang_velocity()
+                # PoseReconstructor(self.tracking_data.dlc_tracking['Posture'])  # WORK IN PROGRESS, buggy
 
-            elapsed = time.perf_counter() - t0
-            print('          processing took {}s\n'.format(data_name, round(elapsed, 2)))
+                elapsed = time.perf_counter() - t0
+                print('          processing took {}s\n'.format(data_name, round(elapsed, 2)))
+            except:
+                warnings.warn('Could not analyse this trial!!!')  # but avoid crashing the whole analysis
+                print('Trial {} could not be processed!'.format(data_name))
+                slack_chat_messenger('Could not process trial {}'.format(data_name))
+
 
         # Call experiment specific processing tools [only implemented for maze experiments]
         if exp_type == 'maze':
@@ -61,7 +68,7 @@ class Processing:
         if 'processing' not in self.tracking_data.__dict__.keys():
             setattr(self.tracking_data, 'processing', {})
 
-    @clock
+    @clock  # times the execution of a function
     def extract_location_relative_shelter(self):
         """ Extracts the mouse position relative to the shelter """
         data = self.tracking_data
@@ -146,7 +153,6 @@ class Processing:
         except:
             from warnings import warn
             warn('Something wrong while extracting body length. Trial: {}'.format(self.tracking_data))
-            a = 1
             return
         self.tracking_data.metadata['avg body length'] = avg_bodylength
         for bp in self.tracking_data.dlc_tracking['Posture'].keys():

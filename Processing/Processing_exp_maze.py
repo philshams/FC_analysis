@@ -8,7 +8,7 @@ class ProcessingMaze():
 
     # TODO create images-heatmaps of traces for plotting
 
-    def __init__(self, session, debugging=False):
+    def __init__(self, session, debugging=True):
         self.session = session
         self.debugging = debugging
 
@@ -233,57 +233,3 @@ class ProcessingMaze():
         colors = [[.2, .5, .5], [.4, .6, .2], [.1, .1, .4], [.3, .8, .2]]
         colors = dict(zip(names, colors))
 
-
-
-    # def get_intersections(self, item):
-    #     # TODO check min time inbetween crossings
-    #     # TODO divide intersection between those occurring in the top and bottom halves of the frame
-    #     # TODO divide intersections between escape and origin
-    #     th, th2 = 5, 5
-    #     # Find all points close to the boundary lines [ frames at which the mouse is crossing the boundaries]
-    #     temp_intersections = {'x_midline': np.where(abs(self.trace.x-self.boundaries.x_midline) < th)[0],
-    #                           'y_midline': np.where(abs(self.trace.y-self.boundaries.y_midline) < th)[0],
-    #                           'l_shelteredge': np.where(abs(self.trace.x-self.boundaries.l_shelteredge) < th)[0],
-    #                           'r_shelteredge': np.where(abs(self.trace.x-self.boundaries.r_shelteredge) < th)[0]}
-    #
-    #     # discart consecutive points [i.e. only keep real crossings
-    #     self.intersections = {}
-    #     for name, values in temp_intersections.items():
-    #         if len(values):
-    #             firstval = np.array(values[0])
-    #             goodvals = values[np.where(np.diff(values)>th2)[0]]
-    #             if np.diff(values)[-1]>th2:
-    #                 goods = np.insert(goodvals, 0, firstval)
-    #                 self.intersections[name] = np.insert(goods, 0, values[-1])
-    #             else:
-    #                 self.intersections[name] = np.insert(goodvals, 0, firstval)
-    #         else:
-    #             self.intersections[name] = np.array([])
-    #
-    #     # Get position at intersection times
-    #     position_at_intersections = {}
-    #     for name, timepoints in self.intersections.items():
-    #         # print('Found {} intersection with {}'.format(len(timepoints), name))
-    #         if len(timepoints):
-    #             points = [c for idx, c in enumerate(zip(self.trace.x, self.trace.y)) if idx in timepoints]
-    #             position_at_intersections[name] = points
-    #         else:
-    #             position_at_intersections[name] = []
-    #
-    #     # Collate intersections timepoints and coordinates at intersections
-    #     per_line = namedtuple('each', 'timepoints coordinates')
-    #     all_lines = namedtuple('all', 'x_midline l_shelteredge r_shelteredge y_midline')
-    #     names = position_at_intersections.keys()
-    #
-    #     lines = []
-    #     for idx, name in enumerate(names):
-    #         line = per_line(self.intersections[name], position_at_intersections[name])
-    #         lines.append(line)
-    #     intersections_complete = all_lines(lines[0], lines[1], lines[2], lines[3])
-    #
-    #     # get tracking data
-    #     data = self.session.Tracking[item]
-    #     # If processing is not in the trackind data class. add it
-    #     if not 'processing' in data.__dict__.keys():
-    #         setattr(data, 'processing', {})
-    #     data.processing['boundaries intersections'] = intersections_complete

@@ -559,7 +559,6 @@ class Plotter():
             plt.savefig(os.path.join(path, name), facecolor=[0.1, 0.1, 0.1])
 
             if send_messages:
-                slack_chat_messenger('Sending you the plots for {} by email'.format(name))
                 send_email_attachments(name, os.path.join(path, name))
 
             plt.close('all')
@@ -579,7 +578,7 @@ class Plotter():
             try:
                 self.plot_trial(self.sel_trial)
             except:
-                break
+                print('Could not plot trial')
 
             self.sel_trial += 1
             if self.sel_trial > num_trials:
