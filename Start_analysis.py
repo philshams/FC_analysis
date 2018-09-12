@@ -1,6 +1,7 @@
 from tqdm import tqdm
 import sys
 import warnings
+import os
 
 from Utils import Image_processing
 from Utils.loadsave_funcs import save_data, load_data, load_paths
@@ -31,6 +32,7 @@ class Analysis():
         - load database
         - call relevant functions [e.g. tracking, plotting...]
         """
+        self.loaded_database_size = 0   # Get the size of the loaded database, check that the saving is going correctly
 
         # Show what we are planning to do
         self.print_planned_processing()
@@ -87,7 +89,7 @@ class Analysis():
 
                     if send_messages:
                         slack_chat_messenger('Finished DLC tracking')
-            self.save_results(obj=self.db, mod='_backupsave')
+                self.save_results(obj=self.db, mod='_backupsave')
 
         # PROCESS SINGLE SESSIONS
         if processing or debug or plotting:
@@ -154,7 +156,7 @@ class Analysis():
     # LOADING AND SAVING
     def save_results(self, obj=None, mod=None):
         """ calse savedata to handle saving database to file """
-        save_data(self.save_fld, save_name, object=obj, name_modifier=mod)
+        save_data(self.save_fld, save_name, self.loaded_database_size, object=obj, name_modifier=mod)
 
     def load_database(self):
         """
@@ -169,36 +171,39 @@ class Analysis():
 
         else:  # Create database from scratch
             self.db = create_database(self.datalog_path)
+
+        path = os.path.join(self.save_fld, load_name)
+        self.loaded_database_size = os.path.getsize(path)
+        print('Loaded database from file "{}" with size {}'.format(load_name, self.loaded_database_size))
+
         self.save_results(obj=self.db, mod='Metadata')
 
     def print_planned_processing(self):
         """ When starting a new run, print the options specified in Config.py for the user to check """
         import json
-        print('\n\n', '='*25, '\n', '='*25)
         print(""""
-                Load database: {}
-                    update database: {}
-                    load name: {}
-                    save name: {}
-                    
-                Selector type: {}
-                    selector:  {}
+            Load database: {}
+                update database: {}
+                load name: {}
+                save name: {}
                 
-                Extract background: {}
-                Tracking: {}
-                    track options: {}
-                    
-                Processing: {}
-                Plotting: {}
-                Debug: {}
+            Selector type: {}
+                selector:  {}
+            
+            Extract background: {}
+            Tracking: {}
+                track options: {}
                 
-                Cohort; {}
-                
-                Send Messages: {}
+            Processing: {}
+            Plotting: {}
+            Debug: {}
+            
+            Cohort; {}
+            
+            Send Messages: {}
         """.format(load_database, update_database, load_name, save_name,
                    selector_type, selector, extract_rois_background, track_mouse,
                    json.dumps(track_options, indent=30), plotting, cohort, processing, debug, send_messages))
-        print('\n\n', '='*25, '\n', '='*25)
 
 
 #  START

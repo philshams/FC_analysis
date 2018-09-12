@@ -4,7 +4,7 @@ import os
 from warnings import warn
 
 
-def save_data(savelogpath, save_name, object=None, name_modifier='', saveas='pkl'):
+def save_data(savelogpath, save_name, loaded_db_size, object=None, name_modifier='', saveas='pkl'):
     """ saves an object (the database) to file. If the object is not a dataframe, turns it into one"""
     try:
         save_name = os.path.join(savelogpath, save_name)
@@ -24,7 +24,13 @@ def save_data(savelogpath, save_name, object=None, name_modifier='', saveas='pkl
             # store = pd.HDFStore(save_name)
             # store.put('data', object, format='table', data_columns=True)
 
-        print('           ... data saved as {}'.format(save_name))
+        counter = 0
+        while os.path.getsize(save_name) < loaded_db_size-1:  # wait until saving is done before continuing
+            counter += 1
+            if counter > 10000:
+                break
+
+        print('           ... data saved as {}\n'.format(save_name))
     except:
         if object is None:
             warn('           ... tried to save a "None" object')
@@ -36,8 +42,15 @@ def load_data(savelogpath, load_name, loadas='.pkl'):
     """ load data into a pandas datafrrame"""
     print('====================================\n====================================\n'
           'Loading database from: {}'.format(load_name))
-    db = pd.read_pickle(os.path.join(savelogpath, load_name))
-    return db
+    try:
+        db = pd.read_pickle(os.path.join(savelogpath, load_name))
+        return db
+    except:
+        from warnings import warn
+        path = os.path.join(savelogpath, load_name)
+        warn('Failed to load data')
+        print('filename "{}" - size {}'.format(load_name, os.path.getsize(path)))
+        a = 1
 
 
 def load_yaml(fpath):
