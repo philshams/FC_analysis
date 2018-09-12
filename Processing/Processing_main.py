@@ -3,12 +3,12 @@ from multiprocessing.dummy import Pool as ThreadPool
 
 from Utils.loadsave_funcs import load_yaml
 from Utils.maths import calc_acceleration, calc_angle_2d, calc_ang_velocity, calc_ang_acc
+from Utils.decorators import clock, register
 from Processing.Processing_reconstruc_pose import PoseReconstructor
 from Processing.Processing_exp_maze import ProcessingMaze
 from Processing.Processing_utils import *
 
 from Config import processing_options, exp_type
-
 
 class Processing:
     """
@@ -29,21 +29,25 @@ class Processing:
                 warn('Processing currently only supports processing of trial data, not {}'.format(data_name))
                 continue
 
+            print('        Trial {}'.format(data_name))
             self.tracking_data = tracking_data
 
             # Save info about processing options in the metadata
             self.define_processing_metadata()
-
+            t0 = time.perf_counter()
             # Apply processes in parallel
             # TODO use decorator to make sure that functions are automatically added to the list, avoid bugs
             funcs = [self.extract_bodylength, self.extract_velocity, self.extract_location_relative_shelter,
-                     self.extract_orientation]
+                      self.extract_orientation]
             pool = ThreadPool(len(funcs))
             [pool.apply(func) for func in funcs]
 
             # Other processing steps will not be done in parallel
             self.extract_ang_velocity()
             # PoseReconstructor(self.tracking_data.dlc_tracking['Posture'])  # WORK IN PROGRESS, buggy
+
+            elapsed = time.perf_counter() - t0
+            print('          processing took {}s\n'.format(data_name, round(elapsed, 2)))
 
         # Call experiment specific processing tools [only implemented for maze experiments]
         if exp_type == 'maze':
@@ -57,6 +61,7 @@ class Processing:
         if 'processing' not in self.tracking_data.__dict__.keys():
             setattr(self.tracking_data, 'processing', {})
 
+    @clock
     def extract_location_relative_shelter(self):
         """ Extracts the mouse position relative to the shelter """
         data = self.tracking_data
@@ -91,6 +96,7 @@ class Processing:
                                                              bp_data['y'].values), shelter_location)
                 bp_data['adjusted x'], bp_data['adjusted y'] = adjusted_pos[0], adjusted_pos[1]
 
+    @clock
     def extract_orientation(self):
         """
         This function extracts the mouse' orientation from the angle of two body parts [DLC tracking] and the
@@ -131,10 +137,17 @@ class Processing:
         absolute_angle_head = calc_angle_2d(head, body, vectors=True)
         data.dlc_tracking['Posture']['body']['Head angle'] = [x+360 for x in absolute_angle_head]
 
+    @clock
     def extract_bodylength(self):
         """ gets the length of the mouse body at all frames and the avg length """
-        avg_bodylength, bodylength = get_bodylength(self.tracking_data, head_tag=self.settings['head'],
-                                                    tail_tag=self.settings['tail'])
+        try:
+            avg_bodylength, bodylength = get_bodylength(self.tracking_data, head_tag=self.settings['head'],
+                                                        tail_tag=self.settings['tail'])
+        except:
+            from warnings import warn
+            warn('Something wrong while extracting body length. Trial: {}'.format(self.tracking_data))
+            a = 1
+            return
         self.tracking_data.metadata['avg body length'] = avg_bodylength
         for bp in self.tracking_data.dlc_tracking['Posture'].keys():
             if self.settings['dlc single bp']:
@@ -143,6 +156,7 @@ class Processing:
             bp_data, bodypart = from_dlc_to_single_bp(self.tracking_data, bp)
             bp_data['Body length'] = bodylength
 
+    @clock
     def extract_velocity(self):
         data = self.tracking_data
 
@@ -216,6 +230,7 @@ class Processing:
                         bp_data['Acceleration_{}'.format(un)] = calc_acceleration(distance, unit=un, fps=fps,
                                                                                             bodylength=bodylength)
 
+    @clock
     def extract_ang_velocity(self):
         """
         Get orientation [calculated previously] and compute the velocity in it

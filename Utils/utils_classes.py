@@ -34,7 +34,7 @@ class DataBase():
 class Trial():
     """ Class to initialise and empty Trial object """
     def __init__(self):
-        self.name = None
+        self.name = ''
         self.id = None
         self.metadata = None
         self.std_tracing = namedtuple('std_tracking', 'x y orientation direction velocity')
