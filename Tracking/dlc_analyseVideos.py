@@ -10,7 +10,7 @@ import os.path
 import sys
 from  Utils.loadsave_funcs import load_paths
 paths = load_paths()
-dlc_folder = paths['DLC folder:']
+dlc_folder = paths['DLC folder']
 
 # add parent directory: (where nnet & config are!)
 sys.path.append(os.path.join(dlc_folder, "pose-tensorflow"))
@@ -68,7 +68,7 @@ def analyse(tf_setting, videofolder:str, clips_l:list):
     clips_l = [item for sublist in clips_l for item in sublist]
     for video in videos:
         try:
-            if video.split('.')[0] in clips_l:
+            if video.split('.')[0] not in clips_l:
                 continue
 
             dataname = video.split('.')[0] + scorer + '.h5'

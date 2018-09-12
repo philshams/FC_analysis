@@ -8,7 +8,7 @@ class ProcessingMaze():
 
     # TODO create images-heatmaps of traces for plotting
 
-    def __init__(self, session, debugging=True):
+    def __init__(self, session, debugging=False):
         self.session = session
         self.debugging = debugging
 

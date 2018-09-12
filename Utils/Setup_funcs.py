@@ -11,7 +11,7 @@ from multiprocessing.dummy import Pool as ThreadPool
 from Utils.utils_classes import Session_metadata, DataBase
 from Utils.loadsave_funcs import save_data
 
-from Config import save_name, savelogpath
+from Config import save_name
 
 
 def create_database(datalogpath, database=None):

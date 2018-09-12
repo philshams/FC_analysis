@@ -15,8 +15,10 @@ def calc_distance_2d(data, vectors = True):
         if isinstance(data[0], list) or isinstance(data[0], dict):
             raise Warning('This case needs to be dealt with')
         else:
-            data = (data[0].values, data[1].values)
-
+            try:
+                data = (data[0].values, data[1].values)
+            except:
+                pass
         for n, pos in enumerate(zip(data[0], data[1])):
             # Get a pair of points
             if n == 0:
@@ -38,7 +40,7 @@ def calc_distance_2d(data, vectors = True):
         return dist
 
 
-def calc_acceleration(d: 'vector', unit: str=False, fps: int = False, bodylength: float = False):
+def calc_acceleration(d, unit: str=False, fps: int = False, bodylength: float = False):
     """  Calculates the acceleration (1st derivative of velocity). different options for output format """
     if not unit or unit == 'pxperframe':
         # Return the velocity in px per frame
@@ -85,7 +87,8 @@ def calc_angle_2d(p1, p2, vectors: bool=False):
         angles = []
         frames = len(p1['x'])
         for idx in range(frames):
-            angles.append(angle(p1[idx], p2[idx]))
+            angles.append(angle((p1.loc[idx]['x'], p1.loc[idx]['y']),
+                                (p2.loc[idx]['x'], p2.loc[idx]['y'])))
         return angles
 
 

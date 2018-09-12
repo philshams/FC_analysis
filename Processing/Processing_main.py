@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt   # Used to test stuff while writing new functio
 from multiprocessing.dummy import Pool as ThreadPool
 
 from Utils.loadsave_funcs import load_yaml
-from Utils.maths import calc_angle_2d, calc_ang_velocity, calc_ang_acc
+from Utils.maths import calc_acceleration, calc_angle_2d, calc_ang_velocity, calc_ang_acc
 from Processing.Processing_reconstruc_pose import PoseReconstructor
 from Processing.Processing_exp_maze import ProcessingMaze
 from Processing.Processing_utils import *
@@ -29,12 +29,13 @@ class Processing:
                 warn('Processing currently only supports processing of trial data, not {}'.format(data_name))
                 continue
 
+            self.tracking_data = tracking_data
+
             # Save info about processing options in the metadata
             self.define_processing_metadata()
 
             # Apply processes in parallel
             # TODO use decorator to make sure that functions are automatically added to the list, avoid bugs
-            self.tracking_data = tracking_data
             funcs = [self.extract_bodylength, self.extract_velocity, self.extract_location_relative_shelter,
                      self.extract_orientation]
             pool = ThreadPool(len(funcs))

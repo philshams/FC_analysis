@@ -123,7 +123,6 @@ class Analysis():
                                                                         track_options)
             session.Metadata.videodata[0]['Maze Edges'] = maze_edges
             session.Metadata.videodata[0]['User ROIs'] = user_rois
-            self.save_results(obj=self.db, mod='_bg')
 
         # Tracking
         if track_mouse:
