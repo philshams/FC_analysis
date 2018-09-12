@@ -189,14 +189,18 @@ class Plotter():
         # Exploration
         fps = self.session.Metadata.videodata[0]['Frame rate'][0]
         exploration_maxfr = int(self.exploration_maxmin*60*fps)
-        expl_len = int(len(self.session.Tracking['Exploration']))
 
-        if expl_len>exploration_maxfr:
+        try:
+            expl_len = int(len(self.session.Tracking['Exploration']))
+            if expl_len>exploration_maxfr:
+                self.exp_heatmap = True
+                self.exploration = self.session.Tracking['Exploration'][expl_len-exploration_maxfr:]
+            else:
+                self.exp_heatmap = False
+                self.exploration = self.session.Tracking['Exploration']
+        except:
             self.exp_heatmap = True
-            self.exploration = self.session.Tracking['Exploration'][expl_len-exploration_maxfr:]
-        else:
-            self.exp_heatmap = False
-            self.exploration = self.session.Tracking['Exploration']
+            self.exploration = self.session.Tracking['Whole Session']
 
     def get_dlc_pose(self, trial, stim):
         frames = np.linspace(stim-self.prestim_frames, stim+self.poststim_frames,
@@ -428,8 +432,14 @@ class Plotter():
         # Show exploration heatmap
         cmap = plt.cm.bone
         if self.exp_heatmap:
-            self.exploration_plot.hexbin(self.exploration['x'].values, self.exploration['y'].values,
-                                         bins='log', gridsize=50, cmap=cmap)
+            if not isinstance(self.exploration, dict):
+                self.exploration_plot.hexbin(self.exploration['x'].values, self.exploration['y'].values,
+                                             bins='log', gridsize=50, cmap=cmap)
+            else:
+                # We are plotting a whole session instead, adjust for that
+                self.exploration = self.exploration[list(self.exploration.keys())[0]]
+                self.exploration_plot.hexbin(self.exploration.x.values, self.exploration.y.values,
+                                             bins='log', gridsize=50, cmap=cmap)
         else:
             pass
             # self.exploration_plot.plot(self.exploration['x'].values, self.exploration['y'].values,
@@ -540,7 +550,7 @@ class Plotter():
         _ = pool.map(parallelizer, plot_funcs)
 
 
-        print('Plotting took: {}'.format(time.clock()-starttime))
+        # print('Plotting took: {}'.format(time.clock()-starttime))
 
         if self.save_figs:
             path = 'D:\\Dropbox (UCL - SWC)\\Dropbox (UCL - SWC)\\Rotation_vte\\data\\z_TrialImages'
@@ -563,8 +573,7 @@ class Plotter():
         :return:
         """
         num_trials = len(list(self.trials.keys()))
-        print('         ... found {} trials, displaying the first one: {}'.format(
-            num_trials, list(self.trials.keys())[0]))
+        print('         ... {} found {} trials'.format(self.session.name, num_trials))
 
         while True:
             try:
