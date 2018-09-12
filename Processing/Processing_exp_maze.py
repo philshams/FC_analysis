@@ -2,6 +2,8 @@ import matplotlib.pyplot as plt  # used for debugging
 import numpy as np
 from collections import namedtuple
 
+from Utils.Messaging import slack_chat_messenger
+
 
 class ProcessingMaze():
     """ Applies processsing steps that are specific to maze experiments (e.g. get arm of escape) """
@@ -23,6 +25,7 @@ class ProcessingMaze():
 
                 if retval:
                     # self.get_intersections(item)
+                    self.extract_escape_stats()         # get stats of escape
                     self.get_status_at_timepoint(item)  # get status at stim
                     self.get_origin_escape_arms(item)   # get escape arms
 
@@ -30,6 +33,11 @@ class ProcessingMaze():
                         self.debug_preview()
                         self.plot_trace()
                         plt.show()
+                else:
+                    from warnings import warn
+                    warn('Something went wrong when applying maze-processing')
+                    print('Problem with trial {}'.format(item))
+                    slack_chat_messenger('Something went wrong with maze-processing, trial {}'.format(item))
 
     def subdivide_frame(self):
         """
@@ -84,11 +92,14 @@ class ProcessingMaze():
             # Doesnt work for wholetrace or exploration data, which are saved as dictionaries
             return False
 
-        tracer = namedtuple('trace', 'x y')
+        dlc_tracer, tracer = namedtuple('trace', 'x y velocity orientation  headangvel'), namedtuple('trace', 'x y')
         if 'Posture' in data.dlc_tracking.keys():
             # We have deeplabcut data
-            self.trace = tracer(data.dlc_tracking['Posture']['body']['x'].values,
-                           data.dlc_tracking['Posture']['body']['y'].values)
+            self.trace = dlc_tracer(data.dlc_tracking['Posture']['body']['x'].values,
+                                    data.dlc_tracking['Posture']['body']['y'].values,
+                                    data.dlc_tracking['Posture']['body']['Velocity'].values,
+                                    data.dlc_tracking['Posture']['body']['Orientation'].values,
+                                    data.dlc_tracking['Posture']['body']['Head ang vel'].values)
         elif data.std_tracking['x'] is not None:
             self.trace = tracer(data.std_tracking['x'],
                            data.std_tracking['y'])
@@ -101,7 +112,7 @@ class ProcessingMaze():
         tracer = namedtuple('trace', 'x y')
         self.prestim_trace = tracer(self.trace.x[:window], self.trace.y[:window])
         self.poststim_trace = tracer(self.trace.x[window:], self.trace.y[window:])
-        self.shelter_to_stim, self.stim_to_shelter = self.get_leaveenter_shelter(tracer)
+        self.shelter_to_stim, self.stim_to_shelter = self.get_leaveenter_rois(tracer)
 
         # Store results
         if not 'processing' in data.__dict__.keys():
@@ -117,12 +128,15 @@ class ProcessingMaze():
     """
     Extract stuff
     """
+    def get_leaveenter_rois(self, tracer):
+        """ Get the times at which the mouse enters and exits the rois and the corresponding traces """
+        def get_leave_enter_times(roi, trace, pre=True):
+            # from x, width, y, height to --> x0, x1, y0, y1
+            roi = (roi[0], roi[0] + roi[2], roi[1], roi[1] + roi[3])
 
-    def get_leaveenter_shelter(self, tracer):
-        def get_leave_enter_time(shelter, trace, pre=True):
             # Get the frames in which the mouse is in the shelter
-            x_inshelt = np.where((shelter[0] < trace.x) & (trace.x < shelter[1]))[0]
-            y_inshelt = np.where((shelter[2] < trace.y) & (trace.y < shelter[3]))[0]
+            x_inshelt = np.where((roi[0] < trace.x) & (trace.x < roi[1]))[0]
+            y_inshelt = np.where((roi[2] < trace.y) & (trace.y < roi[3]))[0]
             inshelt = np.intersect1d(x_inshelt, y_inshelt)
 
             if not len(inshelt):
@@ -132,7 +146,7 @@ class ProcessingMaze():
                 if len(inshelt):  # means no point on the trace was in sheter
                     return inshelt[-1]
                 else:
-                    return  len(trace)-1
+                    return len(trace) - 1
             else:
                 if len(inshelt):
                     return inshelt[0]
@@ -141,15 +155,10 @@ class ProcessingMaze():
 
         tostim, fromstim = False, False
         if 'Shelter' in self.rois.keys() and self.rois['Shelter'] is not None:
-            shelter = self.rois['Shelter']  # x, with, y, height
-            shelter = (shelter[0], shelter[0]+shelter[2], shelter[1], shelter[1]+shelter[3])  # x0, x1, y0, y1
-
-            leaves_shelter = get_leave_enter_time(shelter, self.prestim_trace)
-            enters_shelter = get_leave_enter_time(shelter, self.poststim_trace, pre=False)
-
+            leaves_shelter = get_leave_enter_times(self.rois['Shelter'], self.prestim_trace)
+            enters_shelter = get_leave_enter_times(self.rois['Shelter'], self.poststim_trace, pre=False)
             tostim = tracer(self.prestim_trace.x[leaves_shelter:], self.prestim_trace.y[leaves_shelter:])
             fromstim = tracer(self.poststim_trace.x[:enters_shelter+1], self.poststim_trace.y[:enters_shelter+1])
-
         return tostim, fromstim
 
     def get_status_at_timepoint(self, name, time: int = None, timename: str = 'stimulus'):
@@ -210,10 +219,13 @@ class ProcessingMaze():
         self.session.Tracking[name].processing['Origin'] = origin
         self.session.Tracking[name].processing['Escape'] = escape
 
+    def extract_escape_stats(self):
+        """  extract stuff like max velocity... from the post-stim trace """
+        a = 1
+
     """
     Debugging related stuff
     """
-
     def debug_preview(self):
         """
         Display the results of the processing so that we can check that everything went okay
@@ -228,8 +240,4 @@ class ProcessingMaze():
     def plot_trace(self):
         self.ax.plot(self.shelter_to_stim.x, self.shelter_to_stim.y, color=[.8, .2, .2], linewidth=2)
         self.ax.plot(self.stim_to_shelter.x, self.stim_to_shelter.y, color=[.2, .2, .8], linewidth=2)
-
-        names = self.intersections.keys()
-        colors = [[.2, .5, .5], [.4, .6, .2], [.1, .1, .4], [.3, .8, .2]]
-        colors = dict(zip(names, colors))
 

@@ -57,8 +57,8 @@ class Processing:
 
 
         # Call experiment specific processing tools [only implemented for maze experiments]
-        if exp_type == 'maze':
-            ProcessingMaze(self.session)
+        if self.settings['apply exp-specific']:
+            ProcessingMaze(self.session, debugging=self.settings['debug exp-specific'])
         else:
             from warnings import warn
             warn('Experiment type {} is not supported yet'.format(exp_type))
