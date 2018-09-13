@@ -1,7 +1,9 @@
 from scipy.spatial import distance
 import numpy as np
 from math import factorial, atan2, degrees
+import pandas as pd
 
+from Utils.decorators import clock_noself
 
 def calc_distance_2d(data, vectors = True):
     """
@@ -84,12 +86,21 @@ def calc_angle_2d(p1, p2, vectors: bool=False):
         return angle(p1, p2)
     else:
         # calc for two vectors of points
-        angles = []
-        frames = len(p1['x'])
-        for idx in range(frames):
-            angles.append(angle((p1.loc[idx]['x'], p1.loc[idx]['y']),
-                                (p2.loc[idx]['x'], p2.loc[idx]['y'])))
-        return angles
+        if isinstance(p1, pd.DataFrame):
+            p1 = np.vstack((p1['y'].values, p1['x'].values))
+            p2 = np.vstack((p2['y'].values, p2['x'].values))
+
+            deltas = np.subtract(p1.T, p2.T)
+            angs = np.degrees(np.arctan2(deltas[:, 0], deltas[:, 1]))
+            negs = np.where(angs < 0)[0]
+            angs[negs] += 360
+
+        # angles = []
+        # frames = len(p1['x'])
+        # for idx in range(frames):
+        #     angles.append(angle((p1.loc[idx]['x'], p1.loc[idx]['y']),
+        #                         (p2.loc[idx]['x'], p2.loc[idx]['y'])))
+            return angs
 
 
 def calc_ang_velocity(orientation, fps: int=False):
@@ -134,3 +145,20 @@ def line_smoother(y, window_size=31, order=3, deriv=0, rate=1):
         lastvals = y[-1] + np.abs(y[-half_window - 1:-1][::-1] - y[-1])
         y = np.concatenate((firstvals, y, lastvals))
         return np.convolve(m[::-1], y, mode='valid')
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -5,7 +5,7 @@ from collections import namedtuple
 from Utils.Messaging import slack_chat_messenger
 
 
-class ProcessingMaze():
+class ProcessingTrialsMaze:
     """ Applies processsing steps that are specific to maze experiments (e.g. get arm of escape) """
 
     # TODO create images-heatmaps of traces for plotting
@@ -25,7 +25,7 @@ class ProcessingMaze():
 
                 if retval:
                     # self.get_intersections(item)
-                    self.extract_escape_stats()         # get stats of escape
+                    self.extract_escape_stats(item)         # get stats of escape
                     self.get_status_at_timepoint(item)  # get status at stim
                     self.get_origin_escape_arms(item)   # get escape arms
 
@@ -35,9 +35,11 @@ class ProcessingMaze():
                         plt.show()
                 else:
                     from warnings import warn
-                    warn('Something went wrong when applying maze-processing')
-                    print('Problem with trial {}'.format(item))
-                    slack_chat_messenger('Something went wrong with maze-processing, trial {}'.format(item))
+                    if 'whole' not in item.lower() and 'exploration' not in item.lower():
+                        warn('Something went wrong when applying maze-processing')
+                        slack_chat_messenger('Something went wrong with maze-processing, trial {}'.format(item))
+
+                    print('Did not apply maze-processubg to with trial {}'.format(item))
 
     def subdivide_frame(self):
         """
@@ -95,11 +97,15 @@ class ProcessingMaze():
         dlc_tracer, tracer = namedtuple('trace', 'x y velocity orientation  headangvel'), namedtuple('trace', 'x y')
         if 'Posture' in data.dlc_tracking.keys():
             # We have deeplabcut data
-            self.trace = dlc_tracer(data.dlc_tracking['Posture']['body']['x'].values,
-                                    data.dlc_tracking['Posture']['body']['y'].values,
-                                    data.dlc_tracking['Posture']['body']['Velocity'].values,
-                                    data.dlc_tracking['Posture']['body']['Orientation'].values,
-                                    data.dlc_tracking['Posture']['body']['Head ang vel'].values)
+            try:
+                self.trace = dlc_tracer(data.dlc_tracking['Posture']['body']['x'].values,
+                                        data.dlc_tracking['Posture']['body']['y'].values,
+                                        data.dlc_tracking['Posture']['body']['Velocity'].values,
+                                        data.dlc_tracking['Posture']['body']['Orientation'].values,
+                                        data.dlc_tracking['Posture']['body']['Head ang vel'].values)
+            except:
+                self.trace = tracer(data.std_tracking['x'],
+                                    data.std_tracking['y'])
         elif data.std_tracking['x'] is not None:
             self.trace = tracer(data.std_tracking['x'],
                            data.std_tracking['y'])
@@ -107,12 +113,20 @@ class ProcessingMaze():
             print('Could not find trial data for trial {}'.format(trial_name))
             return False
 
-        # Get traces
+        # Get stimulus-locked traces
         window = int(len(self.trace.x) / 2)
-        tracer = namedtuple('trace', 'x y')
-        self.prestim_trace = tracer(self.trace.x[:window], self.trace.y[:window])
-        self.poststim_trace = tracer(self.trace.x[window:], self.trace.y[window:])
-        self.shelter_to_stim, self.stim_to_shelter = self.get_leaveenter_rois(tracer)
+        if len(self.trace._fields) == 2:   # we used STD tracking
+            self.prestim_trace = tracer(self.trace.x[:window], self.trace.y[:window])
+            self.poststim_trace = tracer(self.trace.x[window:], self.trace.y[window:])
+            self.shelter_to_stim, self.stim_to_shelter = self.get_leaveenter_rois(tracer)
+        else:   # used DLC tracking
+            self.prestim_trace = dlc_tracer(self.trace.x[:window], self.trace.y[:window],
+                                            self.trace.velocity[:window], self.trace.orientation[:window],
+                                            self.trace.headangvel[:window])
+            self.poststim_trace = dlc_tracer(self.trace.x[window:], self.trace.y[window:],
+                                            self.trace.velocity[window:], self.trace.orientation[window:],
+                                            self.trace.headangvel[window:])
+            self.shelter_to_stim, self.stim_to_shelter = self.get_leaveenter_rois(dlc_tracer)
 
         # Store results
         if not 'processing' in data.__dict__.keys():
@@ -157,8 +171,20 @@ class ProcessingMaze():
         if 'Shelter' in self.rois.keys() and self.rois['Shelter'] is not None:
             leaves_shelter = get_leave_enter_times(self.rois['Shelter'], self.prestim_trace)
             enters_shelter = get_leave_enter_times(self.rois['Shelter'], self.poststim_trace, pre=False)
-            tostim = tracer(self.prestim_trace.x[leaves_shelter:], self.prestim_trace.y[leaves_shelter:])
-            fromstim = tracer(self.poststim_trace.x[:enters_shelter+1], self.poststim_trace.y[:enters_shelter+1])
+
+            if len(tracer._fields) == 2:   # we used STD
+                tostim = tracer(self.prestim_trace.x[leaves_shelter:], self.prestim_trace.y[leaves_shelter:])
+                fromstim = tracer(self.poststim_trace.x[:enters_shelter+1], self.poststim_trace.y[:enters_shelter+1])
+            else:
+                tostim = tracer(self.prestim_trace.x[leaves_shelter:], self.prestim_trace.y[leaves_shelter:],
+                                self.prestim_trace.velocity[leaves_shelter:],
+                                self.prestim_trace.orientation[leaves_shelter:],
+                                self.prestim_trace.headangvel[leaves_shelter:])
+                fromstim = tracer(self.poststim_trace.x[:enters_shelter + 1],
+                                  self.poststim_trace.y[:enters_shelter + 1],
+                                  self.poststim_trace.velocity[:enters_shelter + 1],
+                                  self.poststim_trace.orientation[:enters_shelter + 1],
+                                  self.poststim_trace.headangvel[:enters_shelter + 1])
         return tostim, fromstim
 
     def get_status_at_timepoint(self, name, time: int = None, timename: str = 'stimulus'):
@@ -219,9 +245,22 @@ class ProcessingMaze():
         self.session.Tracking[name].processing['Origin'] = origin
         self.session.Tracking[name].processing['Escape'] = escape
 
-    def extract_escape_stats(self):
+    def extract_escape_stats(self, name):
         """  extract stuff like max velocity... from the post-stim trace """
-        a = 1
+        data = self.session.Tracking[name]
+
+        if len(self.poststim_trace._fields)>2:      # we used deeplabcut
+            maxvel = max(self.poststim_trace.velocity)
+            maxheadangvel = max(self.poststim_trace.headangvel)
+
+            escape_stats = dict(max_velocity=maxvel, max_ang_vel=maxheadangvel)
+
+            data.processing['Escape stats'] = escape_stats
+
+        else:
+            from warnings import warn
+            warn('Havent implemented the extraction of escape stats from STD tracking yet')
+            slack_chat_messenger('Need to implement the extraction of maze escape stats from STD tracking bro')
 
     """
     Debugging related stuff
@@ -241,3 +280,6 @@ class ProcessingMaze():
         self.ax.plot(self.shelter_to_stim.x, self.shelter_to_stim.y, color=[.8, .2, .2], linewidth=2)
         self.ax.plot(self.stim_to_shelter.x, self.stim_to_shelter.y, color=[.2, .2, .8], linewidth=2)
 
+
+
+# class ProcessingSessionMaze:

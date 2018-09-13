@@ -17,6 +17,19 @@ def clock(func):
     return clocked
 
 
+def clock_noself(func):
+    """ Decorator to time the execution of a function and print the result"""
+    def clocked(*args):
+        t0 = time.perf_counter()
+        result = func(*args)
+        elapsed = time.perf_counter() - t0
+        name = func.__name__
+        spaces = ' '*(40-len(name))
+        print('          .. {} in{} --> {}s'.format(name, spaces,  round(elapsed, 4)))
+        return result
+    return clocked
+
+
 def register(registry:list):
     """ Decorator to add a function to a given list of functions """
     def decorate(func):

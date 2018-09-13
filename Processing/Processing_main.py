@@ -6,7 +6,7 @@ from Utils.loadsave_funcs import load_yaml
 from Utils.maths import calc_acceleration, calc_angle_2d, calc_ang_velocity, calc_ang_acc
 from Utils.decorators import clock, register
 from Processing.Processing_reconstruc_pose import PoseReconstructor
-from Processing.Processing_exp_maze import ProcessingMaze
+from Processing.Processing_exp_maze import ProcessingTrialsMaze
 from Processing.Processing_utils import *
 from Utils.Messaging import slack_chat_messenger
 
@@ -28,7 +28,7 @@ class Processing:
         for data_name, tracking_data in sorted(list(self.session.Tracking.items())):
             try:
                 if data_name == 'Exploration' or data_name == 'Whole Session':
-                    warnings.warn('Processing currently only supports processing of trial data, not {}'.format(data_name))
+                    print('Processing currently only supports processing of trial data, not {}'.format(data_name))
                     continue
 
                 print('        Trial {}'.format(data_name))
@@ -58,7 +58,7 @@ class Processing:
 
         # Call experiment specific processing tools [only implemented for maze experiments]
         if self.settings['apply exp-specific']:
-            ProcessingMaze(self.session, debugging=self.settings['debug exp-specific'])
+            ProcessingTrialsMaze(self.session, debugging=self.settings['debug exp-specific'])
         else:
             from warnings import warn
             warn('Experiment type {} is not supported yet'.format(exp_type))
@@ -139,6 +139,7 @@ class Processing:
         # Get angle relative to frame
         absolute_angle = calc_angle_2d(body, tail, vectors=True)
         data.dlc_tracking['Posture']['body']['Orientation'] = [x+360 for x in absolute_angle]
+
 
         # Get head angle relative to body angle
         absolute_angle_head = calc_angle_2d(head, body, vectors=True)
