@@ -28,7 +28,7 @@ class Processing:
         for data_name, tracking_data in sorted(list(self.session.Tracking.items())):
             try:
                 if data_name == 'Exploration' or data_name == 'Whole Session':
-                    print('Processing currently only supports processing of trial data, not {}'.format(data_name))
+                    print('          processing currently only supports processing of trial data, not {}'.format(data_name))
                     continue
 
                 print('        Trial {}'.format(data_name))
@@ -49,10 +49,10 @@ class Processing:
                 # PoseReconstructor(self.tracking_data.dlc_tracking['Posture'])  # WORK IN PROGRESS, buggy
 
                 elapsed = time.perf_counter() - t0
-                print('          processing took {}s\n'.format(data_name, round(elapsed, 2)))
+                print('          processing took {}s\n'.format(round(elapsed, 2)))
             except:
                 warnings.warn('Could not analyse this trial!!!')  # but avoid crashing the whole analysis
-                print('Trial {} could not be processed!'.format(data_name))
+                print('          trial {} could not be processed!'.format(data_name))
                 slack_chat_messenger('Could not process trial {}'.format(data_name))
 
 

@@ -124,7 +124,7 @@ class Plotter():
         self.pose_space.set(title='Pose at stim', facecolor=[0.2, 0.2, 0.2], xlim=[150, 450], ylim=[650, 350])
 
         self.exploration_plot = plt.subplot2grid(grid, (1, 0), rowspan=1, colspan=1)
-        self.exploration_plot.set(title='Eploration', facecolor=[0.2, 0.2, 0.2], xlim=[0, 600], ylim=[600, 0])
+        self.exploration_plot.set(title='Eploration', facecolor=[0.2, 0.2, 0.2], xlim=[0, 700], ylim=[600, 0])
 
         self.react_time_plot =  plt.subplot2grid(grid, (3, 0), rowspan=1, colspan=3)
         self.react_time_plot.set(title='Reaction Time', facecolor=[0.2, 0.2, 0.2], xlabel='frames', ylabel='-')
@@ -439,7 +439,8 @@ class Plotter():
                 # We are plotting a whole session instead, adjust for that
                 self.exploration = self.exploration[list(self.exploration.keys())[0]]
                 self.exploration_plot.hexbin(self.exploration.x.values, self.exploration.y.values,
-                                             bins='log', gridsize=25, cmap=cmap)
+                                             bins=1.1, gridsize=50, cmap=cmap)
+                self.exploration_plot.set(title='Whole session Tracking (first recording)')
         else:
             pass
             # self.exploration_plot.plot(self.exploration['x'].values, self.exploration['y'].values,
@@ -536,7 +537,6 @@ class Plotter():
         self.get_outcome(self.dlc_x_adj, self.dlc_y_adj, self.wnd, self.twod_track)
 
         # Parallelise the plotting to increase speed
-        starttime = time.clock()
         if not self.plot_pose:
             plot_funcs = [self.plot_twod_tracking, self.plot_1D_std_tracking, self.plot_1D_dlc_tracking,
                           self.plot_exploration_tracking_over_maze, self.plot_orientation,
