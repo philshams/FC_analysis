@@ -434,12 +434,12 @@ class Plotter():
         if self.exp_heatmap:
             if not isinstance(self.exploration, dict):
                 self.exploration_plot.hexbin(self.exploration['x'].values, self.exploration['y'].values,
-                                             bins='log', gridsize=50, cmap=cmap)
+                                             bins='log', gridsize=25, cmap=cmap)
             else:
                 # We are plotting a whole session instead, adjust for that
                 self.exploration = self.exploration[list(self.exploration.keys())[0]]
                 self.exploration_plot.hexbin(self.exploration.x.values, self.exploration.y.values,
-                                             bins='log', gridsize=50, cmap=cmap)
+                                             bins='log', gridsize=25, cmap=cmap)
         else:
             pass
             # self.exploration_plot.plot(self.exploration['x'].values, self.exploration['y'].values,
@@ -525,7 +525,7 @@ class Plotter():
         self.setup_figure()
 
         print('         ... plotting trial {} of {}: {}'.format(
-            trialidx, len(list(self.trials.keys()))-2, trialname))
+            trialidx+1, len(list(self.trials.keys()))-1, trialname))
 
         self.trial = self.trials[list(self.trials.keys())[trialidx]]
 
@@ -571,7 +571,7 @@ class Plotter():
 
         :return:
         """
-        num_trials = len(list(self.trials.keys()))
+        num_trials = len(list(self.trials.keys()))-1
         print('         ... {} found {} trials'.format(self.session.name, num_trials))
 
         while True:
