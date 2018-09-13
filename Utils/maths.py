@@ -94,7 +94,7 @@ def calc_angle_2d(p1, p2, vectors: bool=False):
             angs = np.degrees(np.arctan2(deltas[:, 0], deltas[:, 1]))
             negs = np.where(angs < 0)[0]
             angs[negs] += 360
-
+            angs += 90
         # angles = []
         # frames = len(p1['x'])
         # for idx in range(frames):

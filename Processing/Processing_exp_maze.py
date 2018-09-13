@@ -3,7 +3,7 @@ import numpy as np
 from collections import namedtuple
 
 from Utils.Messaging import slack_chat_messenger
-
+from Plotting import Maze_session_summary
 
 class ProcessingTrialsMaze:
     """ Applies processsing steps that are specific to maze experiments (e.g. get arm of escape) """
@@ -11,6 +11,7 @@ class ProcessingTrialsMaze:
     # TODO create images-heatmaps of traces for plotting
 
     def __init__(self, session, debugging=True):
+        print('      Individual trials - maze processing')
         self.session = session
         self.debugging = debugging
 
@@ -25,9 +26,9 @@ class ProcessingTrialsMaze:
 
                 if retval:
                     # self.get_intersections(item)
-                    self.extract_escape_stats(item)         # get stats of escape
-                    self.get_status_at_timepoint(item)  # get status at stim
                     self.get_origin_escape_arms(item)   # get escape arms
+                    self.extract_escape_stats(item)     # get stats of escape
+                    self.get_status_at_timepoint(item)  # get status at stim
 
                     if debugging:                  # display results for debugging
                         self.debug_preview()
@@ -155,6 +156,7 @@ class ProcessingTrialsMaze:
 
             if not len(inshelt):
                 return False
+
             # If its before the stimulus we want the last frame, else we want the last frame
             if pre:
                 if len(inshelt):  # means no point on the trace was in sheter
@@ -281,5 +283,107 @@ class ProcessingTrialsMaze:
         self.ax.plot(self.stim_to_shelter.x, self.stim_to_shelter.y, color=[.2, .2, .8], linewidth=2)
 
 
+class ProcessingSessionMaze:
+    def __init__(self, session, debugging=False):
+        print('      Whole session - maze processing')
 
-# class ProcessingSessionMaze:
+        self.session = session
+
+        # Process stuff
+        self.get_origins_escapes()
+        self.get_probs()
+
+        # Plot stuff
+        Maze_session_summary.MazeSessionPlotter(session)
+
+    def get_origins_escapes(self):
+        # Get origina nd escape arms
+        info = namedtuple('info', 'arm xpos status')
+        origins, escapes = [], []
+        origins_dict, escapes_dict = {}, {}
+        for trial_name in self.session.Tracking.keys():
+            if 'session' in trial_name.lower() or 'exploration' in trial_name.lower():
+                continue
+            origins.append(self.session.Tracking[trial_name].processing['Origin'])
+            escapes.append(self.session.Tracking[trial_name].processing['Escape'])
+
+            origins_dict[trial_name] = info(self.session.Tracking[trial_name].processing['Origin'],
+                                            self.session.Tracking[trial_name].
+                                                processing['status at stimulus'][0].body.x,
+                                            self.session.Tracking[trial_name].processing['status at stimulus'])
+            escapes_dict[trial_name] = info(self.session.Tracking[trial_name].processing['Escape'],
+                                            self.session.Tracking[trial_name].
+                                                processing['status at stimulus'][0].body.x,
+                                            self.session.Tracking[trial_name].processing['status at stimulus'])
+
+        if not 'processing' in self.session.keys():
+            setattr(self.session, 'processing', {})
+
+        self.session.processing['Escapes'] = escapes
+        self.session.processing['Origins'] = origins
+        self.session.processing['Origins dict'] = escapes_dict
+        self.session.processing['Escapes dict'] = origins_dict
+
+    def get_probs(self):
+        def get_probs_as_func_of_x_pos(data):
+            # Get probs as a function of (adjusted) hor. position on threat platform at stim onset
+            x_events = []  # get arm and x position from data
+            for d in data:
+                x_events.append(([1 if d[0] == 'Left'
+                                    else 2 if d[0] == 'Central'
+                                    else 3 if d[0] == 'Right' else 0],
+                                 d.status.status.adjustedx))
+                x_events = sorted(x_events, key=lambda tup: tup[1])  # sorted by X position
+
+            # Bin based on X pos
+            boundaries = [-100, 100]
+            lims = np.linspace(boundaries[0], boundaries[1], 5)
+            step = abs(np.diff(lims)[0]) - 1
+            binned_events = []
+            for l in lims[:-1]:
+                L = l + step
+                events = [(outcome, x) for outcome, x in x_events if l <= x <= L]
+                x_events = [x for x in x_events if x not in events]
+                binned_events.append(events)
+
+            # Get probs for each bin
+            binned_probs = []
+            p = namedtuple('p', 'left central right')
+            for probs in binned_events:
+                num_events = len(probs)
+                if num_events:
+                    lprobs = len([x for x in probs if x[0]==[3]])/num_events
+                    cprobs = len([x for x in probs if x[0]==[2]])/num_events
+                    rprobs = len([x for x in probs if x[0]==[1]])/num_events
+
+                    binned_probs.append(p(lprobs, cprobs, rprobs))
+                else:
+                    binned_probs.append(p(0, 0, 0))
+
+            return binned_probs
+
+
+
+        # Define tuple to store results
+        probs = namedtuple('probabilities', 'per_arm per_x')
+        """ probabilities:
+                - per arm: probability of origin or escape along one arm
+                - per x  : probability as a function of horizontal position [adjusted position]
+        """
+
+        # Get probability of escape or origin for each arm
+        possibilites = [0, 1, 2, 3]
+        s_possibilities = ['None', 'Left', 'Central', 'Right']
+        num_origins, num_escapes = len(self.session.processing['Origins']), len(self.session.processing['Escapes'])
+        origins_probs = [self.session.processing['Origins'].count(x) / num_origins for x in s_possibilities]
+        escapes_probs = [self.session.processing['Escapes'].count(x) / num_escapes for x in s_possibilities]
+
+        # Get Binnd probs
+        x_binned_escapes = get_probs_as_func_of_x_pos(self.session.processing['Escapes dict'].values())
+        x_binned_origins = get_probs_as_func_of_x_pos(self.session.processing['Origins dict'].values())
+
+        # Set output
+        escape_probs = probs(escapes_probs, x_binned_escapes)
+        origin_probs = probs(origins_probs, x_binned_origins)
+        self.session.processing['Escape probabilities'] = escape_probs
+        self.session.processing['Origin probabilities'] = origin_probs

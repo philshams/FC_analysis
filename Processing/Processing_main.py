@@ -6,11 +6,12 @@ from Utils.loadsave_funcs import load_yaml
 from Utils.maths import calc_acceleration, calc_angle_2d, calc_ang_velocity, calc_ang_acc
 from Utils.decorators import clock, register
 from Processing.Processing_reconstruc_pose import PoseReconstructor
-from Processing.Processing_exp_maze import ProcessingTrialsMaze
+from Processing.Processing_exp_maze import ProcessingTrialsMaze, ProcessingSessionMaze
 from Processing.Processing_utils import *
 from Utils.Messaging import slack_chat_messenger
 
 from Config import processing_options, exp_type
+
 
 class Processing:
     """
@@ -55,10 +56,11 @@ class Processing:
                 print('          trial {} could not be processed!'.format(data_name))
                 slack_chat_messenger('Could not process trial {}'.format(data_name))
 
-
         # Call experiment specific processing tools [only implemented for maze experiments]
         if self.settings['apply exp-specific']:
             ProcessingTrialsMaze(self.session, debugging=self.settings['debug exp-specific'])
+            ProcessingSessionMaze(self.session, debugging=self.settings['debug exp-specific'])
+
         else:
             from warnings import warn
             warn('Experiment type {} is not supported yet'.format(exp_type))

@@ -21,7 +21,7 @@ from Processing.Processing_utils import parallelizer
 from multiprocessing.dummy import Pool as ThreadPool
 
 from Utils.maths import line_smoother
-from Utils.Messaging import slack_chat_messenger, slack_chat_attachments, send_email_attachments
+from Utils.Messaging import send_email_attachments
 
 from Config import send_messages
 
@@ -35,6 +35,8 @@ class Plotter():
             - velocity
             - orientation
         """
+        print('      Plotting single trials summaries')
+
         plt.ion()
         if not session is None:
 
@@ -134,7 +136,7 @@ class Plotter():
                                 theta_direction=-1)
 
         self.ang_vel_plot = plt.subplot2grid(grid, (0, 7), rowspan=1, colspan=2)
-        self.ang_vel_plot.set(title='Angular velocity', facecolor=[0.2, 0.2, 0.2], ylim=[-750, 750],
+        self.ang_vel_plot.set(title='Angular velocity', facecolor=[0.2, 0.2, 0.2], ylim=[-50, 50],
                               xlabel='frames', ylabel='deg/sec')
 
         self.f.tight_layout()
@@ -548,9 +550,6 @@ class Plotter():
 
         pool = ThreadPool(len(plot_funcs))
         _ = pool.map(parallelizer, plot_funcs)
-
-
-        # print('Plotting took: {}'.format(time.clock()-starttime))
 
         if self.save_figs:
             path = 'D:\\Dropbox (UCL - SWC)\\Dropbox (UCL - SWC)\\Rotation_vte\\data\\z_TrialImages'
