@@ -39,7 +39,7 @@ class ProcessingTrialsMaze:
                         warn('Something went wrong when applying maze-processing')
                         slack_chat_messenger('Something went wrong with maze-processing, trial {}'.format(item))
 
-                    print('Did not apply maze-processubg to with trial {}'.format(item))
+                    print('          did not apply maze-processing to with trial {}'.format(item))
 
     def subdivide_frame(self):
         """

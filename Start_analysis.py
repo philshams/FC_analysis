@@ -156,7 +156,7 @@ class Analysis():
     # LOADING AND SAVING
     def save_results(self, obj=None, mod=None):
         """ calse savedata to handle saving database to file """
-        save_data(self.save_fld, save_name, self.loaded_database_size, object=obj, name_modifier=mod)
+        save_data(self.save_fld, load_name, save_name, self.loaded_database_size, object=obj, name_modifier=mod)
 
     def load_database(self):
         """

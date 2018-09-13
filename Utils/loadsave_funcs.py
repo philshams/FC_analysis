@@ -4,8 +4,12 @@ import os
 from warnings import warn
 
 
-def save_data(savelogpath, save_name, loaded_db_size, object=None, name_modifier='', saveas='pkl'):
+def save_data(savelogpath, load_name, save_name, loaded_db_size, object=None, name_modifier='', saveas='pkl'):
     """ saves an object (the database) to file. If the object is not a dataframe, turns it into one"""
+    # Avoid overwriting
+    if load_name == save_name:
+        save_name += '_safe'
+
     try:
         save_name = os.path.join(savelogpath, save_name)
         if not isinstance(object, pd.DataFrame):
