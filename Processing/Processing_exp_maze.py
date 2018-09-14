@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt  # used for debugging
 import numpy as np
 from collections import namedtuple
 from termcolor import colored
+import pandas as pd
 
 from Utils.Messaging import slack_chat_messenger
 from Utils.decorators import clock
@@ -407,13 +408,53 @@ class ProcessingSessionMaze:
 
 class Processing_cohortMaze:
     def __init__(self, cohort):
+        # Set up
         coh_name = cohort_options['name']
         self.coh = cohort
         self.coh_metadata = cohort.Metadata[coh_name]
         self.coh_tracking = cohort.Tracking[coh_name]
         self.coh_trials = cohort.Tracking[coh_name].trials
+        self.get_additional_metadata()
 
-        a = 1
+        # Do stuff
+        self.get_origins_escapes_per_mouse(coh_name)
+
+    def get_additional_metadata(self):
+        mice_in_cohort = [sess[1].mouse_id for sess in self.coh_metadata.sessions_in_cohort]
+        self.coh_metadata = [self.coh_metadata, mice_in_cohort]
+
+    def get_origins_escapes_per_mouse(self, coh_name):
+        origins, escapes = {}, {}
+        paths = namedtuple('pahts', 'none left central right')
+        for tr in self.coh_trials:
+            sess_id = tr.name.split('-')[0]
+            ids = [s[0].split('_')[0] for s in self.coh_metadata[0].sessions_in_cohort]
+            sess_metadata = self.coh_metadata[0].sessions_in_cohort[ids.index(sess_id)][1]
+            mouse_id = sess_metadata.mouse_id
+            if not mouse_id in origins.keys():
+                origins[mouse_id] = []
+                escapes[mouse_id] = []
+
+            if tr.processing['Escape'] == 'Left':
+                escapes[mouse_id].append(1)
+            elif tr.processing['Escape'] == 'Central':
+                escapes[mouse_id].append(2)
+            elif tr.processing['Escape'] == 'Right':
+                escapes[mouse_id].append(3)
+            else:
+                escapes[mouse_id].append(0)
+
+            if tr.processing['Origin'] == 'Left':
+                origins[mouse_id].append(1)
+            elif tr.processing['Origin'] == 'Central':
+                origins[mouse_id].append(2)
+            elif tr.processing['Origin'] == 'Right':
+                origins[mouse_id].append(3)
+            else:
+                origins[mouse_id].append(0)
+
+        self.coh.loc[coh_name].Processing['Origins'] = origins
+        self.coh.loc[coh_name].Processing['Escapes'] = escapes
 
 
 

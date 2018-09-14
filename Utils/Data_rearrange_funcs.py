@@ -1,5 +1,4 @@
 import pandas as pd
-import numpy as np
 import datetime
 from termcolor import colored
 
@@ -62,7 +61,9 @@ def create_cohort(db):
             pass   # create it from scratch
 
     # Create a pandas DF to append to the database
-    tempDF = pd.DataFrame(index=[cohort_options['name']], columns=db.keys())
+    keys = list(db.keys())
+    keys.append('Processing')
+    tempDF = pd.DataFrame(index=[cohort_options['name']], columns=keys)
 
     # Create a cohort class instantiation and fill in metadata
     ch = Cohort()
@@ -105,11 +106,12 @@ def create_cohort(db):
     # Fill in the temp dataframe with the cohort data
     ch.tracking_data = ch.tracking_data(ch_tracking_data['explorations'], ch_tracking_data['wholesessions'],
                                         ch_tracking_data['trials'])
-    tempDF.iloc[0]['Metadata'] = ch.metadata
-    tempDF.iloc[0]['Tracking'] = ch.tracking_data
+    tempDF.loc[cohort_options['name']].Metadata = ch.metadata
+    tempDF.loc[cohort_options['name']].Tracking = ch.tracking_data
+    tempDF.loc[cohort_options['name']].Processing = {}
 
     # Append the temp DF to the database
-    db = pd.concat([db, tempDF])
+    db = pd.concat([db, tempDF], sort=False)
 
     print('       Cohort created. Got Tracking data from sessions {}'.format(ch.metadata.sessions_in_cohort))
     return db, tempDF

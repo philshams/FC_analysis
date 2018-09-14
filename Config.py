@@ -31,7 +31,7 @@ Experiment_type specifies which kind of experiment we are analysing (e.g. maze o
 might behave differently depending on the type of experiment
 """
 # TODO add "new" to selector type
-selector_type = 'cohort'  # selects which session to an 'new', 'experiment', 'session', 'date' or COHORT to
+selector_type = 'date'  # selects which session to an 'new', 'experiment', 'session', 'date' or COHORT to
 selector = ['180603', '180604', '180605', '180606', '180607', '180625', '180626', '180628',
             '180801', '180823', '180830', '180901', '180907', '180909']
 exp_type = 'maze'
@@ -69,7 +69,7 @@ track_options = {
 """
 Process tracking data (e.g. extract velocity trace from coordinates)
 """
-processing = False
+processing = True
 processing_options = {
     'cfg': './Processing/processing_cfg.yml'
 }
@@ -85,11 +85,11 @@ debug = False  # If true runs a gui to debug tracking data
 """
 Cohort gives the option to pool the data from all the sessions analysed for group analysis
 """
-cohort = True                       # make a cohort or process existing one
+cohort = False                       # make a cohort or process existing one
 cohort_options = {
-    'name': 'CH_twoandahalf_maze',     # Name of the cohort
+    'name': 'CH_2arms_maze',     # Name of the cohort
     'selector type': 'date',     # what to select the sessions to pool by [e.g. by experiment, by date...]
-    'selector': ['180907', '180909'],       # actual values to select by {e.g. session ID number]
+    'selector': ['180625', '180626', '180628'],       # actual values to select by {e.g. session ID number]
     'data to pool': ['tracking']    # what data from the sessions you want to pool in the cohort (e.g. tracking)
 }
 
@@ -100,7 +100,7 @@ cohort_options = {
 """
 Plotting still needs to be implemented 
 """
-plotting = False
+plotting = True
 plotting_options = {
     'cfg': './Plotting/plotting_cfg.yml'
 }

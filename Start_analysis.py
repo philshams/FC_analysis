@@ -14,6 +14,7 @@ from Utils.decorators import clock
 from Tracking.Tracking_main import Tracking
 from Processing import Processing_main, Processing_exp_maze
 from Plotting import Single_trial_summary
+from Plotting import Maze_cohort_summary
 from Debug.DebugTrack_GUI_Main import start_gui
 
 from Config import load_database, update_database, load_name, save_name\
@@ -118,6 +119,8 @@ class Analysis():
             if cohort:
                 self.processing_cohort()
 
+        return
+
 ########################################################################################################################
     @clock
     def video_analysis(self, session):
@@ -157,11 +160,11 @@ class Analysis():
     def processing_cohort(self):
         # Create a cohort and store it in database
         self.db, coh = create_cohort(self.db)  # Get all the trial data in one place
-
         # process cohort
         Processing_exp_maze.Processing_cohortMaze(coh)
 
         # plot cohort
+        Maze_cohort_summary.MazeCohortPlotter(coh)
 
         # save
         self.save_results(obj=self.db, mod='_cohort')
