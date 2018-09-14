@@ -23,25 +23,36 @@ from Config import processing_options, send_messages
 
 
 class MazeSessionPlotter:
+    """
+    Plots a summary of a whole session (or a whole cohort).  It plots:
+        * A heatmap of the outcomes of the trials
+        * The probability of taking different paths
+        * The probability of taking different paths as a function of:
+                - horizontal position on the threat platform
+
+    # TODO check that it works with cohorts too
+    """
     def __init__(self, session):
         print('      Plotting whole session summary')
-
+        # Prep up useful variables
         self.colors = [[.2, .2, .2], [.8, .4, .4], [.4, .8, .4], [.4, .4, .8]]
         self.session = session
-
         self.settings = load_yaml(processing_options['cfg'])
 
+        # Create figure and set up axes
         self.set_up_fig()
-        self.origins, self.escapes, self.origins_escapes_legends = self.plot_originsescapes()
+
+        # Plot
+        self.origins, self.escapes, self.origins_escapes_legends = self.plot_outcomes_heatmap()
         self.plot_probability_per_arm()
         self.plot_probs_as_func_x_pos()
 
+        # Save or display the figure
         if self.settings['save figs']:
             path = 'D:\\Dropbox (UCL - SWC)\\Dropbox (UCL - SWC)\\Rotation_vte\\data\\z_TrialImages'
             name = '{}'.format(self.session.name)
             print('             ... saving figure {}'.format(name))
             plt.savefig(os.path.join(path, name), facecolor=[0.1, 0.1, 0.1])
-
             if send_messages:
                 send_email_attachments(name, os.path.join(path, name))
             plt.close('all')
@@ -49,38 +60,45 @@ class MazeSessionPlotter:
             plt.show()
 
     def set_up_fig(self):
+        """ creates the matpltlib figure and axes """
         self.f = plt.figure(figsize=(35, 15), facecolor=[0.1, 0.1, 0.1])
-
         grid = (4, 4)
 
+        # Trials heatmap
         self.arms_heatmap = plt.subplot2grid(grid, (0, 0), rowspan=1, colspan=1)
         self.arms_heatmap.set(title='origin and escape arms',
                               facecolor=[0.2, 0.2, 0.2], xlim=[300, -300], ylim=[-500, 100], xlabel='trials')
 
+        # Probability of taking each arm
         self.arms_probs = plt.subplot2grid(grid, (0, 1), rowspan=1, colspan=1)
         self.arms_probs.set(title='Probability per arm', facecolor=[0.2, 0.2, 0.2])
 
+        # Probability of escaping on a arm given hor. position
         self.x_pos_arm_prob = plt.subplot2grid(grid, (1, 0), rowspan=1, colspan=1)
         self.x_pos_arm_prob.set(title='Probability per arm per x pos', facecolor=[0.2, 0.2, 0.2],
                                 xlabel='X position (binned)', ylabel='Probability')
         self.f.tight_layout()
 
-    def plot_originsescapes(self):
+    def plot_outcomes_heatmap(self):
+        """ Creates a heatmap of all trials color coded by the path taken.
+            First row is the origins, bottom row is the scapes """
         ors = self.session.processing['Origins']
         escs = self.session.processing['Escapes']
         legends = np.vstack((np.asarray(ors), np.asarray(escs)))
 
+        # Go from string encoding of outcomes to numerical for plotting
         ors = [1 if x=='Left' else 2 if x=='Central' else 3 if x=='Right' else 0 for x in ors]
         escs = [1 if x=='Left' else 2 if x=='Central' else 3 if x=='Right' else 0 for x in escs]
-
         arms = np.vstack((np.array(ors), np.array(escs)))
+
+        # Plot and return results
         sns.heatmap(arms, ax=self.arms_heatmap, cmap=self.colors, vmin=0, vmax=3, cbar=False, annot=True,
                     linewidths=.5, yticklabels=False)
         self.arms_heatmap.set(xlabel='Trials', ylabel='Escapes - Origins')
-
         return ors, escs, legends
 
     def plot_probability_per_arm(self):
+        """ Plot the probability of having an origin or an escape along each arm """
         classes = np.array(list(('origin', 'escape')*4))
         possibilites_s = np.array([item for pair in zip( ['None', 'Left', 'Centre', 'Right'],
                                                          ['None', 'Left', 'Centre', 'Right'] + [0]) for item in pair])
@@ -93,6 +111,7 @@ class MazeSessionPlotter:
         make_legend(self.arms_probs,[0.1, .1, .1], [0.8, 0.8, 0.8])
 
     def plot_probs_as_func_x_pos(self):
+        """ Plot the probability of escaping through each path as a function of hor. position """
         l, c, r = [], [], []
         for prob in self.session.processing['Origin probabilities'].per_x:
             l.append(prob.left)

@@ -3,7 +3,7 @@ import numpy as np
 from collections import namedtuple
 
 from Utils.Messaging import slack_chat_messenger
-from Plotting import Maze_session_summary
+
 
 class ProcessingTrialsMaze:
     """ Applies processsing steps that are specific to maze experiments (e.g. get arm of escape) """
@@ -197,28 +197,32 @@ class ProcessingTrialsMaze:
         if not 'session' in name.lower() or 'exploration' in name.lower:
             data = self.session.Tracking[name]
 
-            if time is None:  # if a time is not give take the midpoint
-                time = int(len(self.trace.x)/2)
+            if data.dlc_tracking.keys():
+                if time is None:  # if a time is not give take the midpoint
+                    time = int(len(self.trace.x)/2)
 
-            # Create a named tuple with all the params from processing (e.g. head angle) and the selected time point
-            params = data.dlc_tracking['Posture']['body'].keys()
-            params = [x.replace(' ', '') for x in params]
-            params = namedtuple('params', list(params))
-            values = data.dlc_tracking['Posture']['body'].values[time]
-            status = params(*values)
+                # Create a named tuple with all the params from processing (e.g. head angle) and the selected time point
+                params = data.dlc_tracking['Posture']['body'].keys()
+                params = [x.replace(' ', '') for x in params]
+                params = namedtuple('params', list(params))
+                values = data.dlc_tracking['Posture']['body'].values[time]
+                status = params(*values)
 
-            # Make named tuple with posture data at timepoint
-            posture_names = namedtuple('posture', sorted(list(data.dlc_tracking['Posture'].keys())))
-            bodypart = namedtuple('bp', 'x y')
-            bodyparts = []
-            for bp, vals in sorted(data.dlc_tracking['Posture'].items()):
-                pos = bodypart(vals['x'].values[time], vals['y'].values[time])
-                bodyparts.append(pos)
-            posture = posture_names(*bodyparts)
+                # Make named tuple with posture data at timepoint
+                posture_names = namedtuple('posture', sorted(list(data.dlc_tracking['Posture'].keys())))
+                bodypart = namedtuple('bp', 'x y')
+                bodyparts = []
+                for bp, vals in sorted(data.dlc_tracking['Posture'].items()):
+                    pos = bodypart(vals['x'].values[time], vals['y'].values[time])
+                    bodyparts.append(pos)
+                posture = posture_names(*bodyparts)
 
-            complete = namedtuple('status', 'posture status')
-            complete = complete(posture, status)
-            data.processing['status at {}'.format(timename)] = complete
+                complete = namedtuple('status', 'posture status')
+                complete = complete(posture, status)
+                data.processing['status at {}'.format(timename)] = complete
+            else:
+                data.processing['status at {}'.format(timename)] = None
+
 
     def get_origin_escape_arms(self, name):
         def get_arm(trace, midline, halfwidth):
@@ -292,9 +296,6 @@ class ProcessingSessionMaze:
         # Process stuff
         self.get_origins_escapes()
         self.get_probs()
-
-        # Plot stuff
-        Maze_session_summary.MazeSessionPlotter(session)
 
     def get_origins_escapes(self):
         # Get origina nd escape arms

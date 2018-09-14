@@ -1,5 +1,3 @@
-from Plotting.Plotting_utils import *
-
 import matplotlib.pyplot as plt
 import matplotlib
 matplotlib.rc('axes', edgecolor=[0.8, 0.8, 0.8])
@@ -15,35 +13,29 @@ plt.rcParams.update(params)
 import numpy as np
 import math
 import os
-import time
-
-from Processing.Processing_utils import parallelizer
 from multiprocessing.dummy import Pool as ThreadPool
 
 from Utils.maths import line_smoother
 from Utils.Messaging import send_email_attachments
+from Utils.loadsave_funcs import load_yaml
+from Plotting.Plotting_utils import *
+from Processing.Processing_utils import parallelizer
 
-from Config import send_messages
+from Config import send_messages, plotting_options
 
 
 class Plotter():
+    """ Plots all the variables as a result of tracking+processing a single trial """
     def __init__(self, session):
-        """
-        This class plots all the data for a single trial:
-            - std tracking
-            - dlc tracking
-            - velocity
-            - orientation
-        """
         print('      Plotting single trials summaries')
 
         plt.ion()
         if not session is None:
-
-            self.exploration_maxmin = 10
-
-            self.plot_pose = True
-            self.save_figs = True
+            # Get a number of useful flags
+            plotting_settings = load_yaml(plotting_options['cfg'])
+            self.exploration_maxmin = plotting_settings['exploration max length']
+            self.plot_pose = plotting_settings['plot pose']
+            self.save_figs = plotting_settings['save figs']
 
             self.session = session
 
@@ -62,16 +54,15 @@ class Plotter():
                 'tail': [0.4, 0.4, 0.8],
             }
 
-            self.get_trials_data()
+            # Get trials data and start main() which takes care of plotting each trial
+            self.get_trials_metadata()
             self.main()
-        else:
-            plt.show()
 
 ########################################################################################################################
 
-    def get_trials_data(self):
+    def get_trials_metadata(self):
+        """ get metadata about all trials in the session being processed """
         tracking = self.session.Tracking
-
         trials_names = tracking.keys()
         self.trials = {}
         for trial in trials_names:
@@ -87,54 +78,66 @@ class Plotter():
                     pass
 
     def setup_figure(self):
+        """  Create figure and set up axes for plotting """
         self.f = plt.figure(figsize=(35,15), facecolor=[0.1, 0.1, 0.1])
-
         grid = (6, 9)
 
+        # 2d tracking data for the trial plotted
         self.twod_track = plt.subplot2grid(grid, (0, 1), rowspan=3, colspan=2)
         self.twod_track.set(title='Tracking relative to shelter',
                             facecolor=[0.2, 0.2, 0.2], xlim=[300, -300], ylim=[-500, 100], xlabel='px', ylabel='px')
 
+        # STD tracking 1D
         self.std = plt.subplot2grid(grid, (0, 3), rowspan=1, colspan=2)
         self.std.set(title='STD - X-Y displacement', facecolor=[0.2, 0.2, 0.2], xlabel='frames', ylabel='px')
 
+        # DLC tracking 1D
         self.dlc = plt.subplot2grid(grid, (2,  3), rowspan=1, colspan=2, sharex=self.std)
         self.dlc.set(title='STD - X-Y displacement', facecolor=[0.2, 0.2, 0.2], xlabel='frames', ylabel='px')
 
+        # STD tracking velocity
         self.std_vel_plot = plt.subplot2grid(grid, (1, 3), rowspan=1, colspan=2, sharex=self.std)
         self.std_vel_plot.set(title='DLC - Velocity [{}]'.format(self.processing_metadata['velocity unit']),
                               facecolor=[0.2, 0.2, 0.2], xlabel='frames',
                               ylabel=' [{}]'.format(self.processing_metadata['velocity unit']))
 
+        # DLC tracking velocity
         self.dlc_vel_plot = plt.subplot2grid(grid, (3,  3), rowspan=1, colspan=2, sharex=self.std)
         self.dlc_vel_plot.set(title='DLC - Velocity [{}]'.format(self.processing_metadata['velocity unit']),
                               facecolor=[0.2, 0.2, 0.2], xlabel='frames',
                               ylabel=' [{}]'.format(self.processing_metadata['velocity unit']))
 
+        # show tracking 2d overimposed on background
         self.tracking_on_maze = plt.subplot2grid(grid, (0, 0), rowspan=1, colspan=1)
         self.tracking_on_maze.set(title='Tracking on maze', facecolor=[0.2, 0.2, 0.2], xlim=[0, 600], ylim=[600, 0],
                                   xlabel='frames', ylabel='px')
 
+        # Plot the angle of the body and head during the trial
         self.absolute_angle_plot = plt.subplot2grid(grid, (0, 5), rowspan=2, colspan=2, projection='polar')
         self.absolute_angle_plot.set(title='Orientation (body green)', theta_zero_location='N', facecolor=[0.2, 0.2, 0.2],
                                      theta_direction=-1, xlabel='frames', ylabel='deg')
 
+        # DLC pose reconstruction
         self.pose = plt.subplot2grid(grid, (4, 0), rowspan=2, colspan=9)
         self.pose.set(title='Pose reconstruction', facecolor=[0.2, 0.2, 0.2], ylim=[635, -150], xlabel='frames')
 
+        # Plot the pose in 2d space at stim onset
         self.pose_space = plt.subplot2grid(grid, (2, 0), rowspan=1, colspan=1)
         self.pose_space.set(title='Pose at stim', facecolor=[0.2, 0.2, 0.2], xlim=[150, 450], ylim=[650, 350])
 
+        # Plot a heatmap of either exploration or whole session tracking data
         self.exploration_plot = plt.subplot2grid(grid, (1, 0), rowspan=1, colspan=1)
         self.exploration_plot.set(title='Eploration', facecolor=[0.2, 0.2, 0.2], xlim=[0, 700], ylim=[600, 0])
 
+        # Plot a bunch of variables to try and get at reaction time
         self.react_time_plot =  plt.subplot2grid(grid, (3, 0), rowspan=1, colspan=3)
         self.react_time_plot.set(title='Reaction Time', facecolor=[0.2, 0.2, 0.2], xlabel='frames', ylabel='-')
 
+        # plot the head angle - body angle
         self.head_rel_angle = plt.subplot2grid(grid, (2, 5), rowspan=2, colspan=2, projection='polar')
         self.head_rel_angle.set(title='Head Relative Angle', theta_zero_location='N', facecolor=[0.2, 0.2, 0.2],
                                 theta_direction=-1)
-
+        # Plot head and body angular velocity
         self.ang_vel_plot = plt.subplot2grid(grid, (0, 7), rowspan=1, colspan=2)
         self.ang_vel_plot.set(title='Angular velocity', facecolor=[0.2, 0.2, 0.2], ylim=[-50, 50],
                               xlabel='frames', ylabel='deg/sec')
@@ -144,6 +147,7 @@ class Plotter():
 ########################################################################################################################
 
     def get_tr_data_to_plot(self, trial):
+        """ get tracking data for the trial being plotted """
         self.stim = int(len(trial.std_tracking) / 2)
         self.wnd = 600
 
@@ -205,6 +209,7 @@ class Plotter():
             self.exploration = self.session.Tracking['Whole Session']
 
     def get_dlc_pose(self, trial, stim):
+        """ get tracking data to reconstruct  """
         frames = np.linspace(stim-self.prestim_frames, stim+self.poststim_frames,
                              self.prestim_frames+self.poststim_frames+1)
 

@@ -120,7 +120,7 @@ get_trials_clips = False
 """
 Options to send slack message, slack channel messages or emails with progress of the analysis and results
 """
-send_messages = True
+send_messages = False
 slack_username = 'U9ES1UXSM'
 slack_env_var_token = 'SLACK_BRANCO_TOKEN'
 
