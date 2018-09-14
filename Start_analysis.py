@@ -4,7 +4,7 @@ import warnings
 import os
 
 from Utils import Image_processing
-from Utils.loadsave_funcs import save_data, load_data, load_paths
+from Utils.loadsave_funcs import save_data, load_data, load_paths, load_yaml
 from Utils.Setup_funcs import create_database
 from Utils.Data_rearrange_funcs import create_cohort, check_session_selected
 from Utils.Messaging import slack_chat_messenger
@@ -15,7 +15,7 @@ from Plotting import Single_trial_summary
 from Debug.DebugTrack_GUI_Main import start_gui
 
 from Config import load_database, update_database, load_name, save_name\
-    , selector_type, selector,\
+    , selector_type, selector,processing_options, plotting_options, exp_type, \
     extract_rois_background, track_mouse, track_options, \
     plotting, cohort, processing, debug, send_messages
 
@@ -142,10 +142,15 @@ class Analysis():
             self.save_results(obj=self.db, mod='_processing')
 
     def plotting_session(self, session):
+            plotting_settings = load_yaml(plotting_options['cfg'])
+
             Single_trial_summary.Plotter(session)
 
+            if plotting_settings['plot exp specific'] and exp_type == 'maze':
+                from Plotting import Maze_session_summary
+                Maze_session_summary.MazeSessionPlotter(session)
 
-########################################################################################################################
+    ########################################################################################################################
     def cohort_analysis(self):
         # Create a cohort and store it in database
         self.db = create_cohort(self.db)  # Get all the trial data in one place

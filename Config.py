@@ -10,10 +10,10 @@ load_database = True  # This is False only if you are creating a new database
 
 # Specify if you want to update the database to add recently added sessions to database
 update_database = False
-load_name = 'alldata'  # name of file to load
+load_name = 'alldata2'  # name of file to load
 
 # Specify name with which to save the results of the analysis
-save_name = 'alldata'
+save_name = 'alldata2'
 
 """
 Specify set of sessions to analyse 
@@ -46,7 +46,7 @@ startf = 4000  # Skip the first n frames of the first video when tracking
 
 extract_rois_background = False  # If 'bg get rois' = True, set this to True to manually extract the rois from bg
 
-track_mouse = True             # <----- !!!!!!!!!!  Run tracking
+track_mouse = False             # <----- !!!!!!!!!!  Run tracking
 track_options = {
     'bg get rois': True,          # allow user to define 3 ROIs when extracting background [threat, shelter variable]
     'track whole session': True,  # Track the mouse for the entire session
@@ -70,7 +70,7 @@ Process tracking data (e.g. extract velocity trace from coordinates)
 """
 processing = True
 processing_options = {
-    'cfg': 'C:\\Users\\Federico\\Documents\\GitHub\\FC_analysis\\Processing\\processing_cfg.yml' 
+    'cfg': './Processing/processing_cfg.yml'
 }
 
 #######################
@@ -99,9 +99,10 @@ cohort_options = {
 """
 Plotting still needs to be implemented 
 """
-plotting = False
-plotting_individuals = False
-plotting_cohort = True
+plotting = True
+plotting_options = {
+    'cfg': './Plotting/plotting_cfg.yml'
+}
 
 
 #######################
