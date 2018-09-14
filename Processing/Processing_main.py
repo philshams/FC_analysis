@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt   # Used to test stuff while writing new functions
 from multiprocessing.dummy import Pool as ThreadPool
 import warnings
+from termcolor import colored
 
 from Utils.loadsave_funcs import load_yaml
 from Utils.maths import calc_acceleration, calc_angle_2d, calc_ang_velocity, calc_ang_acc
@@ -19,6 +20,8 @@ class Processing:
     Call experiment-specific processing classes when appropriate
     """
     def __init__(self, session, database):
+        print(colored('        processing...', 'green'))
+
         # load processing settings from yaml file
         self.settings = load_yaml(processing_options['cfg'])
 
@@ -29,15 +32,15 @@ class Processing:
         for data_name, tracking_data in sorted(list(self.session.Tracking.items())):
             try:
                 if data_name == 'Exploration' or data_name == 'Whole Session':
-                    print('          processing currently only supports processing of trial data, not {}'.format(data_name))
+                    print(colored('          processing currently only supports processing of trial data, not {}'.format(
+                        data_name), 'yellow'))
                     continue
 
-                print('        Trial {}'.format(data_name))
+                print(colored('        Trial {}'.format(data_name), 'green'))
                 self.tracking_data = tracking_data
 
                 # Save info about processing options in the metadata
                 self.define_processing_metadata()
-                t0 = time.perf_counter()
                 # Apply processes in parallel
                 # TODO use decorator to make sure that functions are automatically added to the list, avoid bugs
                 funcs = [self.extract_bodylength, self.extract_velocity, self.extract_location_relative_shelter,
@@ -49,17 +52,15 @@ class Processing:
                 self.extract_ang_velocity()
                 # PoseReconstructor(self.tracking_data.dlc_tracking['Posture'])  # WORK IN PROGRESS, buggy
 
-                elapsed = time.perf_counter() - t0
-                print('          processing took {}s\n'.format(round(elapsed, 2)))
             except:
                 warnings.warn('Could not analyse this trial!!!')  # but avoid crashing the whole analysis
-                print('          trial {} could not be processed!'.format(data_name))
+                print(colored('          trial {} could not be processed!'.format(data_name), 'yellow'))
                 slack_chat_messenger('Could not process trial {}'.format(data_name))
 
         # Call experiment specific processing tools [only implemented for maze experiments]
         if self.settings['apply exp-specific']:
             ProcessingTrialsMaze(self.session, debugging=self.settings['debug exp-specific'])
-            ProcessingSessionMaze(self.session, debugging=self.settings['debug exp-specific'])
+            ProcessingSessionMaze(self.session)
 
         else:
             from warnings import warn

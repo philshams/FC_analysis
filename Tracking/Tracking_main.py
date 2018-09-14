@@ -11,6 +11,7 @@ from Utils.Custom_funcs import cut_crop_video
 from Utils import Data_rearrange_funcs
 from Utils.utils_classes import Trial
 from Utils.loadsave_funcs import load_yaml
+from Utils.decorators import clock
 
 from Config import startf, exp_type, track_options
 
@@ -80,6 +81,7 @@ class Tracking():
         if track_options['track_mouse_fast']:
             self.track_trials()
 
+    @clock
     def track_exploration(self):
         if track_options['track whole session']:
             # No need to track the exploration, we will be tracking the whole session anyway so we can extract
@@ -104,6 +106,7 @@ class Tracking():
                                                                           tracked.data.y,
                                                                           tracked.data.orientation)
 
+    @clock
     def track_wholesession(self):
         # Check if tracking the whole session
         print('     ... tracking the whole session')
@@ -123,6 +126,7 @@ class Tracking():
             if track_options['track_exploration']:
                 print('Need to write a function to extract the exploration data from the whole session data')
 
+    @clock
     def track_trials(self):
         cfg = self.cfg
         print('     ... tracking individual trials')
@@ -198,7 +202,7 @@ class Tracking():
 
 ########################################################################################################################
 ########################################################################################################################
-
+    @clock
     def tracking(self, bg, video_path, start_frame=1, video_fps=30, stop_frame=-1, justCoM=True):
         # Create video capture
         cap = cv2.VideoCapture(video_path)

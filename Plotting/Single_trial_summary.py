@@ -14,10 +14,12 @@ import numpy as np
 import math
 import os
 from multiprocessing.dummy import Pool as ThreadPool
+from termcolor import colored
 
 from Utils.maths import line_smoother
 from Utils.Messaging import send_email_attachments
 from Utils.loadsave_funcs import load_yaml
+from Utils.decorators import clock
 from Plotting.Plotting_utils import *
 from Processing.Processing_utils import parallelizer
 
@@ -27,7 +29,7 @@ from Config import send_messages, plotting_options
 class Plotter():
     """ Plots all the variables as a result of tracking+processing a single trial """
     def __init__(self, session):
-        print('      Plotting single trials summaries')
+        print(colored('\n      Plotting single trials summaries', 'green'))
 
         plt.ion()
         if not session is None:
@@ -521,6 +523,8 @@ class Plotter():
 
         make_legend(self.ang_vel_plot, [0.1, .1, .1], [0.8, 0.8, 0.8], changefont=8)
 
+########################################################################################################################
+    @clock
     def plot_trial(self, trialidx):
         """
         Main plotting function of the script. calls subfuncs that take care of each subplot
@@ -532,8 +536,8 @@ class Plotter():
 
         self.setup_figure()
 
-        print('         ... plotting trial {} of {}: {}'.format(
-            trialidx+1, len(list(self.trials.keys()))-1, trialname))
+        print(colored('         ... plotting trial {} of {}: {}'.format(
+            trialidx, len(list(self.trials.keys()))-1, trialname), 'green'))
 
         self.trial = self.trials[list(self.trials.keys())[trialidx]]
 
@@ -568,7 +572,6 @@ class Plotter():
             plt.close('all')
 
 ########################################################################################################################
-
     def main(self):
         """
         Loop, plot stuff and allow user to select other trials
@@ -582,11 +585,9 @@ class Plotter():
             try:
                 self.plot_trial(self.sel_trial)
             except:
-                print('Could not plot trial')
-
+                print(colored('Could not plot trial', 'yellow'))
             self.sel_trial += 1
             if self.sel_trial > num_trials:
-                print('         ... displayed all trials.')
                 break
 
         plt.show()

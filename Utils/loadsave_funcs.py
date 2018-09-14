@@ -2,10 +2,12 @@ import pandas as pd
 import yaml
 import os
 from warnings import warn
+from termcolor import colored
 
 
 def save_data(savelogpath, load_name, save_name, loaded_db_size, object=None, name_modifier='', saveas='pkl'):
     """ saves an object (the database) to file. If the object is not a dataframe, turns it into one"""
+    print(colored('\n     ... saving', 'yellow'))
     # Avoid overwriting
     if load_name == save_name:
         save_name += '_safe'
@@ -34,12 +36,12 @@ def save_data(savelogpath, load_name, save_name, loaded_db_size, object=None, na
             if counter > 10000:
                 break
 
-        print('           ... data saved as {}\n'.format(save_name))
+        print(colored('           ... data saved as {}\n'.format(save_name), 'yellow'))
     except:
         if object is None:
-            warn('           ... tried to save a "None" object')
+            warn(colored('           ... tried to save a "None" object', 'yellow'))
         else:
-            warn('           ... something went wrong with saving')
+            warn(colored('           ... something went wrong with saving', 'yellow'))
 
 
 def load_data(savelogpath, load_name, loadas='.pkl'):

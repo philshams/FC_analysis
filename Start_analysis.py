@@ -2,12 +2,14 @@ from tqdm import tqdm
 import sys
 import warnings
 import os
+from termcolor import colored
 
 from Utils import Image_processing
 from Utils.loadsave_funcs import save_data, load_data, load_paths, load_yaml
 from Utils.Setup_funcs import create_database
 from Utils.Data_rearrange_funcs import create_cohort, check_session_selected
 from Utils.Messaging import slack_chat_messenger
+from Utils.decorators import clock
 
 from Tracking.Tracking_main import Tracking
 from Processing import Processing_main
@@ -73,7 +75,7 @@ class Analysis():
                     # Check if this is one of the sessions we should be processing
                     selected = check_session_selected(session.Metadata, selector_type, selector)
                     if selected:
-                        print('---------------\nTracking session {}'.format(session_name))
+                        print(colored('---------------\nTracking session {}'.format(session_name), 'green'))
 
                         self.video_analysis(session) # <-- main tracking function
 
@@ -98,7 +100,7 @@ class Analysis():
                 session = self.db.loc[session_name]
                 selected = check_session_selected(session.Metadata, selector_type, selector)
                 if selected:
-                    print('---------------\nProcessing session {}'.format(session_name))
+                    print(colored('---------------\nProcessing session {}'.format(session_name), 'green', attrs=['bold']))
 
                     if processing:
                         self.processing_session(session)
@@ -116,7 +118,7 @@ class Analysis():
             self.cohort_analysis()
 
 ########################################################################################################################
-
+    @clock
     def video_analysis(self, session):
         """ EXTRACT useful information from the videos for one session"""
         # Process background: get maze edges and user selected ROIs
@@ -141,6 +143,7 @@ class Analysis():
             Processing_main.Processing(session, self.db)
             self.save_results(obj=self.db, mod='_processing')
 
+    @clock
     def plotting_session(self, session):
             plotting_settings = load_yaml(plotting_options['cfg'])
 
@@ -150,7 +153,7 @@ class Analysis():
                 from Plotting import Maze_session_summary
                 Maze_session_summary.MazeSessionPlotter(session)
 
-    ########################################################################################################################
+########################################################################################################################
     def cohort_analysis(self):
         # Create a cohort and store it in database
         self.db = create_cohort(self.db)  # Get all the trial data in one place
@@ -160,7 +163,7 @@ class Analysis():
 ########################################################################################################################
     # LOADING AND SAVING
     def save_results(self, obj=None, mod=None):
-        """ calse savedata to handle saving database to file """
+        """ calls savedata to handle saving database to file """
         save_data(self.save_fld, load_name, save_name, self.loaded_database_size, object=obj, name_modifier=mod)
 
     def load_database(self):
@@ -179,14 +182,14 @@ class Analysis():
 
         path = os.path.join(self.save_fld, load_name)
         self.loaded_database_size = os.path.getsize(path)
-        print('Loaded database from file "{}" with size {}'.format(load_name, self.loaded_database_size))
+        print(colored('Loaded database from file "{}" with size {}'.format(load_name, self.loaded_database_size), 'yellow'))
 
         self.save_results(obj=self.db, mod='Metadata')
 
     def print_planned_processing(self):
         """ When starting a new run, print the options specified in Config.py for the user to check """
         import json
-        print(""""
+        print(colored(""""
             Load database: {}
                 update database: {}
                 load name: {}
@@ -208,7 +211,8 @@ class Analysis():
             Send Messages: {}
         """.format(load_database, update_database, load_name, save_name,
                    selector_type, selector, extract_rois_background, track_mouse,
-                   json.dumps(track_options, indent=30), plotting, cohort, processing, debug, send_messages))
+                   json.dumps(track_options, indent=30), plotting, cohort, processing, debug, send_messages),
+                      'white'))
 
 
 #  START

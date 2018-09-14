@@ -1,9 +1,10 @@
-import platform
-
 """
 Script to set up the analysis of behavioural data: defines relevant parameters and flags to control
 the different functionalities of the analysis scripts
 """
+verbose= True   # Display details of on-going processes (e.g. execution times..)
+
+
 # If loading a pre-existant database, specify name of the file it was saved to. otherwise db is generated from
 # scratch from the datalog.csv file
 load_database = True  # This is False only if you are creating a new database

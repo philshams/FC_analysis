@@ -14,12 +14,14 @@ import numpy as np
 import seaborn as sns
 import pandas as pd
 import os
+from termcolor import colored
 
 from Plotting.Plotting_utils import make_legend
 from Utils.Messaging import send_email_attachments
 from Utils.loadsave_funcs import load_yaml
+from Utils.decorators import clock
 
-from Config import processing_options, send_messages
+from Config import plotting_options, send_messages
 
 
 class MazeSessionPlotter:
@@ -33,26 +35,24 @@ class MazeSessionPlotter:
     # TODO check that it works with cohorts too
     """
     def __init__(self, session):
-        print('      Plotting whole session summary')
+        print(colored('\n      Plotting whole session summary', 'green'))
         # Prep up useful variables
         self.colors = [[.2, .2, .2], [.8, .4, .4], [.4, .8, .4], [.4, .4, .8]]
         self.session = session
-        self.settings = load_yaml(processing_options['cfg'])
+        self.settings = load_yaml(plotting_options['cfg'])
 
         # Create figure and set up axes
         self.set_up_fig()
 
         # Plot
-        self.origins, self.escapes, self.origins_escapes_legends = self.plot_outcomes_heatmap()
-        self.plot_probability_per_arm()
-        self.plot_probs_as_func_x_pos()
+        self.session_plot()
 
         # Save or display the figure
         if self.settings['save figs']:
             path = 'D:\\Dropbox (UCL - SWC)\\Dropbox (UCL - SWC)\\Rotation_vte\\data\\z_TrialImages'
             name = '{}'.format(self.session.name)
-            print('             ... saving figure {}'.format(name))
-            plt.savefig(os.path.join(path, name), facecolor=[0.1, 0.1, 0.1])
+            print(colored('             ... saving figure {}'.format(name), 'grey'))
+            self.f.savefig(os.path.join(path, name), facecolor=[0.3, 0.3, 0.3])
             if send_messages:
                 send_email_attachments(name, os.path.join(path, name))
             plt.close('all')
@@ -79,6 +79,12 @@ class MazeSessionPlotter:
                                 xlabel='X position (binned)', ylabel='Probability')
         self.f.tight_layout()
 
+    @clock
+    def session_plot(self):
+        self.origins, self.escapes, self.origins_escapes_legends = self.plot_outcomes_heatmap()
+        self.plot_probability_per_arm()
+        self.plot_probs_as_func_x_pos()
+
     def plot_outcomes_heatmap(self):
         """ Creates a heatmap of all trials color coded by the path taken.
             First row is the origins, bottom row is the scapes """
@@ -102,24 +108,26 @@ class MazeSessionPlotter:
         classes = np.array(list(('origin', 'escape')*4))
         possibilites_s = np.array([item for pair in zip( ['None', 'Left', 'Centre', 'Right'],
                                                          ['None', 'Left', 'Centre', 'Right'] + [0]) for item in pair])
-        probs = np.array([item for pair in zip(self.session.processing['Origin probabilities'].per_arm,
-                                               self.session.processing['Escape probabilities'].per_arm
-                                               + [0]) for item in pair])
-        data = pd.DataFrame({'class':classes, 'types':possibilites_s, 'probs':probs})
+        if self.session.processing['Origin probabilities'] is not None:
+            probs = np.array([item for pair in zip(self.session.processing['Origin probabilities'].per_arm,
+                                                   self.session.processing['Escape probabilities'].per_arm
+                                                   + [0]) for item in pair])
+            data = pd.DataFrame({'class':classes, 'types':possibilites_s, 'probs':probs})
 
-        sns.factorplot(x="types", y='probs', hue='class',  data=data, ax=self.arms_probs, kind='bar')
-        make_legend(self.arms_probs,[0.1, .1, .1], [0.8, 0.8, 0.8])
+            sns.factorplot(x="types", y='probs', hue='class',  data=data, ax=self.arms_probs, kind='bar')
+            make_legend(self.arms_probs,[0.1, .1, .1], [0.8, 0.8, 0.8])
 
     def plot_probs_as_func_x_pos(self):
         """ Plot the probability of escaping through each path as a function of hor. position """
         l, c, r = [], [], []
-        for prob in self.session.processing['Origin probabilities'].per_x:
-            l.append(prob.left)
-            c.append(prob.central)
-            r.append(prob.right)
+        if self.session.processing['Origin probabilities'] is not None:
+            for prob in self.session.processing['Origin probabilities'].per_x:
+                l.append(prob.left)
+                c.append(prob.central)
+                r.append(prob.right)
 
-        self.x_pos_arm_prob.bar([0.00, 1.00, 2.00, 3.00], l, width=0.25, color=self.colors[1], label='Left')
-        self.x_pos_arm_prob.bar([0.25, 1.25, 2.25, 3.25], c, width=0.25, color=self.colors[2], label='Center')
-        self.x_pos_arm_prob.bar([0.50, 1.50, 2.50, 3.50], r, width=0.25, color=self.colors[3], label='Right')
+            self.x_pos_arm_prob.bar([0.00, 1.00, 2.00, 3.00], l, width=0.25, color=self.colors[1], label='Left')
+            self.x_pos_arm_prob.bar([0.25, 1.25, 2.25, 3.25], c, width=0.25, color=self.colors[2], label='Center')
+            self.x_pos_arm_prob.bar([0.50, 1.50, 2.50, 3.50], r, width=0.25, color=self.colors[3], label='Right')
 
         make_legend(self.arms_probs,[0.1, .1, .1], [0.8, 0.8, 0.8])

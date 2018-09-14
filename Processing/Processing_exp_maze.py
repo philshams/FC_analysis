@@ -1,8 +1,10 @@
 import matplotlib.pyplot as plt  # used for debugging
 import numpy as np
 from collections import namedtuple
+from termcolor import colored
 
 from Utils.Messaging import slack_chat_messenger
+from Utils.decorators import clock
 
 
 class ProcessingTrialsMaze:
@@ -11,7 +13,7 @@ class ProcessingTrialsMaze:
     # TODO create images-heatmaps of traces for plotting
 
     def __init__(self, session, debugging=True):
-        print('      Individual trials - maze processing')
+        print(colored('\n      Maze-specific single trials processing', 'green'))
         self.session = session
         self.debugging = debugging
 
@@ -40,7 +42,7 @@ class ProcessingTrialsMaze:
                         warn('Something went wrong when applying maze-processing')
                         slack_chat_messenger('Something went wrong with maze-processing, trial {}'.format(item))
 
-                    print('          did not apply maze-processing to with trial {}'.format(item))
+                    print(colored('          did not apply maze-processing to with trial {}'.format(item), 'yellow'))
 
     def subdivide_frame(self):
         """
@@ -89,6 +91,7 @@ class ProcessingTrialsMaze:
             limits = boundaries(midpoint.x, midpoint.y, edges[0], edges[1])
         return rois, limits
 
+    @clock
     def get_trial_traces(self, trial_name):
         data = self.session.Tracking[trial_name]
         if isinstance(data, dict):
@@ -223,7 +226,6 @@ class ProcessingTrialsMaze:
             else:
                 data.processing['status at {}'.format(timename)] = None
 
-
     def get_origin_escape_arms(self, name):
         def get_arm(trace, midline, halfwidth):
             maxleft = abs(np.min(trace.x) - midline)
@@ -288,8 +290,8 @@ class ProcessingTrialsMaze:
 
 
 class ProcessingSessionMaze:
-    def __init__(self, session, debugging=False):
-        print('      Whole session - maze processing')
+    def __init__(self, session):
+        print(colored('\n      Maze-specific whole session processing', 'green'))
 
         self.session = session
 
@@ -297,6 +299,7 @@ class ProcessingSessionMaze:
         self.get_origins_escapes()
         self.get_probs()
 
+    @clock
     def get_origins_escapes(self):
         # Get origina nd escape arms
         info = namedtuple('info', 'arm xpos status')
@@ -308,14 +311,15 @@ class ProcessingSessionMaze:
             origins.append(self.session.Tracking[trial_name].processing['Origin'])
             escapes.append(self.session.Tracking[trial_name].processing['Escape'])
 
-            origins_dict[trial_name] = info(self.session.Tracking[trial_name].processing['Origin'],
-                                            self.session.Tracking[trial_name].
-                                                processing['status at stimulus'][0].body.x,
-                                            self.session.Tracking[trial_name].processing['status at stimulus'])
-            escapes_dict[trial_name] = info(self.session.Tracking[trial_name].processing['Escape'],
-                                            self.session.Tracking[trial_name].
-                                                processing['status at stimulus'][0].body.x,
-                                            self.session.Tracking[trial_name].processing['status at stimulus'])
+            if self.session.Tracking[trial_name].processing['status at stimulus'] is not None:
+                origins_dict[trial_name] = info(self.session.Tracking[trial_name].processing['Origin'],
+                                                self.session.Tracking[trial_name].
+                                                    processing['status at stimulus'][0].body.x,
+                                                self.session.Tracking[trial_name].processing['status at stimulus'])
+                escapes_dict[trial_name] = info(self.session.Tracking[trial_name].processing['Escape'],
+                                                self.session.Tracking[trial_name].
+                                                    processing['status at stimulus'][0].body.x,
+                                                self.session.Tracking[trial_name].processing['status at stimulus'])
 
         if not 'processing' in self.session.keys():
             setattr(self.session, 'processing', {})
@@ -325,6 +329,7 @@ class ProcessingSessionMaze:
         self.session.processing['Origins dict'] = escapes_dict
         self.session.processing['Escapes dict'] = origins_dict
 
+    @clock
     def get_probs(self):
         def get_probs_as_func_of_x_pos(data):
             # Get probs as a function of (adjusted) hor. position on threat platform at stim onset
@@ -363,8 +368,6 @@ class ProcessingSessionMaze:
 
             return binned_probs
 
-
-
         # Define tuple to store results
         probs = namedtuple('probabilities', 'per_arm per_x')
         """ probabilities:
@@ -376,15 +379,31 @@ class ProcessingSessionMaze:
         possibilites = [0, 1, 2, 3]
         s_possibilities = ['None', 'Left', 'Central', 'Right']
         num_origins, num_escapes = len(self.session.processing['Origins']), len(self.session.processing['Escapes'])
-        origins_probs = [self.session.processing['Origins'].count(x) / num_origins for x in s_possibilities]
-        escapes_probs = [self.session.processing['Escapes'].count(x) / num_escapes for x in s_possibilities]
+        if num_origins:
+            origins_probs = [self.session.processing['Origins'].count(x) / num_origins for x in s_possibilities]
+        else:
+            origins_probs = [0 for x in s_possibilities]
+        if num_escapes:
+            escapes_probs = [self.session.processing['Escapes'].count(x) / num_escapes for x in s_possibilities]
+        else:
+            escapes_probs = [0 for x in s_possibilities]
 
-        # Get Binnd probs
-        x_binned_escapes = get_probs_as_func_of_x_pos(self.session.processing['Escapes dict'].values())
-        x_binned_origins = get_probs_as_func_of_x_pos(self.session.processing['Origins dict'].values())
+        # Get Binned probs
+        if self.session.processing['Escapes dict'].keys():
+            x_binned_escapes = get_probs_as_func_of_x_pos(self.session.processing['Escapes dict'].values())
+            x_binned_origins = get_probs_as_func_of_x_pos(self.session.processing['Origins dict'].values())
 
-        # Set output
-        escape_probs = probs(escapes_probs, x_binned_escapes)
-        origin_probs = probs(origins_probs, x_binned_origins)
-        self.session.processing['Escape probabilities'] = escape_probs
-        self.session.processing['Origin probabilities'] = origin_probs
+            # Set output
+            escape_probs = probs(escapes_probs, x_binned_escapes)
+            origin_probs = probs(origins_probs, x_binned_origins)
+            self.session.processing['Escape probabilities'] = escape_probs
+            self.session.processing['Origin probabilities'] = origin_probs
+        else:
+            self.session.processing['Escape probabilities'] = None
+            self.session.processing['Origin probabilities'] = None
+
+
+
+
+
+
