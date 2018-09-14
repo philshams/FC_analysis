@@ -76,7 +76,7 @@ class MazeSessionPlotter:
         # Probability of escaping on a arm given hor. position
         self.x_pos_arm_prob = plt.subplot2grid(grid, (1, 0), rowspan=1, colspan=1)
         self.x_pos_arm_prob.set(title='Probability per arm per x pos', facecolor=[0.2, 0.2, 0.2],
-                                xlabel='X position (binned)', ylabel='Probability')
+                                xlabel='X position (binned)', ylabel='Probability', xticks=([]))
         self.f.tight_layout()
 
     @clock
@@ -121,7 +121,7 @@ class MazeSessionPlotter:
         """ Plot the probability of escaping through each path as a function of hor. position """
         l, c, r = [], [], []
         if self.session.processing['Origin probabilities'] is not None:
-            for prob in self.session.processing['Origin probabilities'].per_x:
+            for prob in self.session.processing['Escape probabilities'].per_x:
                 l.append(prob.left)
                 c.append(prob.central)
                 r.append(prob.right)
@@ -130,4 +130,7 @@ class MazeSessionPlotter:
             self.x_pos_arm_prob.bar([0.25, 1.25, 2.25, 3.25], c, width=0.25, color=self.colors[2], label='Center')
             self.x_pos_arm_prob.bar([0.50, 1.50, 2.50, 3.50], r, width=0.25, color=self.colors[3], label='Right')
 
+            n1 = [0, 1, 2, 3]
+            [self.x_pos_arm_prob.axvline(x-.125, color='white', linewidth=0.5, label=None) for x in n1]
+            [self.x_pos_arm_prob.axvline(x+.5+.125, color='white', linewidth=0.5, label=None) for x in n1]
         make_legend(self.arms_probs,[0.1, .1, .1], [0.8, 0.8, 0.8])

@@ -29,7 +29,7 @@ from Config import send_messages, plotting_options
 class Plotter():
     """ Plots all the variables as a result of tracking+processing a single trial """
     def __init__(self, session):
-        print(colored('\n      Plotting single trials summaries', 'green'))
+        print(colored('\n       Plotting single trials summaries', 'green'))
 
         plt.ion()
         if not session is None:
@@ -536,7 +536,7 @@ class Plotter():
 
         self.setup_figure()
 
-        print(colored('         ... plotting trial {} of {}: {}'.format(
+        print(colored('          ... plotting trial {} of {}: {}'.format(
             trialidx, len(list(self.trials.keys()))-1, trialname), 'green'))
 
         self.trial = self.trials[list(self.trials.keys())[trialidx]]
@@ -579,7 +579,7 @@ class Plotter():
         :return:
         """
         num_trials = len(list(self.trials.keys()))-1
-        print('         ... {} found {} trials'.format(self.session.name, num_trials))
+        print('          ... {} found {} trials'.format(self.session.name, num_trials))
 
         while True:
             try:

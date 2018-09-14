@@ -11,7 +11,7 @@ from Processing.Processing_exp_maze import ProcessingTrialsMaze, ProcessingSessi
 from Processing.Processing_utils import *
 from Utils.Messaging import slack_chat_messenger
 
-from Config import processing_options, exp_type
+from Config import processing_options, exp_type, cohort_options
 
 
 class Processing:
@@ -266,3 +266,6 @@ class Processing:
 
         data.dlc_tracking['Posture'][self.settings['body']]['Head ang acc'] = \
             calc_ang_acc(data.dlc_tracking['Posture'][self.settings['body']]['Head ang vel'])
+
+
+

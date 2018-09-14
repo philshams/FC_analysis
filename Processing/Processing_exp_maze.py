@@ -6,6 +6,7 @@ from termcolor import colored
 from Utils.Messaging import slack_chat_messenger
 from Utils.decorators import clock
 
+from Config import cohort_options
 
 class ProcessingTrialsMaze:
     """ Applies processsing steps that are specific to maze experiments (e.g. get arm of escape) """
@@ -42,7 +43,7 @@ class ProcessingTrialsMaze:
                         warn('Something went wrong when applying maze-processing')
                         slack_chat_messenger('Something went wrong with maze-processing, trial {}'.format(item))
 
-                    print(colored('          did not apply maze-processing to with trial {}'.format(item), 'yellow'))
+                    print(colored('          did not apply maze-processing to trial {}'.format(item), 'yellow'))
 
     def subdivide_frame(self):
         """
@@ -335,9 +336,10 @@ class ProcessingSessionMaze:
             # Get probs as a function of (adjusted) hor. position on threat platform at stim onset
             x_events = []  # get arm and x position from data
             for d in data:
-                x_events.append(([1 if d[0] == 'Left'
+                x_events.append(([       1 if d[0] == 'Left'
                                     else 2 if d[0] == 'Central'
-                                    else 3 if d[0] == 'Right' else 0],
+                                    else 3 if d[0] == 'Right'
+                                    else 0],
                                  d.status.status.adjustedx))
                 x_events = sorted(x_events, key=lambda tup: tup[1])  # sorted by X position
 
@@ -358,10 +360,9 @@ class ProcessingSessionMaze:
             for probs in binned_events:
                 num_events = len(probs)
                 if num_events:
-                    lprobs = len([x for x in probs if x[0]==[3]])/num_events
-                    cprobs = len([x for x in probs if x[0]==[2]])/num_events
-                    rprobs = len([x for x in probs if x[0]==[1]])/num_events
-
+                    lprobs = len([x for x in probs if x[0] == [1]])/num_events
+                    cprobs = len([x for x in probs if x[0] == [2]])/num_events
+                    rprobs = len([x for x in probs if x[0] == [3]])/num_events
                     binned_probs.append(p(lprobs, cprobs, rprobs))
                 else:
                     binned_probs.append(p(0, 0, 0))
@@ -383,6 +384,7 @@ class ProcessingSessionMaze:
             origins_probs = [self.session.processing['Origins'].count(x) / num_origins for x in s_possibilities]
         else:
             origins_probs = [0 for x in s_possibilities]
+
         if num_escapes:
             escapes_probs = [self.session.processing['Escapes'].count(x) / num_escapes for x in s_possibilities]
         else:
@@ -403,7 +405,15 @@ class ProcessingSessionMaze:
             self.session.processing['Origin probabilities'] = None
 
 
+class Processing_cohortMaze:
+    def __init__(self, cohort):
+        coh_name = cohort_options['name']
+        self.coh = cohort
+        self.coh_metadata = cohort.Metadata[coh_name]
+        self.coh_tracking = cohort.Tracking[coh_name]
+        self.coh_trials = cohort.Tracking[coh_name].trials
 
+        a = 1
 
 
 

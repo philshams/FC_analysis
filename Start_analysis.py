@@ -12,7 +12,7 @@ from Utils.Messaging import slack_chat_messenger
 from Utils.decorators import clock
 
 from Tracking.Tracking_main import Tracking
-from Processing import Processing_main
+from Processing import Processing_main, Processing_exp_maze
 from Plotting import Single_trial_summary
 from Debug.DebugTrack_GUI_Main import start_gui
 
@@ -93,29 +93,30 @@ class Analysis():
                         slack_chat_messenger('Finished DLC tracking')
                 self.save_results(obj=self.db, mod='_backupsave')
 
-        # PROCESS SINGLE SESSIONS
-        if processing or debug or plotting:
-            # Loop over all the sessions - Other processes
-            for session_name in tqdm(sorted(self.db.index)):
-                session = self.db.loc[session_name]
-                selected = check_session_selected(session.Metadata, selector_type, selector)
-                if selected:
-                    print(colored('---------------\nProcessing session {}'.format(session_name), 'green', attrs=['bold']))
+            # PROCESS SINGLE SESSIONS
+            if processing or debug or plotting:
+                # Loop over all the sessions - Other processes
+                for session_name in tqdm(sorted(self.db.index)):
+                    session = self.db.loc[session_name]
+                    selected = check_session_selected(session.Metadata, selector_type, selector)
+                    if selected:
+                        print(colored('---------------\nProcessing session {}'.format(session_name), 'green', attrs=['bold']))
 
-                    if processing:
-                        self.processing_session(session)
+                        if processing:
+                            self.processing_session(session)
 
-                    if debug:
-                        start_gui(session)
+                        if debug:
+                            start_gui(session)
 
-                    if plotting:
-                        self.plotting_session(session)
-            if send_messages:
-                slack_chat_messenger('Finished processing')
-
-        # WORK ON COHORTS
-        if cohort:
-            self.cohort_analysis()
+                        if plotting:
+                            self.plotting_session(session)
+                self.save_results(obj=self.db, mod='_processing')
+                if send_messages:
+                    slack_chat_messenger('Finished processing')
+        else:
+            # WORK ON COHORTS
+            if cohort:
+                self.processing_cohort()
 
 ########################################################################################################################
     @clock
@@ -141,7 +142,6 @@ class Analysis():
 
     def processing_session(self, session):
             Processing_main.Processing(session, self.db)
-            self.save_results(obj=self.db, mod='_processing')
 
     @clock
     def plotting_session(self, session):
@@ -154,9 +154,16 @@ class Analysis():
                 Maze_session_summary.MazeSessionPlotter(session)
 
 ########################################################################################################################
-    def cohort_analysis(self):
+    def processing_cohort(self):
         # Create a cohort and store it in database
-        self.db = create_cohort(self.db)  # Get all the trial data in one place
+        self.db, coh = create_cohort(self.db)  # Get all the trial data in one place
+
+        # process cohort
+        Processing_exp_maze.Processing_cohortMaze(coh)
+
+        # plot cohort
+
+        # save
         self.save_results(obj=self.db, mod='_cohort')
 
 ########################################################################################################################
@@ -183,8 +190,6 @@ class Analysis():
         path = os.path.join(self.save_fld, load_name)
         self.loaded_database_size = os.path.getsize(path)
         print(colored('Loaded database from file "{}" with size {}'.format(load_name, self.loaded_database_size), 'yellow'))
-
-        self.save_results(obj=self.db, mod='Metadata')
 
     def print_planned_processing(self):
         """ When starting a new run, print the options specified in Config.py for the user to check """

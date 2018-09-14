@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import datetime
+from termcolor import colored
 
 from Utils.utils_classes import Trial, Cohort
 
@@ -52,11 +53,13 @@ def create_cohort(db):
     """
     # Check if we are overwriting a pre-existing cohort in the dabatase
     if cohort_options['name'] in db.index:
-        overwrite = input('A cohort with this name already exists in the database.'
-                          '\nOverwrite? [y/n]')
-        if overwrite != 'y':
-            print('Process interrupted to avoid overwriting data')
-            return
+        query = input(colored('A cohort with this name already exists in the database.'
+                          '\nuse that? [y/n]', 'yellow'))
+        if query != 'y':
+            a = 1    # TODO extract session from database
+            return db, a
+        else:
+            pass   # create it from scratch
 
     # Create a pandas DF to append to the database
     tempDF = pd.DataFrame(index=[cohort_options['name']], columns=db.keys())
@@ -64,50 +67,52 @@ def create_cohort(db):
     # Create a cohort class instantiation and fill in metadata
     ch = Cohort()
     ch.name = cohort_options['name']
-    ch.metadata = {
-        'created': datetime.datetime.now().strftime("%y-%m-%d-%H-%M"),
-        'selector type': cohort_options['selector type'],
-        'selector': cohort_options['selector'],
-        'sessions in cohort': []
-    }
+    ch.metadata = ch.metadata(datetime.datetime.now().strftime("%y-%m-%d-%H-%M"), cohort_options['selector type'],
+                              cohort_options['selector'], [])
+
     print('=======================\n=======================')
-    print('Creating cohort: {}\nSelecting: {} - {}\n'.format(ch.name, ch.metadata['selector type'],
-                                                            ch.metadata['selector']))
+    print(colored('Creating cohort: {}\nSelecting: {} - {}\n'.format(ch.name, cohort_options['selector type'],
+                                                                     cohort_options['selector']), 'green', attrs=['bold']))
 
     # Extract data: loop over all sessions in db and get data from selected ones
+    ch_tracking_data = dict(explorations=[], wholesessions=[], trials=[])
     for sess_name, session in db.iterrows():
         # Check if we should add the session to the cohort
-        selected = check_session_selected(session.Metadata, ch.metadata['selector type'], ch.metadata['selector'])
+        selected = check_session_selected(session.Metadata, ch.metadata.selector_type, ch.metadata.selector)
         if selected:
-            print('-----------------\n  ... adding session {}'.format(sess_name))
-            ch.metadata['sessions in cohort'].append(sess_name)
+            print(colored('-----------------\n  ... adding session {}'.format(sess_name), 'green'))
+            ch.metadata.sessions_in_cohort.append((sess_name, session.Metadata))
             for data_modality in cohort_options['data to pool']:
                 if data_modality == 'tracking':
                     print('         ... getting tracking data')
                     try:
-                        for k, val  in session['Tracking']:
+                        for k, val in session['Tracking'].items():
                             if k == 'Exploration':
-                                ch.tracking_data['explorations'].append(val)
+                                ch_tracking_data['explorations'].append(val)
                             elif k == 'Whole Session':
-                                ch.tracking_data['whole sessions'].append(val)
+                                ch_tracking_data['wholesessions'].append(val)
                             else:   # trial
-                                ch.tracking_data['trials'].append(val)
+                                ch_tracking_data['trials'].append(val)
                     except:
                         from warnings import warn
-                        warn('        ... no tracking data was found. Make sure you are loading the correct database!')
+                        warn("""        ... no tracking data was found for session {}.'
+                              Make sure you are loading the correct database!""".format(sess_name))
+                        a = 1
                 else:
                     print('Currently cohort formation supports only tracking pooling, not {}'.format(data_modality))
                     # TODO support other modalities
 
     # Fill in the temp dataframe with the cohort data
+    ch.tracking_data = ch.tracking_data(ch_tracking_data['explorations'], ch_tracking_data['wholesessions'],
+                                        ch_tracking_data['trials'])
     tempDF.iloc[0]['Metadata'] = ch.metadata
     tempDF.iloc[0]['Tracking'] = ch.tracking_data
 
     # Append the temp DF to the database
     db = pd.concat([db, tempDF])
 
-    print('       Cohort created. Got Tracking data from sessions {}'.format(ch.metadata['sessions in cohort']))
-    return db
+    print('       Cohort created. Got Tracking data from sessions {}'.format(ch.metadata.sessions_in_cohort))
+    return db, tempDF
 
 
 def arrange_dlc_data(df):

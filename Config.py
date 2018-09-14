@@ -11,7 +11,7 @@ load_database = True  # This is False only if you are creating a new database
 
 # Specify if you want to update the database to add recently added sessions to database
 update_database = False
-load_name = 'alldata2'  # name of file to load
+load_name = 'alldata_processed'  # name of file to load
 
 # Specify name with which to save the results of the analysis
 save_name = 'alldata2'
@@ -31,7 +31,7 @@ Experiment_type specifies which kind of experiment we are analysing (e.g. maze o
 might behave differently depending on the type of experiment
 """
 # TODO add "new" to selector type
-selector_type = 'date'  # selects which session to an 'new', 'experiment', 'session', 'date'
+selector_type = 'cohort'  # selects which session to an 'new', 'experiment', 'session', 'date' or COHORT to
 selector = ['180603', '180604', '180605', '180606', '180607', '180625', '180626', '180628',
             '180801', '180823', '180830', '180901', '180907', '180909']
 exp_type = 'maze'
@@ -69,7 +69,7 @@ track_options = {
 """
 Process tracking data (e.g. extract velocity trace from coordinates)
 """
-processing = True
+processing = False
 processing_options = {
     'cfg': './Processing/processing_cfg.yml'
 }
@@ -85,12 +85,12 @@ debug = False  # If true runs a gui to debug tracking data
 """
 Cohort gives the option to pool the data from all the sessions analysed for group analysis
 """
-cohort = False
+cohort = True                       # make a cohort or process existing one
 cohort_options = {
-    'name': 'CH_ThreeSessions',   # Name of the cohort
-    'selector type': 'session',  # what to select the sessions to pool by [e.g. by experiment, by date...]
-    'selector': [62, 63, 64],  # actual values to select by {e.g. session ID number]
-    'data to pool': ['tracking']  # what data from the sessions you want to pool in the cohort (e.g. tracking)
+    'name': 'CH_twoandahalf_maze',     # Name of the cohort
+    'selector type': 'date',     # what to select the sessions to pool by [e.g. by experiment, by date...]
+    'selector': ['180907', '180909'],       # actual values to select by {e.g. session ID number]
+    'data to pool': ['tracking']    # what data from the sessions you want to pool in the cohort (e.g. tracking)
 }
 
 
@@ -100,7 +100,7 @@ cohort_options = {
 """
 Plotting still needs to be implemented 
 """
-plotting = True
+plotting = False
 plotting_options = {
     'cfg': './Plotting/plotting_cfg.yml'
 }

@@ -27,7 +27,7 @@ def clock_noself(func):
         elapsed = time.perf_counter() - t0
         name = func.__name__
         spaces = ' '*(40-len(name))
-        print('          .. {} in{} --> {}s'.format(name, spaces,  round(elapsed, 4)))
+        print('            .. {} in{} --> {}s'.format(name, spaces,  round(elapsed, 4)))
         return result
     return clocked
 
