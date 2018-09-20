@@ -69,7 +69,7 @@ track_options = {
 """
 Process tracking data (e.g. extract velocity trace from coordinates)
 """
-processing = True
+processing = False
 processing_options = {
     'cfg': './Processing/processing_cfg.yml'
 }
@@ -77,7 +77,7 @@ processing_options = {
 #######################
 #  DEBUGGING          #
 #######################
-debug = False  # If true runs a gui to debug tracking data
+debug = True  # If true runs a gui to debug tracking data
 
 #######################
 #  COHORT #
@@ -100,7 +100,7 @@ cohort_options = {
 """
 Plotting still needs to be implemented 
 """
-plotting = True
+plotting = False
 plotting_options = {
     'cfg': './Plotting/plotting_cfg.yml'
 }

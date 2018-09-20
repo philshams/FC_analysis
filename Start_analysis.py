@@ -15,10 +15,9 @@ from Tracking.Tracking_main import Tracking
 from Processing import Processing_main, Processing_exp_maze
 from Plotting import Single_trial_summary
 from Plotting import Maze_cohort_summary
-from Debug.DebugTrack_GUI_Main import start_gui
 
 from Config import load_database, update_database, load_name, save_name\
-    , selector_type, selector,processing_options, plotting_options, exp_type, \
+    , selector_type, selector, plotting_options, exp_type, \
     extract_rois_background, track_mouse, track_options, \
     plotting, cohort, processing, debug, send_messages
 
@@ -95,7 +94,7 @@ class Analysis():
                 self.save_results(obj=self.db, mod='_backupsave')
 
             # PROCESS SINGLE SESSIONS
-            if processing or debug or plotting:
+            if processing or plotting:
                 # Loop over all the sessions - Other processes
                 for session_name in tqdm(sorted(self.db.index)):
                     session = self.db.loc[session_name]
@@ -106,14 +105,22 @@ class Analysis():
                         if processing:
                             self.processing_session(session)
 
-                        if debug:
-                            start_gui(session)
-
                         if plotting:
                             self.plotting_session(session)
                 self.save_results(obj=self.db, mod='_processing')
                 if send_messages:
                     slack_chat_messenger('Finished processing')
+
+            if debug:
+                from Debug.Visualise_tracking import App
+                for session_name in tqdm(sorted(self.db.index)):
+                    session = self.db.loc[session_name]
+                    selected = check_session_selected(session.Metadata, selector_type, selector)
+                    if selected:
+                        print(colored('---------------\nDebugging session {}'.format(session_name), 'green',
+                                      attrs=['bold']))
+
+                        app = App(session)
         else:
             # WORK ON COHORTS
             if cohort:
@@ -214,7 +221,7 @@ class Analysis():
             Plotting: {}
             Debug: {}
             
-            Cohort; {}
+            Cohort: {}
             
             Send Messages: {}
         """.format(load_database, update_database, load_name, save_name,
