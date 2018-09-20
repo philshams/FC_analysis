@@ -14,6 +14,8 @@ class App(QtGui.QMainWindow):
     def __init__(self, session, parent=None):
         super(App, self).__init__(parent)
 
+        self.wait_ms = 0
+
         self.colors = dict(head=(100, 220, 100), body=(220, 100, 100), tail=(100, 100, 220))
         self.bodyparts = dict(head=['snout', 'Lear', 'Rear', 'neck'], body=['body'], tail=['tail'])
         self.bodyparts_plotdata = {}
@@ -42,7 +44,7 @@ class App(QtGui.QMainWindow):
 
         self.trials = [t for t in self.session.Tracking.keys() if '-' in t]
 
-        [self.trials_listw.addItem(tr) for tr in self.trials]
+        [self.trials_listw.addItem(tr) for tr in sorted(self.trials)]
 
     def define_layout(self):
         def define_style_sheet():
@@ -56,10 +58,11 @@ class App(QtGui.QMainWindow):
             self.setStyleSheet("""
              QPushButton {
                             color: #ffffff;
+                            font-size: 18pt;
                             background-color: #565656;
                             border: 2px solid #8f8f91;
                             border-radius: 6px;
-                            min-width: 120px;
+                            min-width: 250px;
                             min-height: 60px;
                         }
                         
@@ -75,12 +78,11 @@ class App(QtGui.QMainWindow):
                        
              QLineEdit {
                             color: #202223;
-                            font-size: 10pt;
+                            font-size: 14pt;
                             background-color: #c1c1c1;
                             border-radius: 4px;
-
-                            min-width: 80px;
                             min-height: 40px;
+                            min-width: 20px;
                         }
                         
              QListWidget {
@@ -90,6 +92,18 @@ class App(QtGui.QMainWindow):
 
                         }
                         
+             QPushButton#LaunchBtn {
+                            background-color: #006600;
+                        }   
+             QPushButton#PauseBtn {
+                background-color: #d7c832;
+                        }
+             QPushButton#StopBtn {
+                background-color: #a32020;
+                        }  
+             QPushButton#ResumeBtn {
+                background-color: #73a120;
+                        }  
             """)
 
         define_style_sheet()
@@ -97,7 +111,9 @@ class App(QtGui.QMainWindow):
         """ defines the layout of the previously created widgets  """
         self.mainbox = QtGui.QWidget()
         self.setCentralWidget(self.mainbox)
-        self.mainbox.setLayout(QtGui.QGridLayout())
+        grid = QtGui.QGridLayout()
+        grid.setSpacing(10)
+        self.mainbox.setLayout(grid)
 
         self.progres_bar_canvas = pg.GraphicsLayoutWidget()
         self.mainbox.layout().addWidget(self.progres_bar_canvas, 16, 0, 2, 15)
@@ -108,27 +124,34 @@ class App(QtGui.QMainWindow):
 
         self.framerate_label = QtGui.QLabel()
         self.framerate_label.setText('Framerate')
-        self.mainbox.layout().addWidget(self.framerate_label, 1, 16, 1, 4)
+        self.mainbox.layout().addWidget(self.framerate_label, 16, 16, 1, 4)
 
-        self.playspeed_label = QtGui.QLabel()
-        self.playspeed_label.setText('Play speed')
-        self.mainbox.layout().addWidget(self.playspeed_label, 2, 16, 1, 2)
-
-        self.playspeed_entry = QLineEdit('1x')
-        self.mainbox.layout().addWidget(self.playspeed_entry, 2, 18, 1, 2)
-
-        self.current_frame =  QtGui.QLabel()
+        self.current_frame = QtGui.QLabel()
         self.current_frame.setText('Frame 0')
-        self.mainbox.layout().addWidget(self.current_frame, 3, 16, 1, 4)
+        self.mainbox.layout().addWidget(self.current_frame, 2, 16, 1, 4)
+
+        self.goto_frame_label = QtGui.QLabel()
+        self.goto_frame_label.setText('Go to frame')
+        self.mainbox.layout().addWidget(self.goto_frame_label, 3, 16, 1, 1)
+
+        self.goto_frame_edit = QtGui.QLineEdit(' Enter frame number ')
+        self.mainbox.layout().addWidget(self.goto_frame_edit, 3, 17, 1, 2)
 
         self.sessname = QtGui.QLabel()
         if not self.session is None:
-            self.sessname.setText('Session {}'.format(self.session.Metadata['name']))
+            name = """ 
+                    Session ID:    {},
+                    Experiment:    {},
+                    Date:          {},
+                    Mouse ID:      {}.
+            """.format(self.session.Metadata.session_id, self.session.Metadata.experiment,
+                       self.session.Metadata.date, self.session.Metadata.mouse_id)
+            self.sessname.setText('Session Metadata \n {}'.format(name))
         self.mainbox.layout().addWidget(self.sessname, 0, 16, 1, 2)
 
         self.trname = QtGui.QLabel()
         self.trname.setText('Trial Name')
-        self.mainbox.layout().addWidget(self.trname, 0, 18, 1, 2)
+        self.mainbox.layout().addWidget(self.trname, 1, 16, 1, 2)
 
         self.view = self.canvas.addViewBox()
         self.view.setAspectLocked(False)
@@ -138,68 +161,110 @@ class App(QtGui.QMainWindow):
         self.view.addItem(self.img)
 
         #  Pose Reconstruction
-        self.poseplot = self.canvas.addPlot()
+        self.poseplot = self.canvas.addPlot(title='Pose reconstruction')
         self.poseplot.invertY(True)
         self.pose_body = self.poseplot.plot(pen='g')
         self.canvas.nextRow()
 
         #  Velocity
-        self.velplot = self.canvas.addPlot()
+        self.velplot = self.canvas.addPlot(title='Velocity and bodylength')
         self.vel_line = self.velplot.plot(pen=pg.mkPen('r', width=5))
+        self.blength_line = self.velplot.plot(pen=pg.mkPen((150, 100, 220), width=3))
 
         # Ang vels
-        self.angvelplot = self.canvas.addPlot()
-        self.ang_vel_line = self.angvelplot.plot(pen=pg.mkPen('r', width=5))
+        self.angvelplot = self.canvas.addPlot(title='Head and Body ang. vel')
+        self.head_ang_vel_line = self.angvelplot.plot(pen=pg.mkPen((100, 100, 25), width=5))
+        self.body_ang_vel_line = self.angvelplot.plot(pen=pg.mkPen((150, 50, 75), width=5))
 
         # Progress
-        self.progress_plot = self.progres_bar_canvas.addPlot(colspan=2)
-        self.progress_line = self.velplot.plot(pen=pg.mkPen('r', width=5))
+        self.progress_plot = self.progres_bar_canvas.addPlot(title='Progress bar', colspan=2)
 
         # buttons
         self.launch_btn = QPushButton(text='Launch')
+        self.launch_btn.setObjectName('LaunchBtn')
         self.launch_btn.clicked.connect(lambda: self.update_by_frame(self))
-        self.mainbox.layout().addWidget(self.launch_btn, 6, 16, 2, 2)
+        self.mainbox.layout().addWidget(self.launch_btn, 5, 16, 2, 2)
 
         self.stop_btn = QPushButton(text='Stop')
+        self.stop_btn.setObjectName('StopBtn')
         self.stop_btn.clicked.connect(lambda: self.update_by_frame(self))
-        self.mainbox.layout().addWidget(self.stop_btn, 6, 20, 2, 2)
+        self.mainbox.layout().addWidget(self.stop_btn, 5, 20, 2, 2)
 
         self.pause_btn = QPushButton(text='Pause')
+        self.pause_btn.setObjectName('PauseBtn')
         self.pause_btn.clicked.connect(lambda: self.pause_playback(self))
-        self.mainbox.layout().addWidget(self.pause_btn, 4, 16, 4, 2)
+        self.mainbox.layout().addWidget(self.pause_btn, 6, 20, 4, 2)
 
         self.resume_btn = QPushButton(text='Resume')
-        self.resume_btn.clicked.connect(lambda: self.update_by_frame(self))
-        self.mainbox.layout().addWidget(self.resume_btn, 4, 20, 4, 2)
+        self.resume_btn.setObjectName('ResumeBtn')
+        self.resume_btn.clicked.connect(lambda: self.resume_playback(self))
+        self.mainbox.layout().addWidget(self.resume_btn, 6, 16, 4, 2)
+
+        self.faster_btn = QPushButton(text='Faster')
+        self.faster_btn.clicked.connect(lambda: self.increase_speed(self))
+        self.mainbox.layout().addWidget(self.faster_btn, 17, 17)
+
+        self.slower_btn = QPushButton(text='Slower')
+        self.slower_btn.clicked.connect(lambda: self.decrease_speed(self))
+        self.mainbox.layout().addWidget(self.slower_btn, 17, 20)
+
+        self.gotoframe_btn = QPushButton(text='Go to frame')
+        self.gotoframe_btn.clicked.connect(lambda: self.change_frame(self))
+        self.mainbox.layout().addWidget(self.gotoframe_btn, 4, 18)
 
         # List of trials widgets
         self.trlistlabel = QtGui.QLabel()
         self.trlistlabel.setText('Trials')
-        self.mainbox.layout().addWidget(self.trlistlabel, 8, 16)
+        self.mainbox.layout().addWidget(self.trlistlabel, 9, 17)
 
 
         self.trials_listw = QListWidget()
-        self.mainbox.layout().addWidget(self.trials_listw, 9, 16, 3, 6)
+        self.mainbox.layout().addWidget(self.trials_listw, 9, 18, 3, 4)
         self.trials_listw.itemDoubleClicked.connect(self.load_trial_data)
 
         # Define window geometry
         self.setGeometry(50, 50, 3000, 2000)
 
     def load_trial_data(self, trial_name):
+        # Clear up a previously running trials
+        self.data_loaded = False
+        # self.velplot.cla()
+        # self.poseplot.cla()
+        # self.angvelplot.cla()
+
         # Get data
         trial_name = trial_name.text()
-        print(trial_name)
+        self.trname.setText('Trial: {}'.format(trial_name))
+
         videonum = int(trial_name.split('_')[1].split('-')[0])
         self.video = self.videos[videonum][0]
         self.video_grabber = cv2.VideoCapture(self.video)
+        self.num_frames = int(self.video_grabber.get(cv2.CAP_PROP_FRAME_COUNT))
+        self.video_fps = self.video_grabber.get(cv2.CAP_PROP_FPS)
         self.start_frame = self.session.Tracking[trial_name].metadata['Start frame']
         self.tracking_data = self.session.Tracking[trial_name].dlc_tracking['Posture']
+
+        self.num_frames_trial = len(self.tracking_data['body'])
 
         # Plot the first frame
         self.video_grabber.set(1, self.start_frame)
         _, self.frame = self.video_grabber.read()
         self.frame = self.frame[:, :, 0]
         self.img.setImage(np.rot90(self.frame, 3))
+
+        self.progress_bg = pg.QtGui.QGraphicsRectItem(0, 0, self.num_frames_trial, 1)
+        self.progress_bg.setPen(pg.mkPen((180, 180, 180)))
+        self.progress_bg.setBrush(pg.mkBrush((180, 180, 180)))
+        self.progress_plot.addItem(self.progress_bg)
+
+        stim_dur = 9
+        self.stim_bg = pg.QtGui.QGraphicsRectItem(self.num_frames_trial/2, 0, stim_dur*self.video_fps, 1)
+        self.stim_bg.setPen(pg.mkPen((100, 100, 200)))
+        self.stim_bg.setBrush(pg.mkBrush((100, 100, 200)))
+        self.progress_plot.addItem(self.stim_bg)
+        self.progress_plot.setRange(xRange=[0, self.num_frames_trial], yRange=[0, 1])
+        self.progress_line = self.progress_plot.plot(pen=pg.mkPen('r', width=5))
+
 
         self.data_loaded = True
 
@@ -225,41 +290,85 @@ class App(QtGui.QMainWindow):
 
     def plot_tracking_data(self, framen):
         vel = self.tracking_data['body']['Velocity'].values
-        self.vel_line.setData(np.linspace(0, 100, 100), vel[framen:framen+100])
-        self.velplot.setRange(yRange=[0, max(vel)+(max(vel)/10)])
+        blength = self.tracking_data['body']['Body length'].values
+        blength = np.divide(blength, max(blength))
+        head_ang_vel = self.tracking_data['body']['Head ang vel'].values
+        body_ang_vel = self.tracking_data['body']['Body ang vel'].values
 
-    def update_by_frame(self, event):
+        xx = np.linspace(0, 100, 100)
+        self.vel_line.setData(xx, vel[framen:framen+100])
+        self.blength_line.setData(xx, blength[framen:framen+100])
+        self.head_ang_vel_line.setData(xx, head_ang_vel[framen:framen+100])
+        self.body_ang_vel_line.setData(xx, body_ang_vel[framen:framen+100])
+
+        self.velplot.setRange(yRange=[0, max(vel)+(max(vel)/10)])
+        max_ori = max(abs(head_ang_vel))+(max(abs(head_ang_vel))/10)
+        self.angvelplot.setRange(yRange=[-max_ori, max_ori])
+
+    def update_by_frame(self, event, start_frame=0):
         if not self.data_loaded:
             return
 
-        f = 0
-        self.video_grabber.set(1, self.start_frame)
+        f =start_frame
+        self.curr_frame = f
+        self.video_grabber.set(1, self.start_frame+start_frame)
 
         while True:
-            now = time.time()
-            dt = (now - self.lastupdate)
-            if dt <= 0:
-                dt = 0.000000000001
-            fps2 = 1.0 / dt
-            self.lastupdate = now
-            self.fps = self.fps * 0.9 + fps2 * 0.1
-            tx = 'Mean Frame Rate:  {fps:.3f} FPS'.format(fps=self.fps)
-            self.framerate_label.setText(tx)
+                now = time.time()
+                dt = (now - self.lastupdate)
+                if dt <= 0:
+                    dt = 0.000000000001
+                fps2 = 1.0 / dt
+                self.lastupdate = now
+                self.fps = self.fps * 0.9 + fps2 * 0.1
+                tx = 'Plotting Frame Rate:  {fps:.3f} FPS'.format(fps=self.fps)
+                self.framerate_label.setText(tx)
 
-            ret, self.frame = self.video_grabber.read()
-            if not ret:
-                break
-            self.frame = self.frame[:, :, 0]
-            self.img.setImage(np.rot90(self.frame, 3))
-            self.plot_pose(f)
-            self.plot_tracking_data(f)
+                ret, self.frame = self.video_grabber.read()
+                if not ret:
+                    print('finished video')
+                    break
 
-            f += 1
-            pg.QtGui.QApplication.processEvents()
+                self.frame = self.frame[:, :, 0]
+                self.img.setImage(np.rot90(self.frame, 3))
+                self.plot_pose(f)
+                self.plot_tracking_data(f)
 
-    def pause_playback(self):
+                self.progress_line.setData([f, f], [0, 1])
+
+                self.current_frame.setText('Frame: {}'.format(f))
+                f += 1
+                pg.QtGui.QApplication.processEvents()
+
+                if not self.data_loaded:
+                    self.curr_frame = f
+                    break
+
+                if self.wait_ms:
+                    time.sleep(self.wait_ms/1000)
+
+    def pause_playback(self, event):
         self.data_loaded = False
 
+    def resume_playback(self, event):
+        self.data_loaded = True
+        self.update_by_frame(None, start_frame=self.curr_frame)
+
+    def decrease_speed(self, event):
+        self.wait_ms += 50
+
+    def increase_speed(self, event):
+        if self.wait_ms > 0:
+            self.wait_ms -= 50
+
+    def change_frame(self, event):
+        self.data_loaded = False
+        try:
+            target_frame = int(self.goto_frame_edit.text())
+            self.data_loaded = True
+            self.update_by_frame(None, target_frame)
+        except:
+            return
 
 if __name__ == '__main__':
     app = QtGui.QApplication(sys.argv)
