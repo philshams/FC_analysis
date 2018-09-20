@@ -110,6 +110,7 @@ class App(QtGui.QMainWindow):
 
         """ defines the layout of the previously created widgets  """
         self.mainbox = QtGui.QWidget()
+        self.mainbox.showFullScreen()
         self.setCentralWidget(self.mainbox)
         grid = QtGui.QGridLayout()
         grid.setSpacing(10)
@@ -188,12 +189,12 @@ class App(QtGui.QMainWindow):
         self.stop_btn = QPushButton(text='Stop')
         self.stop_btn.setObjectName('StopBtn')
         self.stop_btn.clicked.connect(lambda: self.update_by_frame(self))
-        self.mainbox.layout().addWidget(self.stop_btn, 5, 20, 2, 2)
+        self.mainbox.layout().addWidget(self.stop_btn, 6, 16, 2, 2)
 
         self.pause_btn = QPushButton(text='Pause')
         self.pause_btn.setObjectName('PauseBtn')
         self.pause_btn.clicked.connect(lambda: self.pause_playback(self))
-        self.mainbox.layout().addWidget(self.pause_btn, 6, 20, 4, 2)
+        self.mainbox.layout().addWidget(self.pause_btn, 7, 16, 4, 2)
 
         self.resume_btn = QPushButton(text='Resume')
         self.resume_btn.setObjectName('ResumeBtn')
@@ -215,15 +216,20 @@ class App(QtGui.QMainWindow):
         # List of trials widgets
         self.trlistlabel = QtGui.QLabel()
         self.trlistlabel.setText('Trials')
-        self.mainbox.layout().addWidget(self.trlistlabel, 9, 17)
+        self.mainbox.layout().addWidget(self.trlistlabel, 6, 19)
 
 
         self.trials_listw = QListWidget()
-        self.mainbox.layout().addWidget(self.trials_listw, 9, 18, 3, 4)
+        self.mainbox.layout().addWidget(self.trials_listw, 7, 18, 2, 3)
         self.trials_listw.itemDoubleClicked.connect(self.load_trial_data)
 
+        # Print tracking variables
+        self.tracking_vars_label = QtGui.QLabel()
+        self.tracking_vars_label.setText('Tracking data')
+        self.mainbox.layout().addWidget(self.tracking_vars_label, 10, 17, 3, 2)
+
         # Define window geometry
-        self.setGeometry(50, 50, 3000, 2000)
+        self.setGeometry(50, 50, 3600, 2000)
 
     def load_trial_data(self, trial_name):
         # Clear up a previously running trials
@@ -289,11 +295,35 @@ class App(QtGui.QMainWindow):
         self.poseplot.setRange(xRange=[centre[0]-50, centre[0]+50], yRange=[centre[1]+50, centre[1]-50])
 
     def plot_tracking_data(self, framen):
+        x, y = self.tracking_data['body']['x'].values, self.tracking_data['body']['y'].values
         vel = self.tracking_data['body']['Velocity'].values
         blength = self.tracking_data['body']['Body length'].values
         blength = np.divide(blength, max(blength))
         head_ang_vel = self.tracking_data['body']['Head ang vel'].values
         body_ang_vel = self.tracking_data['body']['Body ang vel'].values
+        bori = self.tracking_data['body']['Orientation'].values
+        hori = self.tracking_data['body']['Head angle'].values
+
+        bor = bori[framen]
+        while bor>360:
+            bor -= 360
+        hor = hori[framen]
+        while hor>360:
+            hor -= 360
+
+        self.tracking_vars_label.setText("""
+        
+        
+            Position:                 {}, {}
+            Velocity:                 {}
+            Orientation [body]:       {}
+            Orientation [head]:       {}
+            Ang. Vel. [body]:         {}
+            Ang. vel. [head]:         {}
+        
+        """.format(round(x[framen]), round(y[framen]), round(vel[framen],2), round(bor,2),
+                   round(hor, 2), round(body_ang_vel[framen],2), round(head_ang_vel[framen],2)))
+
 
         xx = np.linspace(0, 100, 100)
         self.vel_line.setData(xx, vel[framen:framen+100])
