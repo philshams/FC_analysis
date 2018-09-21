@@ -113,14 +113,14 @@ class Analysis():
 
             if debug:
                 from Debug.Visualise_tracking import App
+                sessions = {}
                 for session_name in tqdm(sorted(self.db.index)):
                     session = self.db.loc[session_name]
                     selected = check_session_selected(session.Metadata, selector_type, selector)
                     if selected:
-                        print(colored('---------------\nDebugging session {}'.format(session_name), 'green',
-                                      attrs=['bold']))
+                        sessions[session_name] = session
 
-                        app = App(session)
+                app = App(sessions)
         else:
             # WORK ON COHORTS
             if cohort:
