@@ -12,6 +12,7 @@ from scipy import misc
 
 
 class App(QtGui.QMainWindow):
+    # TODO add possibility to invert flow of time
     """ Display frames from behavioural videos and tracking data for processed sessions.
      Only works for Tracked and Processed sessions """
     def __init__(self, sessions, parent=None):
@@ -149,6 +150,7 @@ class App(QtGui.QMainWindow):
         return obj
 
     def define_layout(self):
+        # TODO make legends
         """ Create the layout of the figure"""
         self.define_style_sheet()
 
@@ -182,17 +184,9 @@ class App(QtGui.QMainWindow):
 
         #  Velocity
         self.velplot = self.canvas.addPlot(title='Velocity and bodylength')
-        self.vel_line = self.velplot.plot(pen=pg.mkPen('r', width=5))
-        self.blength_line = self.velplot.plot(pen=pg.mkPen((150, 100, 220), width=3))
-        self.plot_items.append(self.vel_line)
-        self.plot_items.append(self.blength_line)
 
         # Ang vels
         self.angvelplot = self.canvas.addPlot(title='Head and Body ang. vel')
-        self.head_ang_vel_line = self.angvelplot.plot(pen=pg.mkPen((100, 100, 25), width=5))
-        self.body_ang_vel_line = self.angvelplot.plot(pen=pg.mkPen((150, 50, 75), width=5))
-        self.plot_items.append(self.head_ang_vel_line)
-        self.plot_items.append(self.body_ang_vel_line)
 
         # Progress
         self.progress_plot = self.progres_bar_canvas.addPlot(title='Progress bar', colspan=2)
@@ -239,6 +233,22 @@ class App(QtGui.QMainWindow):
 
         # Define window geometry
         self.setGeometry(50, 50, 3600, 2000)
+
+        # Create plot items
+        self.define_plot_items()
+
+    def define_plot_items(self):
+        self.vel_line = self.velplot.plot(pen=pg.mkPen('r', width=5))
+        self.blength_line = self.velplot.plot(pen=pg.mkPen((150, 100, 220), width=3))
+        self.plot_items.append(self.vel_line)
+        self.plot_items.append(self.blength_line)
+
+        self.head_ang_vel_line = self.angvelplot.plot(pen=pg.mkPen((100, 100, 25), width=3))
+        self.body_ang_vel_line = self.angvelplot.plot(pen=pg.mkPen((150, 50, 75), width=3))
+        self.head_body_angle_diff_line = self.angvelplot.plot(pen=pg.mkPen((150, 200, 150), width=5))
+        self.plot_items.append(self.head_ang_vel_line)
+        self.plot_items.append(self.body_ang_vel_line)
+        self.plot_items.append(self.head_body_angle_diff_line)
 
     ####################################################################################################################
     def get_session_data(self, event):
@@ -290,13 +300,13 @@ class App(QtGui.QMainWindow):
         self.video_grabber = cv2.VideoCapture(self.video)
         self.num_frames = int(self.video_grabber.get(cv2.CAP_PROP_FRAME_COUNT))
         self.video_fps = self.video_grabber.get(cv2.CAP_PROP_FPS)
-        self.start_frame = self.session.Tracking[trial_name].metadata['Start frame']
+        self.trial_start_frame = self.session.Tracking[trial_name].metadata['Start frame']
 
         self.tracking_data = self.session.Tracking[trial_name].dlc_tracking['Posture']
         self.num_frames_trial = len(self.tracking_data['body'])
 
         # Plot the first frame
-        self.video_grabber.set(1, self.start_frame)
+        self.video_grabber.set(1, self.trial_start_frame)
         self.frame = self.prep_frame()
         self.img.setImage(self.frame)
 
@@ -321,7 +331,8 @@ class App(QtGui.QMainWindow):
     ####################################################################################################################
     def plot_pose(self, framen):
         # TODO add lines to posture plot
-        if framen == 0:
+        # TODO fix timing issues
+        if framen == self.start_frame:
             self.bodyparts_plotdata = {}
 
         for bp, data in self.tracking_data.items():
@@ -351,6 +362,7 @@ class App(QtGui.QMainWindow):
         body_ang_vel = self.tracking_data['body']['Body ang vel'].values
         bori = self.tracking_data['body']['Orientation'].values
         hori = self.tracking_data['body']['Head angle'].values
+        hb_ori_diff = np.subtract(hori, bori)
 
         bor = bori[framen]
         while bor>360:
@@ -365,6 +377,7 @@ class App(QtGui.QMainWindow):
         self.blength_line.setData(xx, blength[framen:framen+self.plot_wnd])
         self.head_ang_vel_line.setData(xx, head_ang_vel[framen:framen+self.plot_wnd])
         self.body_ang_vel_line.setData(xx, body_ang_vel[framen:framen+self.plot_wnd])
+        self.head_body_angle_diff_line.setData(xx, hb_ori_diff[framen:framen+self.plot_wnd])
 
         self.velplot.setRange(yRange=[0, max(vel)+(max(vel)/10)])
         max_ori = max(abs(head_ang_vel))+(max(abs(head_ang_vel))/10)
@@ -409,7 +422,7 @@ class App(QtGui.QMainWindow):
         self.start_frame = start_frame
         f = start_frame
         self.curr_frame = f
-        self.video_grabber.set(1, self.start_frame+start_frame)
+        self.video_grabber.set(1, self.trial_start_frame+start_frame)
 
         # Keep looping unless something goes wrong
         while True:
