@@ -9,10 +9,13 @@ from pyqtgraph.Qt import QtCore, QtGui
 import numpy as np
 import cv2
 from scipy import misc
+from termcolor import colored
 
 
 class App(QtGui.QMainWindow):
     # TODO add possibility to invert flow of time
+    # TODO add times in shelter and in threat to progess bar
+    # TODO fix problem with persisting pose plots
     """ Display frames from behavioural videos and tracking data for processed sessions.
      Only works for Tracked and Processed sessions """
     def __init__(self, sessions, parent=None):
@@ -34,8 +37,8 @@ class App(QtGui.QMainWindow):
         self.lastupdate = time.time()
         self.start_frame = 1200
 
-
         # Create GUI
+        self.display_keyboard_shortcuts()
         self.define_layout()
 
         # Create second window to display trial images
@@ -47,6 +50,38 @@ class App(QtGui.QMainWindow):
         app = QtGui.QApplication(sys.argv)
         self.show()
         app.exec_()
+
+    ####################################################################################################################
+    def keyPressEvent(self, e):  # Deal with keyboard shortcuts
+        if e.key() == QtCore.Qt.Key_Escape:
+            self.close()
+            self.previews.close()
+            print('Shutting down...')
+            sys.exit()
+        elif e.key() == QtCore.Qt.Key_W:  # W = Faster
+            self.increase_speed(None)
+        elif e.key() == QtCore.Qt.Key_S:  # S = Slower
+            self.decrease_speed(None)
+        elif e.key() == QtCore.Qt.Key_D:  # D = Skip 100 frames
+            self.pause_playback(None)
+            self.ready_to_plot = True
+            self.update_by_frame(None, start_frame=self.curr_frame + 100)
+        elif e.key() == QtCore.Qt.Key_A:  # A = go back 100 frames
+            self.pause_playback(None)
+            self.ready_to_plot = True
+            self.update_by_frame(None, start_frame=self.curr_frame - 100)
+        elif e.key() == QtCore.Qt.Key_Space:  # Space = pause
+            self.pause_playback(None)
+
+    def display_keyboard_shortcuts(self):
+        print(colored('     Keyboard shortcuts:', 'white'))
+        print(colored('         W', 'green'), '     -- ', colored('Faster', 'yellow'))
+        print(colored('         S', 'green'), '     -- ', colored('Slower', 'yellow'))
+        print(colored('         D', 'green'), '     -- ', colored('Skip 100 frames', 'yellow'))
+        print(colored('         A', 'green'), '     -- ', colored('Go back 100 frames', 'yellow'))
+        print(colored('         Space', 'green'), ' -- ', colored('Pause', 'yellow'))
+        print(colored('         Esc', 'green'), '   -- ', colored('Close program', 'yellow'))
+
 
     ####################################################################################################################
     def define_style_sheet(self):
@@ -418,7 +453,6 @@ class App(QtGui.QMainWindow):
             return
 
         # Set up start time
-
         self.start_frame = start_frame
         f = start_frame
         self.curr_frame = f
