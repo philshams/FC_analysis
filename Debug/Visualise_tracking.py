@@ -14,8 +14,7 @@ from termcolor import colored
 
 class App(QtGui.QMainWindow):
     # TODO add possibility to invert flow of time
-    # TODO add times in shelter and in threat to progess bar
-    # TODO fix problem with persisting pose plots
+    # TODO add times in shelter and in threat to progress bar [likely needs to be done in processing]
     """ Display frames from behavioural videos and tracking data for processed sessions.
      Only works for Tracked and Processed sessions """
     def __init__(self, sessions, parent=None):
@@ -36,6 +35,7 @@ class App(QtGui.QMainWindow):
         self.fps = 0.
         self.lastupdate = time.time()
         self.start_frame = 1200
+        self.is_paused = False
 
         # Create GUI
         self.display_keyboard_shortcuts()
@@ -366,7 +366,6 @@ class App(QtGui.QMainWindow):
     ####################################################################################################################
     def plot_pose(self, framen):
         # TODO add lines to posture plot
-        # TODO fix timing issues
         if framen == self.start_frame:
             self.bodyparts_plotdata = {}
 
@@ -375,6 +374,7 @@ class App(QtGui.QMainWindow):
                 if bp in parts:
                     if bp == 'body':
                         centre = data.loc[framen].x, data.loc[framen].y
+
                     col = self.colors[key]
                     if framen == self.start_frame:
                         self.bodyparts_plotdata[bp] = self.poseplot.plot([data.loc[framen].x],
@@ -383,6 +383,7 @@ class App(QtGui.QMainWindow):
                         self.plot_items.append(self.bodyparts_plotdata[bp])
                     else:
                         self.bodyparts_plotdata[bp].setData([data.loc[framen].x], [data.loc[framen].y])
+                        self.plot_items.append(self.bodyparts_plotdata[bp])
                     break
 
         self.poseplot.setRange(xRange=[centre[0]-50, centre[0]+50], yRange=[centre[1]+50, centre[1]-50])
@@ -445,12 +446,14 @@ class App(QtGui.QMainWindow):
             tx = 'Plotting Frame Rate:  {} FPS'.format(round(self.fps, 0))
             self.framerate_label.setText(tx)
 
-        """ update each plot and relevant widget frame by frame starting from start_frame """
         if event is not None:
             self.ready_to_plot = True
 
         if not self.ready_to_plot:
             return
+
+        # Clean up plots
+        self.cleanup_plots()
 
         # Set up start time
         self.start_frame = start_frame
@@ -479,9 +482,18 @@ class App(QtGui.QMainWindow):
                 if self.wait_ms:
                     time.sleep(self.wait_ms/1000)
 
+    def cleanup_plots(self):
+        [p.setData([], []) for p in self.plot_items]
+
+
     ####################################################################################################################
     def pause_playback(self, event):
-        self.ready_to_plot = False
+        if not self.is_paused:
+            self.ready_to_plot = False
+            self.is_paused = True
+        else:
+            self.is_paused = False
+            self.resume_playback(None)
 
     def resume_playback(self, event):
         self.ready_to_plot = True
@@ -505,7 +517,7 @@ class App(QtGui.QMainWindow):
 
     def stop_playback(self, event):
         self.ready_to_plot = False
-        [p.setData([], []) for p in self.plot_items]
+        self.cleanup_plots()
 
 
 class ImgsViwer(QtGui.QMainWindow):
