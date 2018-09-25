@@ -119,7 +119,6 @@ class Analysis():
                     selected = check_session_selected(session.Metadata, selector_type, selector)
                     if selected:
                         sessions[session_name] = session
-
                 app = App(sessions)
         else:
             # WORK ON COHORTS

@@ -13,31 +13,20 @@ from termcolor import colored
 
 
 class App(QtGui.QMainWindow):
-    # TODO add possibility to invert flow of time
+    # TODO needs serious refactoring to handle better flow of time
     # TODO add times in shelter and in threat to progress bar [likely needs to be done in processing]
+    # TODO make legends
+
     """ Display frames from behavioural videos and tracking data for processed sessions.
      Only works for Tracked and Processed sessions """
     def __init__(self, sessions, parent=None):
         """ Set up class, initialise variables """
         super(App, self).__init__(parent)
 
-        # Useful vars
-        self.wait_ms = 0  # change speed of figure refresh rate
-        self.colors = dict(head=(100, 220, 100), body=(220, 100, 100), tail=(100, 100, 220))  # Stuff to color bparts
-        self.bodyparts = dict(head=['snout', 'Lear', 'Rear', 'neck'], body=['body'], tail=['tail'])
-        self.bodyparts_plotdata = {}
         self.sessions = sessions  # sessions
-        self.session = None  # place holder for current working session
-        self.ready_to_plot = False   # flag to control plotting behaviour
-        self.plot_wnd = 100
-        self.plot_items = []
-        self.counter = 0  # vars to check plotting framerate
-        self.fps = 0.
-        self.lastupdate = time.time()
-        self.start_frame = 1200
-        self.is_paused = False
 
         # Create GUI
+        self.set_up_variables()
         self.display_keyboard_shortcuts()
         self.define_layout()
 
@@ -63,15 +52,13 @@ class App(QtGui.QMainWindow):
         elif e.key() == QtCore.Qt.Key_S:  # S = Slower
             self.decrease_speed(None)
         elif e.key() == QtCore.Qt.Key_D:  # D = Skip 100 frames
-            self.pause_playback(None)
-            self.ready_to_plot = True
-            self.update_by_frame(None, start_frame=self.curr_frame + 100)
+            self.move_to_frame_number(None, frame_shift=100)
         elif e.key() == QtCore.Qt.Key_A:  # A = go back 100 frames
-            self.pause_playback(None)
-            self.ready_to_plot = True
-            self.update_by_frame(None, start_frame=self.curr_frame - 100)
+            self.move_to_frame_number(None, frame_shift=-100)
         elif e.key() == QtCore.Qt.Key_Space:  # Space = pause
             self.pause_playback(None)
+        elif e.key() == QtCore.Qt.Key_Q:  # TAB inverts time
+            self.invert_time_func()
 
     def display_keyboard_shortcuts(self):
         print(colored('     Keyboard shortcuts:', 'white'))
@@ -79,11 +66,42 @@ class App(QtGui.QMainWindow):
         print(colored('         S', 'green'), '     -- ', colored('Slower', 'yellow'))
         print(colored('         D', 'green'), '     -- ', colored('Skip 100 frames', 'yellow'))
         print(colored('         A', 'green'), '     -- ', colored('Go back 100 frames', 'yellow'))
+        print(colored('         Q', 'green'), '     -- ', colored('Invert time', 'yellow'))
         print(colored('         Space', 'green'), ' -- ', colored('Pause', 'yellow'))
         print(colored('         Esc', 'green'), '   -- ', colored('Close program', 'yellow'))
 
-
     ####################################################################################################################
+    def set_up_variables(self):
+        # Useful vars
+        # Plotting stuff
+        self.colors = dict(head=(100, 220, 100), body=(220, 100, 100), tail=(100, 100, 220))  # Stuff to color bparts
+        self.bodyparts = dict(head=['snou'
+                                    't', 'Lear', 'Rear', 'neck'], body=['body'], tail=['tail'])
+        self.bodyparts_plotdata = {}
+        self.plot_wnd = 100
+        self.plot_items = []
+
+        # Flow of time stuff
+        self.wait_ms = 0  # change speed of figure refresh rate
+
+        # Place holders
+        self.current_working_sessions = None  # place holder for current working session
+        self.counter = 0  # vars to check plotting framerate
+        self.fps = 0.
+        self.lastupdate = time.time()
+
+        # Frame number stuff
+        self.playback_start_frame = 0
+        self.playback_start_frame = 1200  # skip the first N frames
+        self.frames_record = {}  # dict with all frames to facilitate time inversion
+        self.max_frame = 0  # largest frame number displayed so far
+        self.current_frame = 0  # frame number of last frame displayed
+
+        # Control flags
+        self.ready_to_plot = False  # flag to control plotting behaviour
+        self.is_paused = False
+        self.direction_of_time = True  # set as -1 to invert timeflow when playing video
+
     def define_style_sheet(self):
         # Main window color
         self.setAutoFillBackground(True)
@@ -185,7 +203,6 @@ class App(QtGui.QMainWindow):
         return obj
 
     def define_layout(self):
-        # TODO make legends
         """ Create the layout of the figure"""
         self.define_style_sheet()
 
@@ -228,7 +245,7 @@ class App(QtGui.QMainWindow):
 
         # Create text labels and lineedits
         self.framerate_label = self.create_label('Framerate',  (16, 18, 1, 2))
-        self.current_frame = self.create_label('Frame 0', (14, 18, 1, 2))
+        self.current_frame_label = self.create_label('Frame 0', (14, 18, 1, 2))
         self.goto_frame_edit = QtGui.QLineEdit('Go to frame number')
         self.mainbox.layout().addWidget(self.goto_frame_edit, 15, 18, 1, 2)
         self.trname = self.create_label('Trial Name', (1, 16, 1, 2))
@@ -255,7 +272,7 @@ class App(QtGui.QMainWindow):
         self.resume_btn = self.create_btn('Resume', (7, 16, 4, 2), name='ResumeBtn', func=self.resume_playback)
         self.faster_btn = self.create_btn('Faster', (16, 16), func=self.increase_speed)
         self.slower_btn = self.create_btn('Slower', (16, 17), func=self.decrease_speed)
-        self.gotoframe_btn = self.create_btn('Go to frame', (15, 20), func=self.change_frame, name='GotoBtn')
+        self.gotoframe_btn = self.create_btn('Go to frame', (15, 20), func=self.move_to_frame_number, name='GotoBtn')
 
         # List widgets
         self.trials_listw = QListWidget()
@@ -265,6 +282,13 @@ class App(QtGui.QMainWindow):
         self.sessions_listw = QListWidget()
         self.mainbox.layout().addWidget(self.sessions_listw, 6, 18, 2, 3)
         self.sessions_listw.itemDoubleClicked.connect(self.get_session_data)
+
+        # Toggle buttons
+        self.invert_time_btn = QPushButton('Invert time')
+        self.invert_time_btn.setCheckable(True)
+        self.invert_time_btn.setChecked(False)
+        self.invert_time_btn.clicked.connect(self.invert_time_func)
+        self.mainbox.layout().addWidget(self.invert_time_btn, 14, 20)
 
         # Define window geometry
         self.setGeometry(50, 50, 3600, 2000)
@@ -285,6 +309,9 @@ class App(QtGui.QMainWindow):
         self.plot_items.append(self.body_ang_vel_line)
         self.plot_items.append(self.head_body_angle_diff_line)
 
+        self.progress_line = self.progress_plot.plot(pen=pg.mkPen('r', width=5))
+        self.plot_items.append(self.progress_line)
+
     ####################################################################################################################
     def get_session_data(self, event):
         """ Get paths of videofiles and names of tracking data + add these names to list widget"""
@@ -301,7 +328,7 @@ class App(QtGui.QMainWindow):
             session_name = event.text()
 
         session = self.sessions[session_name]
-        self.session = session
+        self.current_working_sessions = session
         self.videos = session.Metadata.video_file_paths
         self.trials = [t for t in session.Tracking.keys() if '-' in t]
         [self.trials_listw.addItem(tr) for tr in sorted(self.trials)]
@@ -321,9 +348,9 @@ class App(QtGui.QMainWindow):
     def load_trial_data(self, trial_name):
         """  get data from trial and initialise plots """
         # Clear up a previously running trials
+        self.cleanup_plots()
         self.ready_to_plot = False
-        [p.setData([], []) for p in self.plot_items]
-        self.curr_frame = 0
+        self.current_frame, self.max_frame, self.frames_record, self.playback_start_frame = 0, 0, {}, 0
 
         # Get data
         trial_name = trial_name.text()
@@ -333,40 +360,35 @@ class App(QtGui.QMainWindow):
         videonum = int(trial_name.split('_')[1].split('-')[0])
         self.video = self.videos[videonum][0]
         self.video_grabber = cv2.VideoCapture(self.video)
-        self.num_frames = int(self.video_grabber.get(cv2.CAP_PROP_FRAME_COUNT))
+        self.num_of_frames_video = int(self.video_grabber.get(cv2.CAP_PROP_FRAME_COUNT))
         self.video_fps = self.video_grabber.get(cv2.CAP_PROP_FPS)
-        self.trial_start_frame = self.session.Tracking[trial_name].metadata['Start frame']
+        self.trial_start_frame = self.current_working_sessions.Tracking[trial_name].metadata['Start frame']
 
-        self.tracking_data = self.session.Tracking[trial_name].dlc_tracking['Posture']
-        self.num_frames_trial = len(self.tracking_data['body'])
-
-        # Plot the first frame
-        self.video_grabber.set(1, self.trial_start_frame)
-        self.frame = self.prep_frame()
-        self.img.setImage(self.frame)
+        self.tracking_data = self.current_working_sessions.Tracking[trial_name].dlc_tracking['Posture']
+        self.num_frames_tracking_data = len(self.tracking_data['body'])
 
         # Prep progress bar
         stim_dur = 9
-        self.progress_bg = pg.QtGui.QGraphicsRectItem(0, 0, self.num_frames_trial, 1)
+        self.progress_bg = pg.QtGui.QGraphicsRectItem(0, 0, self.num_frames_tracking_data, 1)
         self.progress_bg.setPen(pg.mkPen((180, 180, 180)))
         self.progress_bg.setBrush(pg.mkBrush((180, 180, 180)))
         self.progress_plot.addItem(self.progress_bg)
-        self.stim_bg = pg.QtGui.QGraphicsRectItem(self.num_frames_trial/2, 0, stim_dur*self.video_fps, 1)
+        self.stim_bg = pg.QtGui.QGraphicsRectItem(self.num_frames_tracking_data / 2, 0, stim_dur * self.video_fps, 1)
         self.stim_bg.setPen(pg.mkPen((100, 100, 200)))
         self.stim_bg.setBrush(pg.mkBrush((100, 100, 200)))
         self.progress_plot.addItem(self.stim_bg)
-        self.progress_plot.setRange(xRange=[0, self.num_frames_trial], yRange=[0, 1])
-        self.progress_line = self.progress_plot.plot(pen=pg.mkPen('r', width=5))
-
-    def prep_frame(self):
-        _, frame = self.video_grabber.read()
-        frame = frame[:, :, 0]
-        return np.rot90(frame, 3)
+        self.progress_plot.setRange(xRange=[0, self.num_frames_tracking_data], yRange=[0, 1])
 
     ####################################################################################################################
+    def cleanup_plots(self):
+        [p.setData([], []) for p in self.plot_items]
+
+    def update_video_grabber(self):
+        self.video_grabber.set(1, self.trial_start_frame+self.current_frame)
+
     def plot_pose(self, framen):
         # TODO add lines to posture plot
-        if framen == self.start_frame:
+        if framen == self.playback_start_frame:
             self.bodyparts_plotdata = {}
 
         for bp, data in self.tracking_data.items():
@@ -376,7 +398,7 @@ class App(QtGui.QMainWindow):
                         centre = data.loc[framen].x, data.loc[framen].y
 
                     col = self.colors[key]
-                    if framen == self.start_frame:
+                    if framen == self.playback_start_frame:
                         self.bodyparts_plotdata[bp] = self.poseplot.plot([data.loc[framen].x],
                                            [data.loc[framen].y],
                                            pen=col, symbolBrush=col, symbolPen='w', symbol='o', symbolSize=30)
@@ -432,9 +454,44 @@ class App(QtGui.QMainWindow):
         """.format(round(x[framen]), round(y[framen]), round(vel[framen], 2), round(bor, 2),
                    round(hor, 2), round(body_ang_vel[framen], 2), round(head_ang_vel[framen], 2)))
 
+    ####################################################################################################################
+
+    def get_next_frame(self):
+        def prep_frame():
+            ret, frame = self.video_grabber.read()
+            if not ret:
+                return ret, None
+            frame = frame[:, :, 0]
+            return ret, np.rot90(frame, 3)
+
+        # Grab the correct frame
+        if self.direction_of_time:  # get the next frame
+            ret, frame = prep_frame()
+            if not ret: print('Something went wrong while loading next frame')
+            if not str(self.current_frame) in self.frames_record.keys():  # add to frames record
+                self.frames_record[str(self.current_frame)] = frame
+        else:  # get the previous trial in the records
+            if str(self.current_frame) in self.frames_record.keys():
+                frame = self.frames_record[str(self.current_frame)]
+            elif self.current_frame < self.max_frame - 1:
+                print('Cant go back in time beyond this point')
+                self.pause_playback(None)
+
+        return frame
+
+    def update_plots(self):
+        self.plot_pose(self.current_frame)
+        self.plot_tracking_data(self.current_frame)
+        self.progress_line.setData([self.current_frame, self.current_frame], [0, 1])
+
+    ####################################################################################################################
+    ####################################################################################################################
+
     def update_by_frame(self, event, start_frame=1200):
+        """ When called it starts video playback at frame start_frame
+            While it is running video playback can be stopped or altered by other functions """
         def get_plotting_fps(self):
-            self.current_frame.setText('Frame: {}'.format(f))
+            self.current_frame_label.setText('Frame: {}'.format(self.current_frame))
 
             now = time.time()
             dt = (now - self.lastupdate)
@@ -456,48 +513,58 @@ class App(QtGui.QMainWindow):
         self.cleanup_plots()
 
         # Set up start time
-        self.start_frame = start_frame
-        f = start_frame
-        self.curr_frame = f
-        self.video_grabber.set(1, self.trial_start_frame+start_frame)
+        self.playback_start_frame = start_frame
+        self.current_frame = start_frame
+        self.update_video_grabber()
 
-        # Keep looping unless something goes wrong
+        # Keep looping to update plots and grab frames
         while True:
-                get_plotting_fps(self)
+            try:
+                if self.direction_of_time is not None: get_plotting_fps(self)
 
-                # Plot
-                frame = self.prep_frame()
+                # Display the next frame
+                frame = self.get_next_frame()
                 self.img.setImage(frame)
-                self.plot_pose(f)
-                self.plot_tracking_data(f)
-                self.progress_line.setData([f, f], [0, 1])
 
-                f += 1
-                pg.QtGui.QApplication.processEvents()
+                # update plots
+                self.update_plots()
+            except:
+                pass
 
-                if not self.ready_to_plot:
-                    self.curr_frame = f
-                    break
+            # Determine which should be the next frame
+            if self.direction_of_time is None:
+                pass
+            elif self.direction_of_time and self.current_frame < self.num_of_frames_video:
+                self.current_frame += 1
+            elif not self.direction_of_time and self.current_frame > 1:
+                self.current_frame -= 1
 
-                if self.wait_ms:
-                    time.sleep(self.wait_ms/1000)
+            # Keep track of max showed frame
+            if self.current_frame > self.max_frame:
+                self.max_frame = self.current_frame
 
-    def cleanup_plots(self):
-        [p.setData([], []) for p in self.plot_items]
+            # Update plots
+            pg.QtGui.QApplication.processEvents()
 
+            # Change playback speed
+            if self.wait_ms:
+                time.sleep(self.wait_ms / 1000)
+
+            # Stop the loop
+            if not self.ready_to_plot or self.current_frame > self.num_of_frames_video:
+                break
 
     ####################################################################################################################
+    ####################################################################################################################
+
     def pause_playback(self, event):
-        if not self.is_paused:
-            self.ready_to_plot = False
-            self.is_paused = True
+        if self.direction_of_time is not None:
+            self.direction_of_time = None
         else:
-            self.is_paused = False
             self.resume_playback(None)
 
     def resume_playback(self, event):
-        self.ready_to_plot = True
-        self.update_by_frame(None, start_frame=self.curr_frame)
+        self.direction_of_time = True
 
     def decrease_speed(self, event):
         self.wait_ms += 50
@@ -506,18 +573,20 @@ class App(QtGui.QMainWindow):
         if self.wait_ms > 0:
             self.wait_ms -= 50
 
-    def change_frame(self, event):
-        self.ready_to_plot = False
-        try:
-            target_frame = int(self.goto_frame_edit.text())
-            self.ready_to_plot = True
-            self.update_by_frame(None, target_frame)
-        except:
-            return
+    def move_to_frame_number(self, event, frame_shift=None):
+        if frame_shift is not None:
+            self.current_frame = int(self.goto_frame_edit.text())+frame_shift
+        else:
+            self.current_frame = int(self.goto_frame_edit.text())
+        self.update_video_grabber()
 
     def stop_playback(self, event):
         self.ready_to_plot = False
         self.cleanup_plots()
+
+    def invert_time_func(self):
+        self.update_video_grabber()
+        self.direction_of_time = not self.direction_of_time
 
 
 class ImgsViwer(QtGui.QMainWindow):
