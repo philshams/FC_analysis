@@ -3,21 +3,22 @@ import numpy as np
 from collections import namedtuple
 from termcolor import colored
 import pandas as pd
+import cv2
 
 from Utils.Messaging import slack_chat_messenger
 from Utils.decorators import clock
 
 from Config import cohort_options
 
+
 class ProcessingTrialsMaze:
     """ Applies processsing steps that are specific to maze experiments (e.g. get arm of escape) """
-
-    # TODO create images-heatmaps of traces for plotting
-
     def __init__(self, session, debugging=True):
         print(colored('\n      Maze-specific single trials processing', 'green'))
         self.session = session
         self.debugging = debugging
+
+        self.get_maze_structure()
 
         # Subdivide frame
         self.rois, self.boundaries = self.subdivide_frame()
@@ -43,7 +44,6 @@ class ProcessingTrialsMaze:
                     if 'whole' not in item.lower() and 'exploration' not in item.lower():
                         warn('Something went wrong when applying maze-processing')
                         slack_chat_messenger('Something went wrong with maze-processing, trial {}'.format(item))
-
                     print(colored('          did not apply maze-processing to trial {}'.format(item), 'yellow'))
 
     def subdivide_frame(self):
@@ -92,6 +92,58 @@ class ProcessingTrialsMaze:
             # now put everything together in the limits
             limits = boundaries(midpoint.x, midpoint.y, edges[0], edges[1])
         return rois, limits
+
+    def get_maze_structure(self):
+        bg = self.session.Metadata.videodata[0]['Background']
+        if len(bg.shape) == 3:
+            gray = cv2.cvtColor(bg, cv2.COLOR_BGR2GRAY)
+        else:
+            gray = bg
+
+        threat_platf_template = gray[430:540, 380: 550]
+        left_platf_template = gray[50:180, 10: 170]
+        right_platf_template = gray[200:380, 550: 730]
+        shelter_platf_template = gray[0:180, 360: 550]
+        templates = [threat_platf_template, left_platf_template, right_platf_template, shelter_platf_template]
+        for template in templates:
+            w, h = template.shape[::-1]
+
+            res = cv2.matchTemplate(gray, template, cv2.TM_CCOEFF_NORMED)
+            min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
+            top_left = max_loc
+
+            bottom_right = (top_left[0] + w, top_left[1] + h)
+            cv2.rectangle(gray, top_left, bottom_right, 255, 2)
+
+        cv2.imshow('bg', gray)  #  dist_transform/np.max(dist_transform))
+
+
+
+
+
+
+        # Blur
+        blur = cv2.GaussianBlur(gray, (11, 11), -1)
+
+        # Threshold
+        p = np.percentile(blur[:], 65)
+        # thresh = cv2.threshold(blur, p, 255, cv2.THRESH_BINARY)[1]
+        thresh = cv2.adaptiveThreshold(blur, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 115, 1)
+        _, thresh = cv2.threshold(blur, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+
+        # Opening
+        kval = 5
+        k = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (kval, kval))
+        opening = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, k, iterations=3)
+
+        # dist transf
+        dist_transform = cv2.distanceTransform(opening, cv2.DIST_L2, 5)
+        ret, sure_fg = cv2.threshold(dist_transform, 0.5 * dist_transform.max(), 255, 0)
+
+        edges = cv2.Canny(thresh, 25, 30)
+
+        cv2.imshow('bg', res)  #  dist_transform/np.max(dist_transform))
+
 
     @clock
     def get_trial_traces(self, trial_name):

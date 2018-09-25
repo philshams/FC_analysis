@@ -69,7 +69,7 @@ track_options = {
 """
 Process tracking data (e.g. extract velocity trace from coordinates)
 """
-processing = False
+processing = True
 processing_options = {
     'cfg': './Processing/processing_cfg.yml'
 }
