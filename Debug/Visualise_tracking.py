@@ -10,20 +10,19 @@ import numpy as np
 import cv2
 from scipy import misc
 from termcolor import colored
+from multiprocessing.dummy import Pool as ThreadPool
 
 
 class App(QtGui.QMainWindow):
-    # TODO needs serious refactoring to handle better flow of time
     # TODO add times in shelter and in threat to progress bar [likely needs to be done in processing]
-    # TODO make legends
-
+    # TODO make loading of new trial faster
     """ Display frames from behavioural videos and tracking data for processed sessions.
      Only works for Tracked and Processed sessions """
     def __init__(self, sessions, parent=None):
         """ Set up class, initialise variables """
         super(App, self).__init__(parent)
 
-        self.sessions = sessions  # sessions
+        self.sessions = sessions  # ses        sions
 
         # Create GUI
         self.set_up_variables()
@@ -40,7 +39,8 @@ class App(QtGui.QMainWindow):
         self.show()
         app.exec_()
 
-    ####################################################################################################################
+        ####################################################################################################################
+
     def keyPressEvent(self, e):  # Deal with keyboard shortcuts
         if e.key() == QtCore.Qt.Key_Escape:
             self.close()
@@ -60,6 +60,10 @@ class App(QtGui.QMainWindow):
         elif e.key() == QtCore.Qt.Key_Q:  # TAB inverts time
             self.invert_time_func()
 
+    def wheelEvent(self, e):
+        steps = e.angleDelta().y() // 120
+        self.move_to_frame_number(None, frame_shift=steps)
+
     def display_keyboard_shortcuts(self):
         print(colored('     Keyboard shortcuts:', 'white'))
         print(colored('         W', 'green'), '     -- ', colored('Faster', 'yellow'))
@@ -70,7 +74,8 @@ class App(QtGui.QMainWindow):
         print(colored('         Space', 'green'), ' -- ', colored('Pause', 'yellow'))
         print(colored('         Esc', 'green'), '   -- ', colored('Close program', 'yellow'))
 
-    ####################################################################################################################
+        ####################################################################################################################
+
     def set_up_variables(self):
         # Useful vars
         # Plotting stuff
@@ -111,71 +116,71 @@ class App(QtGui.QMainWindow):
 
         # Widgets style sheet
         self.setStyleSheet("""
-         QPushButton {
-                        color: #ffffff;
-                        font-size: 18pt;
-                        background-color: #565656;
-                        border: 2px solid #8f8f91;
-                        border-radius: 6px;
-                        min-width: 250px;
-                        min-height: 60px;
-                    }
-                    
-         QPlainTextEdit {
-                        color: #ffffff;
-                        font-size: 14pt;
-                        background-color: #565656;
-                        border: 2px solid #8f8f91;
-                        border-radius: 6px;
-                        min-width: 250px;
-                        min-height: 60px;
-                    }
+                 QPushButton {
+                                color: #ffffff;
+                                font-size: 18pt;
+                                background-color: #565656;
+                                border: 2px solid #8f8f91;
+                                border-radius: 6px;
+                                min-width: 250px;
+                                min-height: 60px;
+                            }
 
-         QLabel {
-                        color: #ffffff;
+                 QPlainTextEdit {
+                                color: #ffffff;
+                                font-size: 14pt;
+                                background-color: #565656;
+                                border: 2px solid #8f8f91;
+                                border-radius: 6px;
+                                min-width: 250px;
+                                min-height: 60px;
+                            }
 
-                        font-size: 16pt;
+                 QLabel {
+                                color: #ffffff;
 
-                        min-width: 80px;
-                        min-height: 40px;
-                    }          
+                                font-size: 16pt;
+
+                                min-width: 80px;
+                                min-height: 40px;
+                            }          
 
 
-         QLineEdit {
-                        color: #202223;
-                        font-size: 14pt;
-                        background-color: #c1c1c1;
-                        border-radius: 4px;
-                        min-height: 40px;
-                        min-width: 20px;
-                    }
+                 QLineEdit {
+                                color: #202223;
+                                font-size: 14pt;
+                                background-color: #c1c1c1;
+                                border-radius: 4px;
+                                min-height: 40px;
+                                min-width: 20px;
+                            }
 
-         QListWidget {
-                        font-size: 14pt;
-                        background-color: #c1c1c1;
-                        border-radius: 4px;
+                 QListWidget {
+                                font-size: 14pt;
+                                background-color: #c1c1c1;
+                                border-radius: 4px;
 
-                    }
+                            }
 
-         QPushButton#LaunchBtn {
-                        background-color: #006600;
-                    }   
-         QPushButton#PauseBtn {
-            background-color: #d7c832;
-                    }
-         QPushButton#StopBtn {
-            background-color: #a32020;
-                    }  
-         QPushButton#ResumeBtn {
-            background-color: #73a120;
-                    }  
-                    
-         QPushButton#GotoBtn {
-                        font-size: 16pt;
-                        min-width: 200px;
-                        min-height: 40px;
-                    }
-        """)
+                 QPushButton#LaunchBtn {
+                                background-color: #006600;
+                            }   
+                 QPushButton#PauseBtn {
+                    background-color: #d7c832;
+                            }
+                 QPushButton#StopBtn {
+                    background-color: #a32020;
+                            }  
+                 QPushButton#ResumeBtn {
+                    background-color: #73a120;
+                            }  
+
+                 QPushButton#GotoBtn {
+                                font-size: 16pt;
+                                min-width: 200px;
+                                min-height: 40px;
+                            }
+                """)
 
     def create_label(self, txt, pos):
         obj = QtGui.QLabel()
@@ -216,7 +221,7 @@ class App(QtGui.QMainWindow):
 
         # Create Plotting Canvases
         self.progres_bar_canvas = pg.GraphicsLayoutWidget()
-        self.mainbox.layout().addWidget(self.progres_bar_canvas, 14, 0, 3, 15)
+        self.mainbox.layout().addWidget(self.progres_bar_canvas, 12, 0, 3, 15)
 
         self.canvas = pg.GraphicsLayoutWidget()
         self.mainbox.layout().addWidget(self.canvas, 0, 0, 12, 15)
@@ -244,23 +249,25 @@ class App(QtGui.QMainWindow):
         self.progress_plot = self.progres_bar_canvas.addPlot(title='Progress bar', colspan=2)
 
         # Create text labels and lineedits
-        self.framerate_label = self.create_label('Framerate',  (16, 18, 1, 2))
-        self.current_frame_label = self.create_label('Frame 0', (14, 18, 1, 2))
+        self.framerate_label = self.create_label('Framerate', (13, 18, 1, 2))
+        self.current_frame_label = self.create_label('Frame 0', (11, 18, 1, 2))
         self.goto_frame_edit = QtGui.QLineEdit('Go to frame number')
-        self.mainbox.layout().addWidget(self.goto_frame_edit, 15, 18, 1, 2)
-        self.trname = self.create_label('Trial Name', (1, 16, 1, 2))
+        self.mainbox.layout().addWidget(self.goto_frame_edit, 12, 18, 1, 2)
+        self.trname = self.create_label('Trial Name', (1, 16, 4, 2))
+
         self.tracking_vars_label = QtGui.QPlainTextEdit()
         self.tracking_vars_label.insertPlainText('Tracking data')
-        self.mainbox.layout().addWidget(self.tracking_vars_label, 14, 16, 2, 2)
+        self.mainbox.layout().addWidget(self.tracking_vars_label, 11, 16, 4, 2)
+
         self.trlistlabel = self.create_label('Trials', (8, 19))
         self.sesslistlabel = self.create_label('Sessions', (5, 19))
         if not self.sessions is None:
             name = """ 
-                    Session ID:    ,
-                    Experiment:    ,
-                    Date:          ,
-                    Mouse ID:      .
-            """
+                            Session ID:    ,
+                            Experiment:    ,
+                            Date:          ,
+                            Mouse ID:      .
+                    """
             self.sessname = self.create_label('Session Metadata \n {}'.format(name), (0, 16, 1, 2))
         else:
             self.sessname = self.create_label('No session found', (0, 16, 1, 2))
@@ -270,9 +277,10 @@ class App(QtGui.QMainWindow):
         self.stop_btn = self.create_btn('Stop', (7, 16, 2, 2), name='StopBtn', func=self.stop_playback)
         self.pause_btn = self.create_btn('Pause', (8, 16, 4, 2), name='PauseBtn', func=self.pause_playback)
         self.resume_btn = self.create_btn('Resume', (7, 16, 4, 2), name='ResumeBtn', func=self.resume_playback)
-        self.faster_btn = self.create_btn('Faster', (16, 16), func=self.increase_speed)
-        self.slower_btn = self.create_btn('Slower', (16, 17), func=self.decrease_speed)
-        self.gotoframe_btn = self.create_btn('Go to frame', (15, 20), func=self.move_to_frame_number, name='GotoBtn')
+        self.faster_btn = self.create_btn('Faster', (14, 18), func=self.increase_speed)
+        self.slower_btn = self.create_btn('Slower', (14, 19), func=self.decrease_speed)
+        self.gotoframe_btn = self.create_btn('Go to frame', (12, 20), func=self.move_to_frame_number, name='GotoBtn')
+        self.invert_time_bt = self.create_btn('Invert Time', (11, 20), func=self.invert_time_func)
 
         # List widgets
         self.trials_listw = QListWidget()
@@ -283,13 +291,6 @@ class App(QtGui.QMainWindow):
         self.mainbox.layout().addWidget(self.sessions_listw, 6, 18, 2, 3)
         self.sessions_listw.itemDoubleClicked.connect(self.get_session_data)
 
-        # Toggle buttons
-        self.invert_time_btn = QPushButton('Invert time')
-        self.invert_time_btn.setCheckable(True)
-        self.invert_time_btn.setChecked(False)
-        self.invert_time_btn.clicked.connect(self.invert_time_func)
-        self.mainbox.layout().addWidget(self.invert_time_btn, 14, 20)
-
         # Define window geometry
         self.setGeometry(50, 50, 3600, 2000)
 
@@ -297,28 +298,31 @@ class App(QtGui.QMainWindow):
         self.define_plot_items()
 
     def define_plot_items(self):
-        self.vel_line = self.velplot.plot(pen=pg.mkPen('r', width=5))
-        self.blength_line = self.velplot.plot(pen=pg.mkPen((150, 100, 220), width=3))
+        self.velplot.addLegend()
+        self.vel_line = self.velplot.plot(pen=pg.mkPen('r', width=5), name='Velocity')
+        self.blength_line = self.velplot.plot(pen=pg.mkPen((150, 100, 220), width=3), name='Body length')
         self.plot_items.append(self.vel_line)
         self.plot_items.append(self.blength_line)
 
-        self.head_ang_vel_line = self.angvelplot.plot(pen=pg.mkPen((100, 100, 25), width=3))
-        self.body_ang_vel_line = self.angvelplot.plot(pen=pg.mkPen((150, 50, 75), width=3))
-        self.head_body_angle_diff_line = self.angvelplot.plot(pen=pg.mkPen((150, 200, 150), width=5))
+        self.angvelplot.addLegend()
+        self.head_ang_vel_line = self.angvelplot.plot(pen=pg.mkPen((100, 100, 25), width=3), name='Head ang vel')
+        self.body_ang_vel_line = self.angvelplot.plot(pen=pg.mkPen((150, 50, 75), width=3), name='Body ang vel')
+        self.head_body_angle_diff_line = self.angvelplot.plot(pen=pg.mkPen((150, 200, 150), width=5),
+                                                              name='Head - body angle diff')
         self.plot_items.append(self.head_ang_vel_line)
         self.plot_items.append(self.body_ang_vel_line)
         self.plot_items.append(self.head_body_angle_diff_line)
 
-        self.progress_line = self.progress_plot.plot(pen=pg.mkPen('r', width=5))
-        self.plot_items.append(self.progress_line)
+        self.progress_plot.addLegend()
 
-    ####################################################################################################################
+        ####################################################################################################################
+
     def get_session_data(self, event):
         """ Get paths of videofiles and names of tracking data + add these names to list widget"""
         if self.sessions is None:
             return
 
-        if event is None:   # function not called by widget click
+        if event is None:  # function not called by widget click
             [self.sessions_listw.addItem(sess) for sess in sorted(list(self.sessions.keys()))]
             session_name = sorted(list(self.sessions.keys()))[0]
         else:  # Clean up trials list widget and laod data
@@ -334,12 +338,12 @@ class App(QtGui.QMainWindow):
         [self.trials_listw.addItem(tr) for tr in sorted(self.trials)]
 
         name = """ 
-                   Session ID:    {},
-                   Experiment:    {},
-                   Date:          {},
-                   Mouse ID:      {}.
-                   """.format(session.Metadata.session_id, session.Metadata.experiment,
-                              session.Metadata.date, session.Metadata.mouse_id)
+                           Session ID:    {},
+                           Experiment:    {},
+                           Date:          {},
+                           Mouse ID:      {}.
+                           """.format(session.Metadata.session_id, session.Metadata.experiment,
+                                      session.Metadata.date, session.Metadata.mouse_id)
         self.sessname.setText('Session Metadata \n {}'.format(name))
 
         # Load images in secondary window
@@ -378,6 +382,10 @@ class App(QtGui.QMainWindow):
         self.stim_bg.setBrush(pg.mkBrush((100, 100, 200)))
         self.progress_plot.addItem(self.stim_bg)
         self.progress_plot.setRange(xRange=[0, self.num_frames_tracking_data], yRange=[0, 1])
+        self.progress_line = self.progress_plot.plot(pen=pg.mkPen('r', width=5), name='Position')
+        self.plot_items.append(self.progress_line)
+
+        self.ready_to_plot = True
 
     ####################################################################################################################
     def cleanup_plots(self):
@@ -477,11 +485,14 @@ class App(QtGui.QMainWindow):
                 print('Cant go back in time beyond this point')
                 self.pause_playback(None)
 
-        return frame
+        self.img.setImage(frame)
 
     def update_plots(self):
-        self.plot_pose(self.current_frame)
-        self.plot_tracking_data(self.current_frame)
+        funcs = []
+        funcs.append(self.plot_pose(self.current_frame))
+        funcs.append(self.plot_tracking_data(self.current_frame))
+        [self.pool.apply_async(f) for f in funcs]
+
         self.progress_line.setData([self.current_frame, self.current_frame], [0, 1])
 
     ####################################################################################################################
@@ -518,15 +529,12 @@ class App(QtGui.QMainWindow):
         self.update_video_grabber()
 
         # Keep looping to update plots and grab frames
+        self.pool = ThreadPool(2)
         while True:
             try:
                 if self.direction_of_time is not None: get_plotting_fps(self)
 
-                # Display the next frame
-                frame = self.get_next_frame()
-                self.img.setImage(frame)
-
-                # update plots
+                self.get_next_frame()
                 self.update_plots()
             except:
                 pass
@@ -574,10 +582,12 @@ class App(QtGui.QMainWindow):
             self.wait_ms -= 50
 
     def move_to_frame_number(self, event, frame_shift=None):
+
         if frame_shift is not None:
-            self.current_frame = int(self.goto_frame_edit.text())+frame_shift
+            self.current_frame += frame_shift
         else:
             self.current_frame = int(self.goto_frame_edit.text())
+        self.current_frame_label.setText('Frame: {}'.format(self.current_frame))
         self.update_video_grabber()
 
     def stop_playback(self, event):
