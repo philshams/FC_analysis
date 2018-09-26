@@ -1,9 +1,4 @@
-import matplotlib.pyplot as plt  # used for debugging
-import numpy as np
-from collections import namedtuple
-from termcolor import colored
-import pandas as pd
-import cv2
+from Utils.imports import *
 
 from Utils.Messaging import slack_chat_messenger
 from Utils.decorators import clock
@@ -13,9 +8,10 @@ from Config import cohort_options
 
 class ProcessingTrialsMaze:
     """ Applies processsing steps that are specific to maze experiments (e.g. get arm of escape) """
-    def __init__(self, session, debugging=True):
+    def __init__(self, session, settings=None, debugging=True):
         print(colored('\n      Maze-specific single trials processing', 'green'))
         self.session = session
+        self.settings = settings
         self.debugging = debugging
 
         self.get_maze_structure()
@@ -94,55 +90,83 @@ class ProcessingTrialsMaze:
         return rois, limits
 
     def get_maze_structure(self):
+        def loop_over_templates(templates, img, bridge_mode=False):
+            cols = dict(left=(255, 0, 0), central=(0, 255, 0), right=(0, 0, 255), shelter=(200, 180, 0),
+                        threat=(0, 180, 200))
+            font = cv2.FONT_HERSHEY_SIMPLEX
+            if len(img.shape) == 2:
+                colored_bg = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+            else:
+                colored_bg = img
+
+            for n, template in enumerate(templates):
+                id = os.path.split(template)[1].split('_')[0]
+                col = cols[id.lower()]
+                templ = cv2.imread(template)
+                if len(templ.shape) == 3:
+                    templ = cv2.cvtColor(templ, cv2.COLOR_BGR2GRAY)
+                w, h = templ.shape[::-1]
+
+                res = cv2.matchTemplate(gray, templ, cv2.TM_CCOEFF_NORMED)
+
+                if not bridge_mode:
+                    min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
+                    top_left = max_loc
+                else:  # take only the relevant quadrant
+                    if id == 'Left':
+                        res = res[:, 0:int(w/2)]
+                        hor_sum = 0
+                    else:
+                        res = res[:, int(w/2):]
+                        hor_sum = int(w/2)
+
+                    origin = os.path.split(template)[1].split('_')[1][0]
+                    if origin == 'T':
+                        res = res[int(h/2):, :]
+                        ver_sum = 0
+                    else:
+                        res = res[:int(h/2):, :]
+                        ver_sum = int(h/2)
+
+                    cv2.imshow('bg', res)
+                    min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
+                    top_left = (max_loc[0] + ver_sum, max_loc[1] + hor_sum)
+
+                bottom_right = (top_left[0] + w, top_left[1] + h)
+
+                print(' Found', os.path.split(template)[1], '  max: ', round(max_val, 3))
+
+                cv2.rectangle(colored_bg, top_left, bottom_right, col, 2)
+                cv2.putText(colored_bg, os.path.split(template)[1].split('.')[0]+'  {}'.format(round(max_val,2)),
+                            (top_left[0] + 10, top_left[1] + 25),
+                            font, 0.5, (255, 255, 255), 2, cv2.LINE_AA)
+            return colored_bg
+
         bg = self.session.Metadata.videodata[0]['Background']
         if len(bg.shape) == 3:
             gray = cv2.cvtColor(bg, cv2.COLOR_BGR2GRAY)
         else:
             gray = bg
 
-        threat_platf_template = gray[430:540, 380: 550]
-        left_platf_template = gray[50:180, 10: 170]
-        right_platf_template = gray[200:380, 550: 730]
-        shelter_platf_template = gray[0:180, 360: 550]
-        templates = [threat_platf_template, left_platf_template, right_platf_template, shelter_platf_template]
-        for template in templates:
-            w, h = template.shape[::-1]
+        exp_name = self.session.Metadata.experiment
+        base_fld = self.settings['templates folder']
+        bg_folder = os.path.join(base_fld, 'Bgs')
+        templates_fld = os.path.join(base_fld, exp_name)
+        f_name = '{}.png'.format(self.session.name)
+        if not f_name in os.listdir(bg_folder):
+            cv2.imwrite(os.path.join(bg_folder, f_name), gray)
 
-            res = cv2.matchTemplate(gray, template, cv2.TM_CCOEFF_NORMED)
-            min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
-            top_left = max_loc
+        platf_templates = [os.path.join(templates_fld, f) for f in os.listdir(templates_fld) if 'platform' in f]
+        bridge_templates = [os.path.join(templates_fld, f) for f in os.listdir(templates_fld) if 'bridge' in f]
 
-            bottom_right = (top_left[0] + w, top_left[1] + h)
-            cv2.rectangle(gray, top_left, bottom_right, 255, 2)
+        display = loop_over_templates(platf_templates, bg)
+        display = loop_over_templates(bridge_templates, display, bridge_mode=False)
 
-        cv2.imshow('bg', gray)  #  dist_transform/np.max(dist_transform))
-
-
-
+        cv2.imwrite(os.path.join(base_fld, 'Matched\\{}.png'.format(self.session.name)), display)
+        cv2.imshow('bg', display)
+        # a = 1
 
 
-
-        # Blur
-        blur = cv2.GaussianBlur(gray, (11, 11), -1)
-
-        # Threshold
-        p = np.percentile(blur[:], 65)
-        # thresh = cv2.threshold(blur, p, 255, cv2.THRESH_BINARY)[1]
-        thresh = cv2.adaptiveThreshold(blur, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 115, 1)
-        _, thresh = cv2.threshold(blur, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-
-        # Opening
-        kval = 5
-        k = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (kval, kval))
-        opening = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, k, iterations=3)
-
-        # dist transf
-        dist_transform = cv2.distanceTransform(opening, cv2.DIST_L2, 5)
-        ret, sure_fg = cv2.threshold(dist_transform, 0.5 * dist_transform.max(), 255, 0)
-
-        edges = cv2.Canny(thresh, 25, 30)
-
-        cv2.imshow('bg', res)  #  dist_transform/np.max(dist_transform))
 
 
     @clock
