@@ -1,8 +1,4 @@
-import sys
-import time
-from pyqtgraph.Qt import QtCore, QtGui
-import numpy as np
-import pyqtgraph as pg
+from Utils.imports import *
 
 
 class App(QtGui.QMainWindow):

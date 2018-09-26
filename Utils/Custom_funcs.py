@@ -1,6 +1,4 @@
-from moviepy.editor import VideoFileClip
-from moviepy.video.fx import crop
-
+from Utils.imports import *
 
 def cut_crop_video(vidpath='',  save_format=['avi'],
                    cut=False, starts=0., fins=-1.,

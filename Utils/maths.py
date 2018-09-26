@@ -1,7 +1,4 @@
-from scipy.spatial import distance
-import numpy as np
-from math import factorial, atan2, degrees
-import pandas as pd
+from Utils.imports import *
 
 from Utils.decorators import clock_noself
 

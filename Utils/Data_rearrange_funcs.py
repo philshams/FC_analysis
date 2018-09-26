@@ -1,10 +1,4 @@
-import pandas as pd
-import datetime
-from termcolor import colored
-
-from Utils.utils_classes import Trial, Cohort
-
-from Config import cohort_options
+from Utils.imports import *
 
 
 def check_session_selected(metadata, selector_type: str, selector: list) -> bool:

@@ -47,7 +47,6 @@ class PoseReconstructor:
         head_main_axis = calc_distance_2d([self.axes['head_main'][0], self.axes['head_main'][1]])
         a = 1
 
-
     def update_body_plot(self, idx):
         centre = self.posture.body.loc[idx]
         self.ax.set(xlim=[centre.x - 100, centre.x + 100], ylim=[centre.y - 100, centre.y + 100])
@@ -56,7 +55,6 @@ class PoseReconstructor:
 
         plt.draw()
         plt.pause(0.1)
-
 
     def plot_body_line(self, axisname, idx):
         bp1 = self.axes[axisname][0]

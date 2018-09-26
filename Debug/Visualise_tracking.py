@@ -1,16 +1,5 @@
-from PyQt5.QtWidgets import *
-from PyQt5.QtCore import *
-from PyQt5.QtGui import *
-import os
-import pyqtgraph as pg
-import sys
-import time
-from pyqtgraph.Qt import QtCore, QtGui
-import numpy as np
-import cv2
-from scipy import misc
-from termcolor import colored
-from multiprocessing.dummy import Pool as ThreadPool
+from Utils.imports import *
+
 
 
 class App(QtGui.QMainWindow):

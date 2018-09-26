@@ -1,3 +1,5 @@
+apply standard processing: false  # Apply general processing functions or not
+
 # Setting for POSE reconstruction
 # Names of the DLC bodyparts tags for the different bodyparts
 'body': 'body'              # BODY and TAIL are also used for ORIENTATION extraction
@@ -24,3 +26,4 @@ ang vel unit: 'degperframe'      # Unit of meausre of angulare velocity, Either 
 # Experiment-specific settings:
 apply exp-specific: true     # apply some experiment specific analysis steps or not
 debug exp-specific: false     # debug mode ON
+templates folder: 'D:\Dropbox (UCL - SWC)\Dropbox (UCL - SWC)\Rotation_vte\analysis\Maze_templates'

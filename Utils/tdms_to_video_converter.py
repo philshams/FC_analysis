@@ -1,14 +1,4 @@
-import numpy as np
-import os
-from tempfile import mkdtemp
-from nptdms import TdmsFile
-import psutil
-import gc
-import time
-from multiprocessing.dummy import Pool as ThreadPool
-from tqdm import tqdm
-
-import cv2
+from Utils.imports import *
 
 
 class TDMs_to_Video():
