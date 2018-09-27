@@ -1,3 +1,5 @@
+import matplotlib.path as mplPath
+
 from Utils.imports import *
 
 from Utils.Messaging import slack_chat_messenger
@@ -14,10 +16,11 @@ class ProcessingTrialsMaze:
         self.settings = settings
         self.debugging = debugging
 
-        self.get_maze_structure()
 
         # Subdivide frame
         self.rois, self.boundaries = self.subdivide_frame()
+        self.maze_rois = []
+        self.get_maze_structure()
 
         # Process each trial
         tracking_items =self.session.Tracking.keys()
@@ -26,6 +29,7 @@ class ProcessingTrialsMaze:
                 retval = self.get_trial_traces(item)  # get coordinates
 
                 if retval:
+                    self.assign_pose_to_roi(item)       # get the roi the mouse is on at each frame
                     # self.get_intersections(item)
                     self.get_origin_escape_arms(item)   # get escape arms
                     self.extract_escape_stats(item)     # get stats of escape
@@ -42,57 +46,17 @@ class ProcessingTrialsMaze:
                         slack_chat_messenger('Something went wrong with maze-processing, trial {}'.format(item))
                     print(colored('          did not apply maze-processing to trial {}'.format(item), 'yellow'))
 
-    def subdivide_frame(self):
-        """
-        Subdivide the frame into regions: when the mouse is in one of those regions we know that it is on one
-        of the arms. This can be done using user defined ROIs if present, alternative it is assumed that the maze
-        is centered on the frame
-        """
-        # handles to metadata items
-        rois = self.session.Metadata.videodata[0]['User ROIs']
-        self.bg = self.session.Metadata.videodata[0]['Background']
 
-        # handle to frame subdivision lines
-        """
-        First two lines split the frame in half vertically and horizontally, the second two are parallel to 
-        the vertical midline and are located at the horizontal edges of the shelter
-        """
-        boundaries = namedtuple('boundaries', 'x_midline y_midline l_shelteredge r_shelteredge')
-        shelter_width = 100  # assumed shelterwidth if not specified in a ROI
 
-        if not 'Shelter' in rois.keys() or rois['Shelter'] is None:
-            # Split the video assuming the the shelter is centered on it
-            width, height = np.shape(self.bg)
-            # split everything in hald and assign
-            width = int(float(width/2))
-            height = int(float(height/2))
-            shelter_width = int(float(shelter_width/2))
-            limits = boundaries(width, height, width-shelter_width, width+shelter_width)
 
-        else:
-            # Split the video using the user defined rois
-            shelter = rois['Shelter']
-            threat = rois['Threat']
-
-            point = namedtuple('point', 'x y')
-
-            shelter_cntr = point(int(shelter[0]+(shelter[2]/2)), int(shelter[1]+(shelter[3]/2)))
-            threat_cntr = point(int(threat[0]+(threat[2]/2)), int(threat[1]+(threat[3]/2)))
-
-            # Get midpoint between  between the rois
-            midpoint = point(int((shelter_cntr.x + threat_cntr.x)/2), int((shelter_cntr.y + threat_cntr.y)/2))
-
-            # now get the edges of the shelter
-            edges = int(midpoint.x-(shelter[2]/2)), int(midpoint.x+(shelter[2]/2))
-
-            # now put everything together in the limits
-            limits = boundaries(midpoint.x, midpoint.y, edges[0], edges[1])
-        return rois, limits
-
+    """ Get position of mouse on the maze for all frames """
     def get_maze_structure(self):
         def loop_over_templates(templates, img, bridge_mode=False):
             cols = dict(left=(255, 0, 0), central=(0, 255, 0), right=(0, 0, 255), shelter=(200, 180, 0),
                         threat=(0, 180, 200))
+            rois = {}
+            point = namedtuple('point', 'topleft bottomright')
+
             font = cv2.FONT_HERSHEY_SIMPLEX
             if len(img.shape) == 2:
                 colored_bg = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
@@ -108,39 +72,40 @@ class ProcessingTrialsMaze:
                 w, h = templ.shape[::-1]
 
                 res = cv2.matchTemplate(gray, templ, cv2.TM_CCOEFF_NORMED)
-
+                rheight, rwidth = res.shape
                 if not bridge_mode:
                     min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
                     top_left = max_loc
                 else:  # take only the relevant quadrant
                     if id == 'Left':
-                        res = res[:, 0:int(w/2)]
+                        res = res[:, 0:int(rwidth/2)]
                         hor_sum = 0
+                    elif id == 'Right':
+                        res = res[:, int(rwidth/2):]
+                        hor_sum = int(rwidth/2)
                     else:
-                        res = res[:, int(w/2):]
-                        hor_sum = int(w/2)
+                        hor_sum = 0
 
                     origin = os.path.split(template)[1].split('_')[1][0]
                     if origin == 'T':
-                        res = res[int(h/2):, :]
-                        ver_sum = 0
+                        res = res[int(rheight/2):, :]
+                        ver_sum = int(rheight/2)
                     else:
-                        res = res[:int(h/2):, :]
-                        ver_sum = int(h/2)
+                        res = res[:int(rheight/2):, :]
+                        ver_sum = 0
 
-                    cv2.imshow('bg', res)
                     min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
-                    top_left = (max_loc[0] + ver_sum, max_loc[1] + hor_sum)
+                    top_left = (max_loc[0] + hor_sum, max_loc[1] + ver_sum)
 
                 bottom_right = (top_left[0] + w, top_left[1] + h)
 
-                print(' Found', os.path.split(template)[1], '  max: ', round(max_val, 3))
-
+                midpoint = point(top_left, bottom_right)
+                rois[os.path.split(template)[1].split('.')[0]] = midpoint
                 cv2.rectangle(colored_bg, top_left, bottom_right, col, 2)
                 cv2.putText(colored_bg, os.path.split(template)[1].split('.')[0]+'  {}'.format(round(max_val,2)),
                             (top_left[0] + 10, top_left[1] + 25),
                             font, 0.5, (255, 255, 255), 2, cv2.LINE_AA)
-            return colored_bg
+            return colored_bg, rois
 
         bg = self.session.Metadata.videodata[0]['Background']
         if len(bg.shape) == 3:
@@ -148,6 +113,7 @@ class ProcessingTrialsMaze:
         else:
             gray = bg
 
+        # Get the templates
         exp_name = self.session.Metadata.experiment
         base_fld = self.settings['templates folder']
         bg_folder = os.path.join(base_fld, 'Bgs')
@@ -159,14 +125,42 @@ class ProcessingTrialsMaze:
         platf_templates = [os.path.join(templates_fld, f) for f in os.listdir(templates_fld) if 'platform' in f]
         bridge_templates = [os.path.join(templates_fld, f) for f in os.listdir(templates_fld) if 'bridge' in f]
 
-        display = loop_over_templates(platf_templates, bg)
-        display = loop_over_templates(bridge_templates, display, bridge_mode=False)
-
+        # Calculate the position of the templates and save resulting image
+        display, platforms = loop_over_templates(platf_templates, bg)
+        display, bridges = loop_over_templates(bridge_templates, display, bridge_mode=True)
+        self.maze_rois = {**platforms, **bridges}
         cv2.imwrite(os.path.join(base_fld, 'Matched\\{}.png'.format(self.session.name)), display)
-        cv2.imshow('bg', display)
-        # a = 1
 
+    @clock
+    def assign_pose_to_roi(self, trial_name):
+        data = self.session.Tracking[trial_name]
+        data_length = len(data.dlc_tracking['Posture']['body'].x.values)
+        pos = np.zeros((data_length, 2))
+        pos[:, 0] = data.dlc_tracking['Posture']['body'].x.values
+        pos[:, 1] = data.dlc_tracking['Posture']['body'].y.values
 
+        centers, roi_names = [], []
+        for name, points in self.maze_rois.items():
+            center_x = (points.topleft[0] + points.bottomright[0])/2
+            center_y = (points.topleft[1] + points.bottomright[1])/2
+
+            center = np.asarray([center_x, center_y])
+            centers.append(center)
+            roi_names.append(name)
+
+        distances = np.zeros((data_length, len(centers)))
+        for idx, center in enumerate(centers):
+            cnt = np.tile(center, data_length).reshape((data_length, 2))
+            dist = np.hypot(np.subtract(cnt[:, 0], pos[:, 0]), np.subtract(cnt[:, 1], pos[:, 1]))
+            distances[:, idx] = dist
+
+        sel_rois  = np.argmin(distances, 1)
+        roi_at_each_frame = tuple([roi_names[x] for x in sel_rois])
+
+        # store data
+        data.processing['Maze rois'] = self.maze_rois
+        e = pd.Series(roi_at_each_frame)
+        data.dlc_tracking['Posture']['body'] = data.dlc_tracking['Posture']['body'].assign(maze_roi = e.values)
 
 
     @clock
@@ -220,6 +214,54 @@ class ProcessingTrialsMaze:
                                                     stim_to_shelt_trace=self.stim_to_shelter)
 
         return True
+
+    def subdivide_frame(self):
+        """
+        Subdivide the frame into regions: when the mouse is in one of those regions we know that it is on one
+        of the arms. This can be done using user defined ROIs if present, alternative it is assumed that the maze
+        is centered on the frame
+        """
+        # handles to metadata items
+        rois = self.session.Metadata.videodata[0]['User ROIs']
+        self.bg = self.session.Metadata.videodata[0]['Background']
+
+        # handle to frame subdivision lines
+        """
+        First two lines split the frame in half vertically and horizontally, the second two are parallel to 
+        the vertical midline and are located at the horizontal edges of the shelter
+        """
+        boundaries = namedtuple('boundaries', 'x_midline y_midline l_shelteredge r_shelteredge')
+        shelter_width = 100  # assumed shelterwidth if not specified in a ROI
+
+        if not 'Shelter' in rois.keys() or rois['Shelter'] is None:
+            # Split the video assuming the the shelter is centered on it
+            width, height = np.shape(self.bg)
+            # split everything in hald and assign
+            width = int(float(width/2))
+            height = int(float(height/2))
+            shelter_width = int(float(shelter_width/2))
+            limits = boundaries(width, height, width-shelter_width, width+shelter_width)
+
+        else:
+            # Split the video using the user defined rois
+            shelter = rois['Shelter']
+            threat = rois['Threat']
+
+            point = namedtuple('point', 'x y')
+
+            shelter_cntr = point(int(shelter[0]+(shelter[2]/2)), int(shelter[1]+(shelter[3]/2)))
+            threat_cntr = point(int(threat[0]+(threat[2]/2)), int(threat[1]+(threat[3]/2)))
+
+            # Get midpoint between  between the rois
+            midpoint = point(int((shelter_cntr.x + threat_cntr.x)/2), int((shelter_cntr.y + threat_cntr.y)/2))
+
+            # now get the edges of the shelter
+            edges = int(midpoint.x-(shelter[2]/2)), int(midpoint.x+(shelter[2]/2))
+
+            # now put everything together in the limits
+            limits = boundaries(midpoint.x, midpoint.y, edges[0], edges[1])
+        return rois, limits
+
 
     """
     Extract stuff
