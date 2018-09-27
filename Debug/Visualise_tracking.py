@@ -1,7 +1,5 @@
 from Utils.imports import *
 
-
-
 class App(QtGui.QMainWindow):
     # TODO add times in shelter and in threat to progress bar [likely needs to be done in processing]
     # TODO make loading of new trial faster
@@ -21,6 +19,10 @@ class App(QtGui.QMainWindow):
         # Create second window to display trial images
         self.previews = ImgsViwer()
 
+        # exp specific window
+        self.run_exp_specific = True
+        self.exp_specific = MazeViewer()
+
         # Get session Data
         self.get_session_data(None)
 
@@ -28,7 +30,7 @@ class App(QtGui.QMainWindow):
         self.show()
         app.exec_()
 
-        ####################################################################################################################
+    ####################################################################################################################
 
     def keyPressEvent(self, e):  # Deal with keyboard shortcuts
         if e.key() == QtCore.Qt.Key_Escape:
@@ -65,6 +67,8 @@ class App(QtGui.QMainWindow):
 
         ####################################################################################################################
 
+    ####################################################################################################################
+
     def set_up_variables(self):
         # Useful vars
         # Plotting stuff
@@ -95,6 +99,31 @@ class App(QtGui.QMainWindow):
         self.ready_to_plot = False  # flag to control plotting behaviour
         self.is_paused = False
         self.direction_of_time = True  # set as -1 to invert timeflow when playing video
+
+    def create_label(self, txt, pos):
+        obj = QtGui.QLabel()
+        obj.setText(txt)
+        if len(pos) == 4:
+            self.mainbox.layout().addWidget(obj, pos[0], pos[1], pos[2], pos[3])
+        elif len(pos) == 2:
+            self.mainbox.layout().addWidget(obj, pos[0], pos[1])
+        else:
+            print('Cannot create label widget, wrong position parameter: {}'.format(pos))
+        return obj
+
+    def create_btn(self, txt, pos, name=None, func=None):
+        obj = QPushButton(text=txt)
+        if len(pos) == 4:
+            self.mainbox.layout().addWidget(obj, pos[0], pos[1], pos[2], pos[3])
+        elif len(pos) == 2:
+            self.mainbox.layout().addWidget(obj, pos[0], pos[1])
+        else:
+            print('Cannot create label widget, wrong position parameter: {}'.format(pos))
+        if name is not None:
+            obj.setObjectName(name)
+        if func is not None:
+            obj.clicked.connect(lambda: func(self))
+        return obj
 
     def define_style_sheet(self):
         # Main window color
@@ -170,31 +199,6 @@ class App(QtGui.QMainWindow):
                                 min-height: 40px;
                             }
                 """)
-
-    def create_label(self, txt, pos):
-        obj = QtGui.QLabel()
-        obj.setText(txt)
-        if len(pos) == 4:
-            self.mainbox.layout().addWidget(obj, pos[0], pos[1], pos[2], pos[3])
-        elif len(pos) == 2:
-            self.mainbox.layout().addWidget(obj, pos[0], pos[1])
-        else:
-            print('Cannot create label widget, wrong position parameter: {}'.format(pos))
-        return obj
-
-    def create_btn(self, txt, pos, name=None, func=None):
-        obj = QPushButton(text=txt)
-        if len(pos) == 4:
-            self.mainbox.layout().addWidget(obj, pos[0], pos[1], pos[2], pos[3])
-        elif len(pos) == 2:
-            self.mainbox.layout().addWidget(obj, pos[0], pos[1])
-        else:
-            print('Cannot create label widget, wrong position parameter: {}'.format(pos))
-        if name is not None:
-            obj.setObjectName(name)
-        if func is not None:
-            obj.clicked.connect(lambda: func(self))
-        return obj
 
     def define_layout(self):
         """ Create the layout of the figure"""
@@ -281,7 +285,7 @@ class App(QtGui.QMainWindow):
         self.sessions_listw.itemDoubleClicked.connect(self.get_session_data)
 
         # Define window geometry
-        self.setGeometry(50, 50, 3600, 2000)
+        self.setGeometry(0, 50, 3830, 2050)
 
         # Create plot items
         self.define_plot_items()
@@ -306,6 +310,8 @@ class App(QtGui.QMainWindow):
 
         ####################################################################################################################
 
+    ####################################################################################################################
+    @clock
     def get_session_data(self, event):
         """ Get paths of videofiles and names of tracking data + add these names to list widget"""
         if self.sessions is None:
@@ -334,10 +340,15 @@ class App(QtGui.QMainWindow):
                            """.format(session.Metadata.session_id, session.Metadata.experiment,
                                       session.Metadata.date, session.Metadata.mouse_id)
         self.sessname.setText('Session Metadata \n {}'.format(name))
+        self.session = session
 
         # Load images in secondary window
         self.previews.get_images(sorted(self.trials))
 
+        if self.run_exp_specific:
+            self.exp_specific.update_matched_image(session.Metadata.session_id)
+
+    @clock
     def load_trial_data(self, trial_name):
         """  get data from trial and initialise plots """
         # Clear up a previously running trials
@@ -347,6 +358,7 @@ class App(QtGui.QMainWindow):
 
         # Get data
         trial_name = trial_name.text()
+        self.trial = trial_name
         self.previews.set_img(trial_name)
         self.trname.setText('Trial: {}'.format(trial_name))
 
@@ -380,6 +392,7 @@ class App(QtGui.QMainWindow):
     def cleanup_plots(self):
         [p.setData([], []) for p in self.plot_items]
 
+    @clock
     def update_video_grabber(self):
         self.video_grabber.set(1, self.trial_start_frame+self.current_frame)
 
@@ -474,14 +487,13 @@ class App(QtGui.QMainWindow):
                 print('Cant go back in time beyond this point')
                 self.pause_playback(None)
 
-        self.img.setImage(frame)
+        self.img.setImage(frame, autoLevels=False)
+        if self.run_exp_specific:
+            self.exp_specific.update_frame(self.session, self.trial, frame)
 
     def update_plots(self):
-        funcs = []
-        funcs.append(self.plot_pose(self.current_frame))
-        funcs.append(self.plot_tracking_data(self.current_frame))
-        [self.pool.apply_async(f) for f in funcs]
-
+        self.plot_pose(self.current_frame)
+        self.plot_tracking_data(self.current_frame)
         self.progress_line.setData([self.current_frame, self.current_frame], [0, 1])
 
     ####################################################################################################################
@@ -609,7 +621,7 @@ class ImgsViwer(QtGui.QMainWindow):
                                border: 2px solid #8f8f91;
                                border-radius: 6px;
                                min-width: 250px;
-                               min-height: 60px;
+                               min-height: 30px;
                            }
                 QLabel {
                         color: #ffffff;
@@ -617,7 +629,7 @@ class ImgsViwer(QtGui.QMainWindow):
                         font-size: 16pt;
 
                         min-width: 80px;
-                        min-height: 40px;
+                        min-height: 20px;
                     }          """)
 
         self.setAutoFillBackground(True)
@@ -633,18 +645,18 @@ class ImgsViwer(QtGui.QMainWindow):
         self.mainbox.setLayout(grid)
 
         self.canvas = pg.GraphicsLayoutWidget()
-        self.mainbox.layout().addWidget(self.canvas, 0, 0, 6, 6)
+        self.mainbox.layout().addWidget(self.canvas, 0, 0, 5, 6)
 
         self.view = self.canvas.addViewBox()
         self.view.setAspectLocked(False)
         self.img = pg.ImageItem(border='w')
         self.view.addItem(self.img)
 
-        self.curr_img_label = App.create_label(self, 'Current Image', (7, 1))
-        self.prev_btn = App.create_btn(self, 'Prev', (8, 1), func=self.prev_img)
-        self.next_btn = App.create_btn(self, 'Next', (8, 3), func=self.next_img)
+        self.curr_img_label = App.create_label(self, 'Current Image', (7, 0))
+        self.prev_btn = App.create_btn(self, 'Prev', (7, 4), func=self.prev_img)
+        self.next_btn = App.create_btn(self, 'Next', (7, 5), func=self.next_img)
 
-        self.setGeometry(3835, 40, 1450, 1400)
+        self.setGeometry(3835, 40, 1450, 1000)
 
     def get_images(self, trials):
         if len(self.images):
@@ -675,6 +687,109 @@ class ImgsViwer(QtGui.QMainWindow):
         if self.curr_img > 0:
             trial = list(self.images.keys())[self.curr_img]
             self.set_img(trial)
+
+
+class MazeViewer(QtGui.QMainWindow):
+    def __init__(self, parent=None):
+        super(MazeViewer, self).__init__(parent)
+
+        self.arms_colors = dict(left='#14540e', center='#954b00', right='#05335d',
+                                shelter='#8a9302', threat='#76027e')
+
+        self.matchedfld = 'D:\\Dropbox (UCL - SWC)\\Dropbox (UCL - SWC)\\Rotation_vte\\analysis\\Maze_templates' \
+                          '\\Matched'
+
+        self.define_layout()
+        self.show()
+
+    def define_layout(self):
+        # Main window color
+        self.setStyleSheet("""
+                  QPushButton {
+                                 color: #ffffff;
+                                 font-size: 18pt;
+                                 background-color: #565656;
+                                 border: 2px solid #8f8f91;
+                                 border-radius: 6px;
+                                 min-width: 250px;
+                                 min-height: 30px;
+                             }
+                  QLabel {
+                          color: #ffffff;
+                          background-color: #14540e;
+                          border: 2px solid #8f8f91;
+                          border-radius: 6px;
+
+                          font-size: 16pt;
+
+                          min-width: 300px;
+                          max-height: 50px;
+                      }          """)
+
+        self.setAutoFillBackground(True)
+        p = self.palette()
+        p.setColor(self.backgroundRole(), QColor(40, 40, 40, 255))
+        self.setPalette(p)
+
+        self.mainbox = QtGui.QWidget()
+        self.mainbox.showFullScreen()
+        self.setCentralWidget(self.mainbox)
+        grid = QtGui.QGridLayout()
+        grid.setSpacing(10)
+        self.mainbox.setLayout(grid)
+
+        self.canvas = pg.GraphicsLayoutWidget()
+        self.mainbox.layout().addWidget(self.canvas, 0, 0, 5, 5)
+
+        self.view = self.canvas.addViewBox()
+        self.view.setAspectLocked(False)
+        self.img = pg.ImageItem(border='w')
+        self.view.addItem(self.img)
+
+        self.canvas = pg.GraphicsLayoutWidget()
+        self.mainbox.layout().addWidget(self.canvas, 0, 6, 3, 3)
+        self.view = self.canvas.addViewBox()
+        self.view.setAspectLocked(False)
+        self.matched_img = pg.ImageItem(border='w')
+        self.view.addItem(self.matched_img)
+
+        self.curr_arm_label = App.create_label(self, 'Current Arm', (3, 6, 1, 1))
+        self.origin_arm_label = App.create_label(self, 'Origin Arm', (3, 7, 1, 1))
+        self.escape_arm_label = App.create_label(self, 'Escape Arm', (4, 7, 1, 1))
+        self.reaction_time_label = App.create_label(self, 'Reaction Time', (4, 6, 1, 1))
+
+        self.assign_rt_button = App.create_btn(self, 'Assign RT', (6, 0, 1, 3), func=None)
+        self.prevframe_button = App.create_btn(self, 'Prev Frame', (6, 3), func=None)
+        self.nextframe_button = App.create_btn(self, 'Next Frame', (6, 4), func=None)
+
+        self.setGeometry(3835, 1100, 1450, 1300)
+
+    def update_matched_image(self, sessid):
+        for f in os.listdir(self.matchedfld):
+            id = int(f.split('_')[0])
+            if id == sessid:
+                img_path = os.path.join(self.matchedfld, f)
+                img = cv2.imread(img_path)
+                self.matched_img.setImage(np.rot90(img, 3))
+                return
+
+    def update_frame(self, session, trialname, frame):
+        # Get the frame and crop it around the threat ROI, then display it
+        processing_data = session.Tracking[trialname].processing
+        if not 'Maze rois' in processing_data.keys():
+            return
+        else:
+            rois = processing_data['Maze rois']
+            threat = rois['Threat_platform']
+
+        rotated_frame = np.rot90(frame, 1)
+        cropped_frame = rotated_frame[threat.topleft[1]:threat.bottomright[1], threat.topleft[0]:threat.bottomright[0]]
+        self.img.setImage(np.rot90(cropped_frame, 3), autoLevels=False)
+
+
+
+
+
 
 
 if __name__ == '__main__':

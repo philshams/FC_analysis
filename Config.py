@@ -11,7 +11,7 @@ load_database = True  # This is False only if you are creating a new database
 
 # Specify if you want to update the database to add recently added sessions to database
 update_database = False
-load_name = 'alldata_processed'  # name of file to load
+load_name = 'alldata2'  # name of file to load
 
 # Specify name with which to save the results of the analysis
 save_name = 'alldata2'
@@ -69,7 +69,7 @@ track_options = {
 """
 Process tracking data (e.g. extract velocity trace from coordinates)
 """
-processing = True
+processing = False
 processing_options = {
     'cfg': './Processing/processing_cfg.yml'
 }

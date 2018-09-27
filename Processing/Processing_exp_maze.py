@@ -46,9 +46,6 @@ class ProcessingTrialsMaze:
                         slack_chat_messenger('Something went wrong with maze-processing, trial {}'.format(item))
                     print(colored('          did not apply maze-processing to trial {}'.format(item), 'yellow'))
 
-
-
-
     """ Get position of mouse on the maze for all frames """
     def get_maze_structure(self):
         def loop_over_templates(templates, img, bridge_mode=False):
@@ -134,34 +131,34 @@ class ProcessingTrialsMaze:
     @clock
     def assign_pose_to_roi(self, trial_name):
         data = self.session.Tracking[trial_name]
-        data_length = len(data.dlc_tracking['Posture']['body'].x.values)
-        pos = np.zeros((data_length, 2))
-        pos[:, 0] = data.dlc_tracking['Posture']['body'].x.values
-        pos[:, 1] = data.dlc_tracking['Posture']['body'].y.values
+        if 'Posture' in data.dlc_tracking.keys():
+            data_length = len(data.dlc_tracking['Posture']['body'].x.values)
+            pos = np.zeros((data_length, 2))
+            pos[:, 0] = data.dlc_tracking['Posture']['body'].x.values
+            pos[:, 1] = data.dlc_tracking['Posture']['body'].y.values
 
-        centers, roi_names = [], []
-        for name, points in self.maze_rois.items():
-            center_x = (points.topleft[0] + points.bottomright[0])/2
-            center_y = (points.topleft[1] + points.bottomright[1])/2
+            centers, roi_names = [], []
+            for name, points in self.maze_rois.items():
+                center_x = (points.topleft[0] + points.bottomright[0])/2
+                center_y = (points.topleft[1] + points.bottomright[1])/2
 
-            center = np.asarray([center_x, center_y])
-            centers.append(center)
-            roi_names.append(name)
+                center = np.asarray([center_x, center_y])
+                centers.append(center)
+                roi_names.append(name)
 
-        distances = np.zeros((data_length, len(centers)))
-        for idx, center in enumerate(centers):
-            cnt = np.tile(center, data_length).reshape((data_length, 2))
-            dist = np.hypot(np.subtract(cnt[:, 0], pos[:, 0]), np.subtract(cnt[:, 1], pos[:, 1]))
-            distances[:, idx] = dist
+            distances = np.zeros((data_length, len(centers)))
+            for idx, center in enumerate(centers):
+                cnt = np.tile(center, data_length).reshape((data_length, 2))
+                dist = np.hypot(np.subtract(cnt[:, 0], pos[:, 0]), np.subtract(cnt[:, 1], pos[:, 1]))
+                distances[:, idx] = dist
 
-        sel_rois  = np.argmin(distances, 1)
-        roi_at_each_frame = tuple([roi_names[x] for x in sel_rois])
+            sel_rois = np.argmin(distances, 1)
+            roi_at_each_frame = tuple([roi_names[x] for x in sel_rois])
 
-        # store data
-        data.processing['Maze rois'] = self.maze_rois
-        e = pd.Series(roi_at_each_frame)
-        data.dlc_tracking['Posture']['body'] = data.dlc_tracking['Posture']['body'].assign(maze_roi = e.values)
-
+            # store data
+            data.processing['Maze rois'] = self.maze_rois
+            e = pd.Series(roi_at_each_frame)
+            data.dlc_tracking['Posture']['body'] = data.dlc_tracking['Posture']['body'].assign(maze_roi = e.values)
 
     @clock
     def get_trial_traces(self, trial_name):
@@ -261,7 +258,6 @@ class ProcessingTrialsMaze:
             # now put everything together in the limits
             limits = boundaries(midpoint.x, midpoint.y, edges[0], edges[1])
         return rois, limits
-
 
     """
     Extract stuff
