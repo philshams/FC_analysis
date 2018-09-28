@@ -17,6 +17,7 @@ class mazeprocessor:
 
 
     """
+
     def __init__(self, session, settings=None, debugging=False):
         self.session = session
         self.settings = settings
@@ -34,6 +35,7 @@ class mazeprocessor:
 
     def get_maze_components(self):
         """ Uses template matching to identify the different components of the maze and their location """
+
         def loop_over_templates(templates, img, bridge_mode=False):
             cols = dict(left=(255, 0, 0), central=(0, 255, 0), right=(0, 0, 255), shelter=(200, 180, 0),
                         threat=(0, 180, 200))
@@ -61,20 +63,20 @@ class mazeprocessor:
                     top_left = max_loc
                 else:  # take only the relevant quadrant
                     if id == 'Left':
-                        res = res[:, 0:int(rwidth/2)]
+                        res = res[:, 0:int(rwidth / 2)]
                         hor_sum = 0
                     elif id == 'Right':
-                        res = res[:, int(rwidth/2):]
-                        hor_sum = int(rwidth/2)
+                        res = res[:, int(rwidth / 2):]
+                        hor_sum = int(rwidth / 2)
                     else:
                         hor_sum = 0
 
                     origin = os.path.split(template)[1].split('_')[1][0]
                     if origin == 'T':
-                        res = res[int(rheight/2):, :]
-                        ver_sum = int(rheight/2)
+                        res = res[int(rheight / 2):, :]
+                        ver_sum = int(rheight / 2)
                     else:
-                        res = res[:int(rheight/2):, :]
+                        res = res[:int(rheight / 2):, :]
                         ver_sum = 0
 
                     min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
@@ -85,7 +87,7 @@ class mazeprocessor:
                 midpoint = point(top_left, bottom_right)
                 rois[os.path.split(template)[1].split('.')[0]] = midpoint
                 cv2.rectangle(colored_bg, top_left, bottom_right, col, 2)
-                cv2.putText(colored_bg, os.path.split(template)[1].split('.')[0]+'  {}'.format(round(max_val,2)),
+                cv2.putText(colored_bg, os.path.split(template)[1].split('.')[0] + '  {}'.format(round(max_val, 2)),
                             (top_left[0] + 10, top_left[1] + 25),
                             font, 0.5, (255, 255, 255), 2, cv2.LINE_AA)
             return colored_bg, rois
@@ -117,6 +119,78 @@ class mazeprocessor:
         dic = {**platforms, **bridges}
         return dic
 
+    def get_roi_at_each_frame(self, data, datatype='namedtuple'):
+        # TODO handle incoming data
+        if datatype == 'namedtuple':
+            data_length = len(data.x)
+            pos = np.zeros((data_length, 2))
+            pos[:, 0], pos[:, 1] = data.x, data.y
+
+        # Get the center of each roi
+        centers, roi_names = [], []
+        for name, points in self.maze_rois.items():
+            center_x = (points.topleft[0] + points.bottomright[0]) / 2
+            center_y = (points.topleft[1] + points.bottomright[1]) / 2
+            center = np.asarray([center_x, center_y])
+            centers.append(center)
+            roi_names.append(name)
+
+        # Calc distance toe ach roi for each frame
+        distances = np.zeros((data_length, len(centers)))
+        for idx, center in enumerate(centers):
+            cnt = np.tile(center, data_length).reshape((data_length, 2))
+            dist = np.hypot(np.subtract(cnt[:, 0], pos[:, 0]), np.subtract(cnt[:, 1], pos[:, 1]))
+            distances[:, idx] = dist
+
+        # Get which roi the mouse is in at each frame
+        sel_rois = np.argmin(distances, 1)
+        roi_at_each_frame = tuple([roi_names[x] for x in sel_rois])
+        return roi_at_each_frame
+
+    def get_timeinrois_stats(self, data, datatype='namedtuple'):
+        """
+        Quantify the ammount of time in each maze roi and the avg stay in each roi
+        :param datatype: built-in type of data
+        :param data: tracking data
+        :return: number of frames in each roi, number of seconds in each roi, number of enters in each roi, avg time
+                in each roi in frames, avg time in each roi in secs and avg velocity on each roi
+        """
+
+        def get_indexes(lst, match):
+            return np.asarray([i for i, x in enumerate(lst) if x == match])
+
+        if datatype == 'namedtuple':
+            vel = data.velocity
+        else:
+            vel = False
+
+        # get roi at each frame of data
+        data_rois = self.get_roi_at_each_frame(data, datatype=datatype)
+        data_time_inrois = {name: data_rois.count(name) for name in set(data_rois)}  # total time (frames) in each roi
+
+        # number of enters in each roi
+        transitions = [n for i, n in enumerate(list(data_rois)) if i == 0 or n != list(data_rois)[i - 1]]
+        transitions_count = {name: transitions.count(name) for name in transitions}
+
+        # avg time spend in each roi (frames)
+        avg_time_in_roi = {transits[0]: time / transits[1]
+                           for transits, time in zip(transitions_count.items(), data_time_inrois.values())}
+
+        # convert times to frames
+        fps = self.session.Metadata.videodata[0]['Frame rate'][0]
+        data_time_inrois_sec = {name: t / fps for name, t in data_time_inrois.items()}
+        avg_time_in_roi_sec = {name: t / fps for name, t in avg_time_in_roi.items()}
+
+        # get avg velocity in each roi
+        avg_vel_per_roi = {}
+        if vel:
+            for name in set(data_rois):
+                indexes = get_indexes(data_rois, name)
+                vels = [vel[x] for x in indexes]
+                avg_vel_per_roi[name] = np.average(np.asarray(vels))
+
+        return data_time_inrois, data_time_inrois_sec, transitions_count, \
+               avg_time_in_roi, avg_time_in_roi_sec, avg_vel_per_roi
 
     def exploration_processer(self):
         # Define the exploration phase
@@ -130,9 +204,10 @@ class mazeprocessor:
             for stims in self.session.Metadata.stimuli.values():
                 if isinstance(stims[0], list):
                     stims = stims[0]
-                if not stims: continue
+                if not stims:
+                    continue
                 elif min(stims) < first_stim:
-                    first_stim = min(stims)-1
+                    first_stim = min(stims) - 1
 
             # Extract the part of whole session that corresponds to the exploration
             len_first_vid = len(whole[list(whole.keys())[0]].x)
@@ -140,40 +215,29 @@ class mazeprocessor:
                 expl = whole[list(whole.keys())[0]]
             else:
                 if not 'velocity' in whole[list(whole.keys())[0]]._fields:
-                    vel = calc_distance_2d((whole[list(whole.keys())[0]].x, whole[list(whole.keys())[0]].y), vectors=True)
+                    vel = calc_distance_2d((whole[list(whole.keys())[0]].x, whole[list(whole.keys())[0]].y),
+                                           vectors=True)
+                else:
+                    vel = whole[list(whole.keys())[0]].vel
                 expl = self.xyv_trace_tup(whole[list(whole.keys())[0]].x[0:first_stim],
-                                         whole[list(whole.keys())[0]].y[0:first_stim],
-                                         vel[0:first_stim])
+                                          whole[list(whole.keys())[0]].y[0:first_stim],
+                                          vel[0:first_stim])
             self.session.Tracking['Exploration'] = expl
-
-
         else:
             return False
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+        rois_results = self.get_timeinrois_stats(expl)
+        # TODO store restults ina meaningful way
 
 
 class ProcessingTrialsMaze:
     """ Applies processsing steps that are specific to maze experiments (e.g. get arm of escape) """
+
     def __init__(self, session, settings=None, debugging=True):
         print(colored('\n      Maze-specific single trials processing', 'green'))
         self.session = session
         self.settings = settings
         self.debugging = debugging
-
 
         # Subdivide frame
         self.rois, self.boundaries = self.subdivide_frame()
@@ -181,19 +245,19 @@ class ProcessingTrialsMaze:
         self.get_maze_structure()
 
         # Process each trial
-        tracking_items =self.session.Tracking.keys()
+        tracking_items = self.session.Tracking.keys()
         if tracking_items:
             for item in tracking_items:
                 retval = self.get_trial_traces(item)  # get coordinates
 
                 if retval:
-                    self.assign_pose_to_roi(item)       # get the roi the mouse is on at each frame
+                    self.assign_pose_to_roi(item)  # get the roi the mouse is on at each frame
                     # self.get_intersections(item)
-                    self.get_origin_escape_arms(item)   # get escape arms
-                    self.extract_escape_stats(item)     # get stats of escape
+                    self.get_origin_escape_arms(item)  # get escape arms
+                    self.extract_escape_stats(item)  # get stats of escape
                     self.get_status_at_timepoint(item)  # get status at stim
 
-                    if debugging:                  # display results for debugging
+                    if debugging:  # display results for debugging
                         self.debug_preview()
                         self.plot_trace()
                         plt.show()
@@ -205,6 +269,7 @@ class ProcessingTrialsMaze:
                     print(colored('          did not apply maze-processing to trial {}'.format(item), 'yellow'))
 
     """ Get position of mouse on the maze for all frames """
+
     def get_maze_structure(self):
         def loop_over_templates(templates, img, bridge_mode=False):
             cols = dict(left=(255, 0, 0), central=(0, 255, 0), right=(0, 0, 255), shelter=(200, 180, 0),
@@ -233,20 +298,20 @@ class ProcessingTrialsMaze:
                     top_left = max_loc
                 else:  # take only the relevant quadrant
                     if id == 'Left':
-                        res = res[:, 0:int(rwidth/2)]
+                        res = res[:, 0:int(rwidth / 2)]
                         hor_sum = 0
                     elif id == 'Right':
-                        res = res[:, int(rwidth/2):]
-                        hor_sum = int(rwidth/2)
+                        res = res[:, int(rwidth / 2):]
+                        hor_sum = int(rwidth / 2)
                     else:
                         hor_sum = 0
 
                     origin = os.path.split(template)[1].split('_')[1][0]
                     if origin == 'T':
-                        res = res[int(rheight/2):, :]
-                        ver_sum = int(rheight/2)
+                        res = res[int(rheight / 2):, :]
+                        ver_sum = int(rheight / 2)
                     else:
-                        res = res[:int(rheight/2):, :]
+                        res = res[:int(rheight / 2):, :]
                         ver_sum = 0
 
                     min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
@@ -257,7 +322,7 @@ class ProcessingTrialsMaze:
                 midpoint = point(top_left, bottom_right)
                 rois[os.path.split(template)[1].split('.')[0]] = midpoint
                 cv2.rectangle(colored_bg, top_left, bottom_right, col, 2)
-                cv2.putText(colored_bg, os.path.split(template)[1].split('.')[0]+'  {}'.format(round(max_val,2)),
+                cv2.putText(colored_bg, os.path.split(template)[1].split('.')[0] + '  {}'.format(round(max_val, 2)),
                             (top_left[0] + 10, top_left[1] + 25),
                             font, 0.5, (255, 255, 255), 2, cv2.LINE_AA)
             return colored_bg, rois
@@ -297,8 +362,8 @@ class ProcessingTrialsMaze:
 
             centers, roi_names = [], []
             for name, points in self.maze_rois.items():
-                center_x = (points.topleft[0] + points.bottomright[0])/2
-                center_y = (points.topleft[1] + points.bottomright[1])/2
+                center_x = (points.topleft[0] + points.bottomright[0]) / 2
+                center_y = (points.topleft[1] + points.bottomright[1]) / 2
 
                 center = np.asarray([center_x, center_y])
                 centers.append(center)
@@ -316,7 +381,7 @@ class ProcessingTrialsMaze:
             # store data
             data.processing['Maze rois'] = self.maze_rois
             e = pd.Series(roi_at_each_frame)
-            data.dlc_tracking['Posture']['body'] = data.dlc_tracking['Posture']['body'].assign(maze_roi = e.values)
+            data.dlc_tracking['Posture']['body'] = data.dlc_tracking['Posture']['body'].assign(maze_roi=e.values)
 
     @clock
     def get_trial_traces(self, trial_name):
@@ -339,24 +404,24 @@ class ProcessingTrialsMaze:
                                     data.std_tracking['y'])
         elif data.std_tracking['x'] is not None:
             self.trace = tracer(data.std_tracking['x'],
-                           data.std_tracking['y'])
+                                data.std_tracking['y'])
         else:
             print('Could not find trial data for trial {}'.format(trial_name))
             return False
 
         # Get stimulus-locked traces
         window = int(len(self.trace.x) / 2)
-        if len(self.trace._fields) == 2:   # we used STD tracking
+        if len(self.trace._fields) == 2:  # we used STD tracking
             self.prestim_trace = tracer(self.trace.x[:window], self.trace.y[:window])
             self.poststim_trace = tracer(self.trace.x[window:], self.trace.y[window:])
             self.shelter_to_stim, self.stim_to_shelter = self.get_leaveenter_rois(tracer)
-        else:   # used DLC tracking
+        else:  # used DLC tracking
             self.prestim_trace = dlc_tracer(self.trace.x[:window], self.trace.y[:window],
                                             self.trace.velocity[:window], self.trace.orientation[:window],
                                             self.trace.headangvel[:window])
             self.poststim_trace = dlc_tracer(self.trace.x[window:], self.trace.y[window:],
-                                            self.trace.velocity[window:], self.trace.orientation[window:],
-                                            self.trace.headangvel[window:])
+                                             self.trace.velocity[window:], self.trace.orientation[window:],
+                                             self.trace.headangvel[window:])
             self.shelter_to_stim, self.stim_to_shelter = self.get_leaveenter_rois(dlc_tracer)
 
         # Store results
@@ -392,10 +457,10 @@ class ProcessingTrialsMaze:
             # Split the video assuming the the shelter is centered on it
             width, height = np.shape(self.bg)
             # split everything in hald and assign
-            width = int(float(width/2))
-            height = int(float(height/2))
-            shelter_width = int(float(shelter_width/2))
-            limits = boundaries(width, height, width-shelter_width, width+shelter_width)
+            width = int(float(width / 2))
+            height = int(float(height / 2))
+            shelter_width = int(float(shelter_width / 2))
+            limits = boundaries(width, height, width - shelter_width, width + shelter_width)
 
         else:
             # Split the video using the user defined rois
@@ -404,14 +469,14 @@ class ProcessingTrialsMaze:
 
             point = namedtuple('point', 'x y')
 
-            shelter_cntr = point(int(shelter[0]+(shelter[2]/2)), int(shelter[1]+(shelter[3]/2)))
-            threat_cntr = point(int(threat[0]+(threat[2]/2)), int(threat[1]+(threat[3]/2)))
+            shelter_cntr = point(int(shelter[0] + (shelter[2] / 2)), int(shelter[1] + (shelter[3] / 2)))
+            threat_cntr = point(int(threat[0] + (threat[2] / 2)), int(threat[1] + (threat[3] / 2)))
 
             # Get midpoint between  between the rois
-            midpoint = point(int((shelter_cntr.x + threat_cntr.x)/2), int((shelter_cntr.y + threat_cntr.y)/2))
+            midpoint = point(int((shelter_cntr.x + threat_cntr.x) / 2), int((shelter_cntr.y + threat_cntr.y) / 2))
 
             # now get the edges of the shelter
-            edges = int(midpoint.x-(shelter[2]/2)), int(midpoint.x+(shelter[2]/2))
+            edges = int(midpoint.x - (shelter[2] / 2)), int(midpoint.x + (shelter[2] / 2))
 
             # now put everything together in the limits
             limits = boundaries(midpoint.x, midpoint.y, edges[0], edges[1])
@@ -420,8 +485,10 @@ class ProcessingTrialsMaze:
     """
     Extract stuff
     """
+
     def get_leaveenter_rois(self, tracer):
         """ Get the times at which the mouse enters and exits the rois and the corresponding traces """
+
         def get_leave_enter_times(roi, trace, pre=True):
             # from x, width, y, height to --> x0, x1, y0, y1
             roi = (roi[0], roi[0] + roi[2], roi[1], roi[1] + roi[3])
@@ -451,9 +518,10 @@ class ProcessingTrialsMaze:
             leaves_shelter = get_leave_enter_times(self.rois['Shelter'], self.prestim_trace)
             enters_shelter = get_leave_enter_times(self.rois['Shelter'], self.poststim_trace, pre=False)
 
-            if len(tracer._fields) == 2:   # we used STD
+            if len(tracer._fields) == 2:  # we used STD
                 tostim = tracer(self.prestim_trace.x[leaves_shelter:], self.prestim_trace.y[leaves_shelter:])
-                fromstim = tracer(self.poststim_trace.x[:enters_shelter+1], self.poststim_trace.y[:enters_shelter+1])
+                fromstim = tracer(self.poststim_trace.x[:enters_shelter + 1],
+                                  self.poststim_trace.y[:enters_shelter + 1])
             else:
                 tostim = tracer(self.prestim_trace.x[leaves_shelter:], self.prestim_trace.y[leaves_shelter:],
                                 self.prestim_trace.velocity[leaves_shelter:],
@@ -476,7 +544,7 @@ class ProcessingTrialsMaze:
 
             if data.dlc_tracking.keys():
                 if time is None:  # if a time is not give take the midpoint
-                    time = int(len(self.trace.x)/2)
+                    time = int(len(self.trace.x) / 2)
 
                 # Create a named tuple with all the params from processing (e.g. head angle) and the selected time point
                 params = data.dlc_tracking['Posture']['body'].keys()
@@ -531,7 +599,7 @@ class ProcessingTrialsMaze:
         """  extract stuff like max velocity... from the post-stim trace """
         data = self.session.Tracking[name]
 
-        if len(self.poststim_trace._fields)>2:      # we used deeplabcut
+        if len(self.poststim_trace._fields) > 2:  # we used deeplabcut
             maxvel = max(self.poststim_trace.velocity)
             maxheadangvel = max(self.poststim_trace.headangvel)
 
@@ -547,6 +615,7 @@ class ProcessingTrialsMaze:
     """
     Debugging related stuff
     """
+
     def debug_preview(self):
         """
         Display the results of the processing so that we can check that everything went okay
@@ -588,11 +657,11 @@ class ProcessingSessionMaze:
             if self.session.Tracking[trial_name].processing['status at stimulus'] is not None:
                 origins_dict[trial_name] = info(self.session.Tracking[trial_name].processing['Origin'],
                                                 self.session.Tracking[trial_name].
-                                                    processing['status at stimulus'][0].body.x,
+                                                processing['status at stimulus'][0].body.x,
                                                 self.session.Tracking[trial_name].processing['status at stimulus'])
                 escapes_dict[trial_name] = info(self.session.Tracking[trial_name].processing['Escape'],
                                                 self.session.Tracking[trial_name].
-                                                    processing['status at stimulus'][0].body.x,
+                                                processing['status at stimulus'][0].body.x,
                                                 self.session.Tracking[trial_name].processing['status at stimulus'])
 
         if not 'processing' in self.session.keys():
@@ -609,10 +678,10 @@ class ProcessingSessionMaze:
             # Get probs as a function of (adjusted) hor. position on threat platform at stim onset
             x_events = []  # get arm and x position from data
             for d in data:
-                x_events.append(([       1 if d[0] == 'Left'
-                                    else 2 if d[0] == 'Central'
-                                    else 3 if d[0] == 'Right'
-                                    else 0],
+                x_events.append(([1 if d[0] == 'Left'
+                                  else 2 if d[0] == 'Central'
+                else 3 if d[0] == 'Right'
+                else 0],
                                  d.status.status.adjustedx))
                 x_events = sorted(x_events, key=lambda tup: tup[1])  # sorted by X position
 
@@ -633,9 +702,9 @@ class ProcessingSessionMaze:
             for probs in binned_events:
                 num_events = len(probs)
                 if num_events:
-                    lprobs = len([x for x in probs if x[0] == [1]])/num_events
-                    cprobs = len([x for x in probs if x[0] == [2]])/num_events
-                    rprobs = len([x for x in probs if x[0] == [3]])/num_events
+                    lprobs = len([x for x in probs if x[0] == [1]]) / num_events
+                    cprobs = len([x for x in probs if x[0] == [2]]) / num_events
+                    rprobs = len([x for x in probs if x[0] == [3]]) / num_events
                     binned_probs.append(p(lprobs, cprobs, rprobs))
                 else:
                     binned_probs.append(p(0, 0, 0))
@@ -727,6 +796,3 @@ class Processing_cohortMaze:
 
         self.coh.loc[coh_name].Processing['Origins'] = origins
         self.coh.loc[coh_name].Processing['Escapes'] = escapes
-
-
-
