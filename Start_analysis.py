@@ -11,8 +11,7 @@ from Utils.Data_rearrange_funcs import create_cohort, check_session_selected
 from Utils.Messaging import slack_chat_messenger
 from Utils.decorators import clock
 
-from Tracking.Tracking_main import Tracking
-from Processing import Processing_main, Processing_exp_maze
+from Processing import Processing_main, Processing_maze
 from Plotting import Single_trial_summary
 from Plotting import Maze_cohort_summary
 
@@ -69,6 +68,8 @@ class Analysis():
         if not selector_type == 'cohort':
             # Loop over all the sessions - Tracking 
             if track_mouse or extract_rois_background:
+                from Tracking.Tracking_main import Tracking
+
                 for session_name in tqdm(sorted(self.db.index)):
                     session = self.db.loc[session_name]
                     
@@ -167,7 +168,7 @@ class Analysis():
         # Create a cohort and store it in database
         self.db, coh = create_cohort(self.db)  # Get all the trial data in one place
         # process cohort
-        Processing_exp_maze.Processing_cohortMaze(coh)
+        Processing_maze.Processing_cohortMaze(coh)
 
         # plot cohort
         Maze_cohort_summary.MazeCohortPlotter(coh)
@@ -204,29 +205,25 @@ class Analysis():
         """ When starting a new run, print the options specified in Config.py for the user to check """
         import json
         print(colored(""""
-            Load database: {}
-                update database: {}
-                load name: {}
-                save name: {}
-                
-            Selector type: {}
-                selector:  {}
-            
-            Extract background: {}
-            Tracking: {}
-                track options: {}
-                
-            Processing: {}
-            Plotting: {}
-            Debug: {}
-            
-            Cohort: {}
-            
-            Send Messages: {}
+Load database: {}
+    update database: {}
+    load name: {}
+    save name: {}
+Selector type: {}
+    selector:  {}
+Extract background: {}
+Tracking: {}
+    track options: {}
+
+Processing: {}
+Plotting: {}
+Debug: {}
+Cohort: {}
+Send Messages: {}
         """.format(load_database, update_database, load_name, save_name,
                    selector_type, selector, extract_rois_background, track_mouse,
                    json.dumps(track_options, indent=30), plotting, cohort, processing, debug, send_messages),
-                      'white'))
+                      'blue'))
 
 
 #  START

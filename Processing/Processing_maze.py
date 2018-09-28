@@ -8,6 +8,164 @@ from Utils.decorators import clock
 from Config import cohort_options
 
 
+class mazeprocessor:
+    """
+    * analyse exploration: - define exploration
+                           - quantify different aspects of explorations
+    * Analyse individual trials: - get outcome
+                                 - get stuff
+
+
+    """
+    def __init__(self, session, settings=None, debugging=False):
+        self.session = session
+        self.settings = settings
+        self.debug_on = debugging
+
+        self.xyv_trace_tup = namedtuple('trace', 'x y velocity')
+
+        # Get maze structure
+        self.maze_rois = self.get_maze_components()
+
+        # Analyse exploration
+        self.exploration_processer()
+
+        pass
+
+    def get_maze_components(self):
+        """ Uses template matching to identify the different components of the maze and their location """
+        def loop_over_templates(templates, img, bridge_mode=False):
+            cols = dict(left=(255, 0, 0), central=(0, 255, 0), right=(0, 0, 255), shelter=(200, 180, 0),
+                        threat=(0, 180, 200))
+            rois = {}
+            point = namedtuple('point', 'topleft bottomright')
+
+            font = cv2.FONT_HERSHEY_SIMPLEX
+            if len(img.shape) == 2:
+                colored_bg = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+            else:
+                colored_bg = img
+
+            for n, template in enumerate(templates):
+                id = os.path.split(template)[1].split('_')[0]
+                col = cols[id.lower()]
+                templ = cv2.imread(template)
+                if len(templ.shape) == 3:
+                    templ = cv2.cvtColor(templ, cv2.COLOR_BGR2GRAY)
+                w, h = templ.shape[::-1]
+
+                res = cv2.matchTemplate(gray, templ, cv2.TM_CCOEFF_NORMED)
+                rheight, rwidth = res.shape
+                if not bridge_mode:
+                    min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
+                    top_left = max_loc
+                else:  # take only the relevant quadrant
+                    if id == 'Left':
+                        res = res[:, 0:int(rwidth/2)]
+                        hor_sum = 0
+                    elif id == 'Right':
+                        res = res[:, int(rwidth/2):]
+                        hor_sum = int(rwidth/2)
+                    else:
+                        hor_sum = 0
+
+                    origin = os.path.split(template)[1].split('_')[1][0]
+                    if origin == 'T':
+                        res = res[int(rheight/2):, :]
+                        ver_sum = int(rheight/2)
+                    else:
+                        res = res[:int(rheight/2):, :]
+                        ver_sum = 0
+
+                    min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
+                    top_left = (max_loc[0] + hor_sum, max_loc[1] + ver_sum)
+
+                bottom_right = (top_left[0] + w, top_left[1] + h)
+
+                midpoint = point(top_left, bottom_right)
+                rois[os.path.split(template)[1].split('.')[0]] = midpoint
+                cv2.rectangle(colored_bg, top_left, bottom_right, col, 2)
+                cv2.putText(colored_bg, os.path.split(template)[1].split('.')[0]+'  {}'.format(round(max_val,2)),
+                            (top_left[0] + 10, top_left[1] + 25),
+                            font, 0.5, (255, 255, 255), 2, cv2.LINE_AA)
+            return colored_bg, rois
+
+        bg = self.session.Metadata.videodata[0]['Background']
+        if len(bg.shape) == 3:
+            gray = cv2.cvtColor(bg, cv2.COLOR_BGR2GRAY)
+        else:
+            gray = bg
+
+        # Get the templates
+        exp_name = self.session.Metadata.experiment
+        base_fld = self.settings['templates folder']
+        bg_folder = os.path.join(base_fld, 'Bgs')
+        templates_fld = os.path.join(base_fld, exp_name)
+        platf_templates = [os.path.join(templates_fld, f) for f in os.listdir(templates_fld) if 'platform' in f]
+        bridge_templates = [os.path.join(templates_fld, f) for f in os.listdir(templates_fld) if 'bridge' in f]
+
+        # Store background
+        f_name = '{}.png'.format(self.session.name)
+        if not f_name in os.listdir(bg_folder):
+            cv2.imwrite(os.path.join(bg_folder, f_name), gray)
+
+        # Calculate the position of the templates and save resulting image
+        display, platforms = loop_over_templates(platf_templates, bg)
+        display, bridges = loop_over_templates(bridge_templates, display, bridge_mode=True)
+        cv2.imwrite(os.path.join(base_fld, 'Matched\\{}.png'.format(self.session.name)), display)
+
+        dic = {**platforms, **bridges}
+        return dic
+
+
+    def exploration_processer(self):
+        # Define the exploration phase
+        if 'Exploration' in self.session.Tracking.keys():
+            expl = self.session.Tracking['Exploratin']
+        elif 'Whole Session' in self.session.Tracking.keys():
+            whole = self.session.Tracking['Whole Session']
+
+            # find the first stim of the sessoin
+            first_stim = 100000
+            for stims in self.session.Metadata.stimuli.values():
+                if isinstance(stims[0], list):
+                    stims = stims[0]
+                if not stims: continue
+                elif min(stims) < first_stim:
+                    first_stim = min(stims)-1
+
+            # Extract the part of whole session that corresponds to the exploration
+            len_first_vid = len(whole[list(whole.keys())[0]].x)
+            if len_first_vid < first_stim:
+                expl = whole[list(whole.keys())[0]]
+            else:
+                if not 'velocity' in whole[list(whole.keys())[0]]._fields:
+                    vel = calc_distance_2d((whole[list(whole.keys())[0]].x, whole[list(whole.keys())[0]].y), vectors=True)
+                expl = self.xyv_trace_tup(whole[list(whole.keys())[0]].x[0:first_stim],
+                                         whole[list(whole.keys())[0]].y[0:first_stim],
+                                         vel[0:first_stim])
+            self.session.Tracking['Exploration'] = expl
+
+
+        else:
+            return False
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 class ProcessingTrialsMaze:
     """ Applies processsing steps that are specific to maze experiments (e.g. get arm of escape) """
     def __init__(self, session, settings=None, debugging=True):
