@@ -8,6 +8,8 @@ from Utils.decorators import clock
 from Config import cohort_options
 
 
+experiment_specific_classes = []
+
 class mazeprocessor:
     """
     * analyse exploration: - define exploration
@@ -22,6 +24,7 @@ class mazeprocessor:
         self.session = session
         self.settings = settings
         self.debug_on = debugging
+        self.exp_spec_classes = experiment_specific_classes
 
         self.xyv_trace_tup = namedtuple('trace', 'x y velocity')
 
@@ -31,8 +34,18 @@ class mazeprocessor:
         # Analyse exploration
         self.exploration_processer()
 
+        # Analyse individual trials
+        self.trial_processor()
+
+        # Analyse the whole session
+        self.session_processor()
+
+        # Do experiment specfic analysis
+        self.experiment_processor()
+
         pass
 
+    # UTILS ############################################################################################################
     def get_maze_components(self):
         """ Uses template matching to identify the different components of the maze and their location """
 
@@ -189,45 +202,157 @@ class mazeprocessor:
                 vels = [vel[x] for x in indexes]
                 avg_vel_per_roi[name] = np.average(np.asarray(vels))
 
-        return data_time_inrois, data_time_inrois_sec, transitions_count, \
-               avg_time_in_roi, avg_time_in_roi_sec, avg_vel_per_roi
+        results = dict(time_in_rois = data_time_inrois,
+                time_in_rois_sec = data_time_inrois_sec,
+                transitions_count = transitions_count,
+                avg_time_in_roi = avg_time_in_roi,
+                avg_tiime_in_roi_sec = avg_time_in_roi_sec,
+                avg_vel_per_roi=avg_vel_per_roi)
 
-    def exploration_processer(self):
-        # Define the exploration phase
-        if 'Exploration' in self.session.Tracking.keys():
-            expl = self.session.Tracking['Exploratin']
-        elif 'Whole Session' in self.session.Tracking.keys():
-            whole = self.session.Tracking['Whole Session']
+        return results
 
-            # find the first stim of the sessoin
-            first_stim = 100000
-            for stims in self.session.Metadata.stimuli.values():
-                if isinstance(stims[0], list):
-                    stims = stims[0]
-                if not stims:
-                    continue
-                elif min(stims) < first_stim:
-                    first_stim = min(stims) - 1
+    # EXPLORATION PROCESSOR ############################################################################################
+    def exploration_processer(self, expl=None):
+        if expl is None:          # Define the exploration phase if none is given
+            if 'Exploration' in self.session.Tracking.keys():
+                expl = self.session.Tracking['Exploratin']
+            elif 'Whole Session' in self.session.Tracking.keys():
+                whole = self.session.Tracking['Whole Session']
 
-            # Extract the part of whole session that corresponds to the exploration
-            len_first_vid = len(whole[list(whole.keys())[0]].x)
-            if len_first_vid < first_stim:
-                expl = whole[list(whole.keys())[0]]
-            else:
-                if not 'velocity' in whole[list(whole.keys())[0]]._fields:
-                    vel = calc_distance_2d((whole[list(whole.keys())[0]].x, whole[list(whole.keys())[0]].y),
-                                           vectors=True)
+                # find the first stim of the session
+                first_stim = 100000
+                for stims in self.session.Metadata.stimuli.values():
+                    if isinstance(stims[0], list):
+                        stims = stims[0]
+                    if not stims:
+                        continue
+                    elif min(stims) < first_stim:
+                        first_stim = min(stims) - 1
+
+                # Extract the part of whole session that corresponds to the exploration
+                len_first_vid = len(whole[list(whole.keys())[0]].x)
+                if len_first_vid < first_stim:
+                    expl = whole[list(whole.keys())[0]]  # TODO stitch together multiple vids
                 else:
-                    vel = whole[list(whole.keys())[0]].vel
-                expl = self.xyv_trace_tup(whole[list(whole.keys())[0]].x[0:first_stim],
-                                          whole[list(whole.keys())[0]].y[0:first_stim],
-                                          vel[0:first_stim])
-            self.session.Tracking['Exploration'] = expl
-        else:
-            return False
+                    if not 'velocity' in whole[list(whole.keys())[0]]._fields:
+                        vel = calc_distance_2d((whole[list(whole.keys())[0]].x, whole[list(whole.keys())[0]].y),
+                                               vectors=True)
+                    else:
+                        vel = whole[list(whole.keys())[0]].vel
+                    expl = self.xyv_trace_tup(whole[list(whole.keys())[0]].x[0:first_stim],
+                                              whole[list(whole.keys())[0]].y[0:first_stim],
+                                              vel[0:first_stim])
+                self.session.Tracking['Exploration'] = expl
+            else:
+                return False
 
         rois_results = self.get_timeinrois_stats(expl)
-        # TODO store restults ina meaningful way
+        cls_exp = Exploration()
+        cls_exp.tracking = expl
+        cls_exp.processing['ROI analysis'] = rois_results
+        self.session.Tracking['Exploration processed'] = cls_exp
+
+    # TRIAL PROCESSOR ##################################################################################################
+    def trial_processor(self):
+        # Loop over each trial
+        tracking_items = self.session.Tracking.keys()
+        if tracking_items:
+            for item in tracking_items:
+                    if 'whole' not in item.lower() and 'exploration' not in item.lower():
+                        pass
+
+                        """ functions to write
+                        get maze configuration
+                        get outcome: escape or fail
+                        get last time at shelter before leaving, get first time at shelter 
+                        get tracking trajectory between the two
+                        get "maze" trajectory (rois)  +   get origin and escape(s) arms
+                        get hesitations at T platform --> quantify head ang acc 
+                        get status at stim onset (pose, vel...)
+                        get status at relevant timepoints
+                        
+                        """
+
+        # Get maze configuration
+        """
+            If no "maze" template exists, the maze is static: maze configuration = static
+            else: check which of the maze templates matches the best the first frame of the trial. The name of the maze
+                    config will be contained within the name of the template
+        
+        """
+
+        # Get trial outcome
+        """  Look at what happens after the stim onset:
+                 define some criteria (e.g. max duration of escape) and, given the criteria:
+             - If the mouse never leaves T in time that a failure
+             - If it leaves T but doesnt reach S while respecting the criteria it is an incomplete escape
+             - If everything goes okay and it reaches T thats a succesful escape
+         """
+
+
+        # Get shelter and threat times
+        """  
+              - Get maze rois at each frame and look the last time it leaves the shetler before the stim and the first
+                  time it reaches it after the stim (if succesful trial).
+              - Also look at when it enters and leaves T
+        """
+
+        # Get trajetories
+        """ 
+             - Get tracking data for frames between when it leaves the shelter and when it returns to it while also 
+                 dividing them based on pre-stim or after stim
+             - Do the same but for the maze rois trajectory (store them all together)
+             - Get escape and origin arms 
+        """
+
+        # Get hesitations
+        """  
+             - Get the frames from stim time to after it leaves T (for successful or incomplete trials
+             - Calc the integral of the head velocity for those frames 
+             - Calc the smoothness of the trajectory and velocity curves
+             - Set thresholds for hesitations
+        """
+
+        # Get status at time point
+        """
+            - Given a time point (e.g. stim onset) extract info about the mouse status at that point: location, 
+                 velocity, platform...)
+        """
+
+        # Get relevant timepoints
+        """
+            Get status at frames where:
+            - max velocity
+            - max ang vel
+            - max head-body ang difference
+            - shortest and longest bodylength
+        
+        """
+
+    # SESSION PROCESSOR ################################################################################################
+    def session_processor(self):
+        pass
+
+        """ To do:
+            - Get stats relative to arms of origin and arms of escapes
+            - Get stats of maze rois for the whole session (when available) and just the exploration 
+        
+            - Get probabilities: 
+                                * Escape probability (escape, vs incomplete escape, vs no escape)
+                                * Escape arm as a function of: X pos, Y pos, arm of origin, prev trial
+                                
+        
+        """
+
+    # experiment PROCESSOR #############################################################################################
+    def experiment_processor(self):
+        exp_name = self.session.Metadata.experiment
+        if not exp_name in self.exp_spec_classes:
+            return
+        else:
+            exp = self.exp_spec_classes[self.exp_spec_classes.index(exp_name)]
+            exp()
+        pass
 
 
 class ProcessingTrialsMaze:

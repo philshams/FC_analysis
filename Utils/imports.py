@@ -42,7 +42,7 @@ from multiprocessing.dummy import Pool as ThreadPool
 from Utils.loadsave_funcs import load_yaml
 from Utils.maths import calc_acceleration, calc_ang_velocity, calc_ang_acc, calc_distance_2d
 from Utils.decorators import clock
-from Utils.utils_classes import Session_metadata, DataBase
+from Utils.utils_classes import Session_metadata, DataBase, Exploration
 from Utils.loadsave_funcs import save_data
 from Utils.Messaging import slack_chat_messenger
 from Utils.utils_classes import Trial, Cohort

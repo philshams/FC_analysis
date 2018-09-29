@@ -46,6 +46,21 @@ class Trial():
     def __str__(self):
         return 'Trial: {}'.format(self.name)
 
+class Exploration():
+    """ Class to initialise and empty Exploration object """
+    def __init__(self):
+        self.name = ''
+        self.id = None
+        self.metadata = {}
+        self.processing = {}
+        self.tracking = None
+
+    def __repr__(self):
+        return 'Exploration of sessoin {}'.format(self.name, self.id)
+
+    def __str__(self):
+        return 'Expl sess: {}'.format(self.name)
+
 
 class Cohort():
     """ Class to initialise empty cohorts """
