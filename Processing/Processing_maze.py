@@ -1,4 +1,5 @@
 import matplotlib.path as mplPath
+import math
 
 from Utils.imports import *
 
@@ -46,6 +47,32 @@ class mazeprocessor:
         pass
 
     # UTILS ############################################################################################################
+    def get_templates(self):
+        # Get the templates
+        exp_name = self.session.Metadata.experiment
+        base_fld = self.settings['templates folder']
+        bg_folder = os.path.join(base_fld, 'Bgs')
+        templates_fld = os.path.join(base_fld, exp_name)
+
+        platf_templates = [os.path.join(templates_fld, f) for f in os.listdir(templates_fld) if 'platform' in f]
+        bridge_templates = [os.path.join(templates_fld, f) for f in os.listdir(templates_fld) if 'bridge' in f]
+        maze_templates = [os.path.join(templates_fld, f) for f in os.listdir(templates_fld) if 'maze_config' in f]
+        return base_fld, bg_folder, platf_templates, bridge_templates, maze_templates
+
+    def get_maze_configuration(self, frame):
+        """ Uses templates to check in which configuration the maze in at a give time point during an exp  """
+        base_fld, _, _, _, maze_templates = self.get_templates()
+        maze_templates_dict = {name: cv2.imread(os.path.join(base_fld, name)) for name in maze_templates}
+
+        matches = []
+        for name, template in maze_templates_dict.items():
+            template = template[1:, 1:]  # the template needs to be smaller than the frame
+            res = cv2.matchTemplate(frame, template, cv2.TM_CCOEFF_NORMED)
+            _, max_val, _, _ = cv2.minMaxLoc(res)
+            matches.append(max_val)
+        best_match = maze_templates[matches.index(max(matches))]
+        return best_match.split('_')[0]
+
     def get_maze_components(self):
         """ Uses template matching to identify the different components of the maze and their location """
 
@@ -111,13 +138,7 @@ class mazeprocessor:
         else:
             gray = bg
 
-        # Get the templates
-        exp_name = self.session.Metadata.experiment
-        base_fld = self.settings['templates folder']
-        bg_folder = os.path.join(base_fld, 'Bgs')
-        templates_fld = os.path.join(base_fld, exp_name)
-        platf_templates = [os.path.join(templates_fld, f) for f in os.listdir(templates_fld) if 'platform' in f]
-        bridge_templates = [os.path.join(templates_fld, f) for f in os.listdir(templates_fld) if 'bridge' in f]
+            base_fld, bg_folder, platf_templates, bridge_templates, _ = self.get_templates()
 
         # Store background
         f_name = '{}.png'.format(self.session.name)
@@ -257,12 +278,21 @@ class mazeprocessor:
         # Loop over each trial
         tracking_items = self.session.Tracking.keys()
         if tracking_items:
-            for item in tracking_items:
-                    if 'whole' not in item.lower() and 'exploration' not in item.lower():
-                        pass
+            for trial_name in tracking_items:
+                    if 'whole' not in trial_name.lower() and 'exploration' not in trial_name.lower():
+                        # Get tracking data and first frame of the trial
+                        data = self.session.Tracking[trial_name]
+                        startf_num = data.metadata['Start frame']
+                        videonum = int(trial_name.split('_')[1].split('-')[0])
+                        video = self.videos[videonum][0]
+                        grabber = cv2.VideoCapture(video)
+                        ret, frame = grabber.read()
+
+                        maze_configuration = self.get_maze_configuration(frame)
+
+                        self.get_trial_outcome(data)
 
                         """ functions to write
-                        get maze configuration
                         get outcome: escape or fail
                         get last time at shelter before leaving, get first time at shelter 
                         get tracking trajectory between the two
@@ -272,22 +302,72 @@ class mazeprocessor:
                         get status at relevant timepoints
                         
                         """
+        @staticmethod
+        def get_trial_length(trial):
+            if 'Posture' in trial.dlc_tracking.keys():
+                return len(trial.dlc_tracking['Posture']['body']['x'])
+            else:
+                try:
+                    return len(trial.std_tracing.x.values)
+                except:
+                    raise ValueError
 
-        # Get maze configuration
-        """
-            If no "maze" template exists, the maze is static: maze configuration = static
-            else: check which of the maze templates matches the best the first frame of the trial. The name of the maze
-                    config will be contained within the name of the template
-        
-        """
+        def get_arms_of_originandescape(rois, outward=True):
+            """ if outward get the last shelter roi and first threat otherwise first shelter and last threat in rois
+                Also if outward it gets the first arm after shelter and the last arm before threat else vicevers"""
+            # TODO arm identification
+            if outward:
+                shelt = rois.index('Shelter platform')[-1]  # make this work
+                thrt = rois.index('Threat platform')
+            else:
+                shelt = rois.index('Shelter platform')
+                thrt = rois.index('Threat platform')[-1]  # make this work
+            return shelt, thrt
 
-        # Get trial outcome
-        """  Look at what happens after the stim onset:
-                 define some criteria (e.g. max duration of escape) and, given the criteria:
-             - If the mouse never leaves T in time that a failure
-             - If it leaves T but doesnt reach S while respecting the criteria it is an incomplete escape
-             - If everything goes okay and it reaches T thats a succesful escape
-         """
+        def get_trial_outcome(self, data):
+            """  Look at what happens after the stim onset:
+                     define some criteria (e.g. max duration of escape) and, given the criteria:
+                 - If the mouse never leaves T in time that a failure
+                 - If it leaves T but doesnt reach S while respecting the criteria it is an incomplete escape
+                 - If everything goes okay and it reaches T thats a succesful escape
+
+             a trial is considered succesful if the mouse reaches the shelter platform within 30s from stim onset
+             """
+
+            timelimit = 30  # number of seconds within which the S platf must be reached to consider the trial succesf.
+            timelimit_frame = timelimit * self.session.Metata.videodata[0]['fps']
+
+            trial_length = self.get_trial_length(data)
+            stim_time = math.floor(trial_length/2)  # the stim is thought to happen at the midpoint of the trial
+
+            trial_rois = self.get_roi_at_each_frame(data.dlc_tracking['Posture']['body'])  # TODO make this work
+            escape_rois = trial_rois[stim_time:]
+            origin_rois = trial_rois[:stim_time-1]
+            last_shlt, first_threat =
+
+            # Find the first non Threat roi
+            nonthreats = [(idx, name) for idx,name in enumerate(escape_rois) if 'Threat platform' not in name]
+            if not nonthreats:
+                # No escape
+                # TODO deal with this
+                return
+            else:
+                first_nonthreat = (nonthreats[0][0], escape_rois[nonthreats[0][0]])
+                if not 'Shelter platform' in [name for idx, name in nonthreats]:
+                    # Incomplete escape
+                    # TODO deal with this
+
+                    return
+                else:
+                    # Copmlete escape
+                    # TODO deal with this
+                    return
+
+
+
+
+
+
 
 
         # Get shelter and threat times
