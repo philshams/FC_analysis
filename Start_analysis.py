@@ -83,7 +83,7 @@ class Analysis():
                 if send_messages:
                     slack_chat_messenger('Finished STD tracking')
 
-                if track_mouse:
+                if track_mouse and track_options['use_deeplabcut']:
                     # Finish DLC tracking [extract pose on saved clips]
                     try:
                         self.db = Tracking.tracking_use_dlc(self.db, self.clips_l)
@@ -131,6 +131,7 @@ class Analysis():
 ########################################################################################################################
     @clock
     def video_analysis(self, session):
+        from Tracking.Tracking_main import Tracking
         """ EXTRACT useful information from the videos for one session"""
         # Process background: get maze edges and user selected ROIs
         if extract_rois_background:
@@ -205,24 +206,23 @@ class Analysis():
         """ When starting a new run, print the options specified in Config.py for the user to check """
         import json
         print(colored(""""
-Load database: {}
-    update database: {}
-    load name: {}
-    save name: {}
-Selector type: {}
-    selector:  {}
+Load database:      {}
+update database:    {}
+load name:          {}
+save name:          {}
+Selector type:      {}
+selector:           {}
 Extract background: {}
-Tracking: {}
-    track options: {}
-
-Processing: {}
-Plotting: {}
-Debug: {}
-Cohort: {}
-Send Messages: {}
+Tracking:           {}
+track options:      {}
+Processing:         {}
+Plotting:           {}
+Debug:              {}
+Cohort:             {}
+Send Messages:      {}
         """.format(load_database, update_database, load_name, save_name,
                    selector_type, selector, extract_rois_background, track_mouse,
-                   json.dumps(track_options, indent=30), plotting, cohort, processing, debug, send_messages),
+                   json.dumps(track_options, indent=5), plotting, cohort, processing, debug, send_messages),
                       'blue'))
 
 

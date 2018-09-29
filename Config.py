@@ -11,10 +11,10 @@ load_database = True  # This is False only if you are creating a new database
 
 # Specify if you want to update the database to add recently added sessions to database
 update_database = False
-load_name = 'alldata2'  # name of file to load
+load_name = 'alldata_session_111'  # name of file to load
 
 # Specify name with which to save the results of the analysis
-save_name = 'alldata2'
+save_name = 'alldata_session_111'
 
 """
 Specify set of sessions to analyse 
@@ -33,7 +33,7 @@ might behave differently depending on the type of experiment
 # TODO add "new" to selector type
 selector_type = 'date'  # selects which session to an 'new', 'experiment', 'session', 'date' or COHORT to
 selector = ['180603', '180604', '180605', '180606', '180607', '180625', '180626', '180628',
-            '180801', '180823', '180830', '180901', '180907', '180909']
+           '180801', '180823', '180830', '180901', '180907', '180909']  # ['190928', '180929']
 exp_type = 'maze'
 
 
@@ -49,8 +49,8 @@ extract_rois_background = False  # If 'bg get rois' = True, set this to True to 
 
 track_mouse = False             # <----- !!!!!!!!!!  Run tracking
 track_options = {
-    'bg get rois': True,          # allow user to define 3 ROIs when extracting background [threat, shelter variable]
-    'track whole session': True,  # Track the mouse for the entire session
+    'bg get rois': False,          # allow user to define 3 ROIs when extracting background [threat, shelter variable]
+    'track whole session': False,  # Track the mouse for the entire session
     'track_exploration': False,    # Track the mouse during the exploration using the standard tracking
     'track_mouse_fast': True,      # if true only track segments of videos around the stimuli
     'use_stdtracking': True,       # Use standard tracking (written by FC)
@@ -77,7 +77,7 @@ processing_options = {
 #######################
 #  DEBUGGING          #
 #######################
-debug = True  # If true runs a gui to debug tracking data
+debug = False  # If true runs a gui to debug tracking data
 
 #######################
 #  COHORT #
@@ -104,16 +104,6 @@ plotting = False
 plotting_options = {
     'cfg': './Plotting/plotting_cfg.yml'
 }
-
-
-#######################
-#  MISC.              #
-#######################
-"""
-For each sessions bein processed save a .avi video of each peri-stimulus period
-"""
-get_trials_clips = False
-
 
 #######################
 #  MESSAGING          #

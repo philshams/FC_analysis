@@ -202,7 +202,6 @@ class Tracking():
 
 ########################################################################################################################
 ########################################################################################################################
-    @clock
     def tracking(self, bg, video_path, start_frame=1, video_fps=30, stop_frame=-1, justCoM=True):
         # Create video capture
         cap = cv2.VideoCapture(video_path)
