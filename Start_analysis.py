@@ -149,7 +149,7 @@ class Analysis():
                 self.clips_l = tracked.clips_l
             except:
                 warnings.warn('Something went wrong with tracking')
-        self.save_results(obj=self.db, mod='_tracking')
+        # self.save_results(obj=self.db, mod='_tracking')
 
     def processing_session(self, session):
             Processing_main.Processing(session, self.db)
@@ -205,13 +205,14 @@ class Analysis():
     def print_planned_processing(self):
         """ When starting a new run, print the options specified in Config.py for the user to check """
         import json
-        print(colored(""""
+        print(colored("""
 Load database:      {}
 update database:    {}
 load name:          {}
 save name:          {}
 Selector type:      {}
 selector:           {}
+
 Extract background: {}
 Tracking:           {} """.format(load_database, update_database, load_name, save_name,
                    selector_type, selector, extract_rois_background, track_mouse),'blue'))

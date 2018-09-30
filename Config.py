@@ -11,7 +11,7 @@ load_database = True  # This is False only if you are creating a new database
 
 # Specify if you want to update the database to add recently added sessions to database
 update_database = False
-load_name = 'alldata_session_111'  # name of file to load
+load_name = 'alldata_session_111_safe'  # name of file to load
 
 # Specify name with which to save the results of the analysis
 save_name = 'alldata_session_111'
@@ -50,7 +50,7 @@ extract_rois_background = False  # If 'bg get rois' = True, set this to True to 
 track_mouse = True             # <----- !!!!!!!!!!  Run tracking
 track_options = {
     'bg get rois': False,          # allow user to define 3 ROIs when extracting background [threat, shelter variable]
-    'track whole session': False,  # Track the mouse for the entire session
+    'track whole session': True,  # Track the mouse for the entire session
     'track_exploration': False,    # Track the mouse during the exploration using the standard tracking
     'track_mouse_fast': True,      # if true only track segments of videos around the stimuli
     'use_stdtracking': True,       # Use standard tracking (written by FC)

@@ -9,7 +9,51 @@ from Utils.decorators import clock
 from Config import cohort_options
 
 
-experiment_specific_classes = []
+class FlipFlop:
+    # TODO look at the two explorations, find a way to track the second exploration too
+    def __init__(self, session):
+        self.name = 'FlipFlop Maze'
+        sess_outcomes = session.Metadata.processing['Session outcomes']
+        perconfig = sess_outcomes['outcomes_perconfig']
+
+        numr = perconfig['Right']['origins'].numorigins
+        numr_left = perconfig['Right']['origins'].numleftorigins
+        numrors, numrescs = perconfig['Right']['origins'].numorigins - numr_left, perconfig['Right']['escapes'].numescapes - numr_left
+        if numr: probr = numrescs/ numr
+        else: probr = 0
+
+        numl = perconfig['Left']['origins'].numorigins
+        numl_left = perconfig['Left']['origins'].numleftorigins
+        numlors, numlescs = perconfig['Left']['origins'].numorigins - numl_left, perconfig['Left']['escapes'].numescapes - numl_left
+        if numl: probl = numlescs/numl
+        else: probl = 0
+
+        print(""" Session {}
+        For Right configuration:
+            {} trials
+            {} R origns
+            {} R escapes
+            {} R escape probability
+        
+        for Left configuration:
+            {} trials
+            {} R origins
+            {} R escapes
+            {} R escape probability
+           
+        """.format(session.name, numr, numrors, numrescs, probr, numl, numlors, numlescs, probl))
+
+        def name(self):
+            return 'FlipFlop Maze'
+
+    def __repr__(self):
+        return 'FlipFlop Maze'
+    def __str__(self):
+        return 'FlipFlop Maze'
+
+
+
+experiment_specific_classes = [FlipFlop]
 
 class mazeprocessor:
     """
@@ -38,10 +82,10 @@ class mazeprocessor:
         self.trial_processor()
 
         # Analyse the whole session
-        # self.session_processor()
+        self.session_processor()
 
         # Do experiment specfic analysis
-        # self.experiment_processor()
+        self.experiment_processor()
 
         pass
 
@@ -55,14 +99,15 @@ class mazeprocessor:
 
         platf_templates = [os.path.join(templates_fld, f) for f in os.listdir(templates_fld) if 'platform' in f]
         bridge_templates = [os.path.join(templates_fld, f) for f in os.listdir(templates_fld) if 'bridge' in f]
+        bridge_templates = [b for b in bridge_templates if 'closed' not in b]
         maze_templates = [os.path.join(templates_fld, f) for f in os.listdir(templates_fld) if 'maze_config' in f]
         return base_fld, bg_folder, platf_templates, bridge_templates, maze_templates
 
     def get_maze_configuration(self, frame):
         """ Uses templates to check in which configuration the maze in at a give time point during an exp  """
         base_fld, _, _, _, maze_templates = self.get_templates()
+        maze_templates = [t for t in maze_templates if 'default' not in t]
         maze_templates_dict = {name: cv2.imread(os.path.join(base_fld, name)) for name in maze_templates}
-
 
         matches = []
         for name, template in maze_templates_dict.items():
@@ -72,7 +117,7 @@ class mazeprocessor:
             matches.append(max_val)
         if not matches: return 'Static'
         best_match = maze_templates[matches.index(max(matches))]
-        return best_match.split('_')[0]
+        return os.path.split(best_match)[1].split('__')[0]
 
     def get_maze_components(self):
         """ Uses template matching to identify the different components of the maze and their location """
@@ -139,7 +184,12 @@ class mazeprocessor:
         else:
             gray = bg
 
-            base_fld, bg_folder, platf_templates, bridge_templates, _ = self.get_templates()
+        base_fld, bg_folder, platf_templates, bridge_templates, maze_templates = self.get_templates()
+
+        if maze_templates:
+            img = [t for t in maze_templates if 'default' in t]
+            bg = cv2.imread(img[0])
+            if bg.shape[-1] > 2: bg = cv2.cvtColor(bg, cv2.COLOR_BGR2GRAY)
 
         # Store background
         f_name = '{}.png'.format(self.session.name)
@@ -293,13 +343,14 @@ class mazeprocessor:
 
                         maze_configuration = self.get_maze_configuration(frame)
 
-                        self.get_trial_outcome(data)
+                        self.get_trial_outcome(data, maze_configuration)
                         self.get_status_at_timepoint(data)  # get status at stim
 
                         """ functions to write
                         get hesitations at T platform --> quantify head ang acc 
                         get status at relevant timepoints
                         """
+
     @staticmethod
     def get_trial_length(trial):
         if 'Posture' in trial.dlc_tracking.keys():
@@ -335,12 +386,12 @@ class mazeprocessor:
                 shelt = False
                 shelt_arm = False
             thrt = [i for i, x in enumerate(rois[:shelt]) if x == "Threat_platform"]
-            if thrt: thrt = thrt[-1]
+            if thrt: thrt = thrt[-1]+1
             else: thrt = len(rois)-1
             threat_arm = rois[thrt]
         return shelt, thrt, shelt_arm, threat_arm
 
-    def get_trial_outcome(self, data):
+    def get_trial_outcome(self, data, maze_config):
         """  Look at what happens after the stim onset:
                  define some criteria (e.g. max duration of escape) and, given the criteria:
              - If the mouse never leaves T in time that a failure
@@ -351,6 +402,7 @@ class mazeprocessor:
          """
 
         results = dict(
+            maze_configuration=None,
             trial_outcome = None,
             trial_rois_trajectory = None,
             last_at_shelter = None,
@@ -363,6 +415,7 @@ class mazeprocessor:
             threat_escape_arm = None,
             stim_time = None
         )
+        results['maze_configuration'] = maze_config
 
         timelimit = 30  # number of seconds within which the S platf must be reached to consider the trial succesf.
         timelimit_frame = timelimit * self.session.Metadata.videodata[0]['Frame rate'][0]
@@ -407,6 +460,8 @@ class mazeprocessor:
             results['shelter_rach_arm'] = res[2]
             results['threat_escape_arm'] = res[3]
 
+        if not 'processing' in data.__dict__.keys():
+            setattr(data, 'processing', {})
         data.processing['Trial outcome'] = results
 
         # Get hesitations
@@ -463,7 +518,6 @@ class mazeprocessor:
 
     # SESSION PROCESSOR ################################################################################################
     def session_processor(self):
-        pass
         """ To do:
             - Get stats relative to arms of origin and arms of escapes
             - Get stats of maze rois for the whole session (when available) and just the exploration 
@@ -472,16 +526,53 @@ class mazeprocessor:
                                 * Escape probability (escape, vs incomplete escape, vs no escape)
                                 * Escape arm as a function of: X pos, Y pos, arm of origin, prev trial             
         """
+        tracking_items = self.session.Tracking.keys()
+        maze_configs, origins, escapes = [], [], []
+        if tracking_items:
+            for trial_name in sorted(tracking_items):
+                if 'whole' not in trial_name.lower() and 'exploration' not in trial_name.lower():
+                    # extract results of processing steps
+                    data = self.session.Tracking[trial_name]
+
+                    maze_configs.append(data.processing['Trial outcome']['maze_configuration'])
+                    origins.append(data.processing['Trial outcome']['threat_origin_arm'])
+                    escapes.append(data.processing['Trial outcome']['threat_escape_arm'])
+
+        left_origins = len([b for b in origins if 'Left' in b])
+        left_escapes = len([b for b in escapes if 'Left' in b])
+
+        if len(set(maze_configs)) > 1:
+            outcomes_perconfig = {name:None for name in set(maze_configs)}
+            ors = namedtuple('origins', 'numorigins numleftorigins')
+            escs = namedtuple('escapes', 'numescapes numleftescapes')
+            for conf in set(maze_configs):
+                origins_conf = ors(len([o for i,o in enumerate(origins) if maze_configs[i] == conf]),
+                          len([o for i, o in enumerate(origins) if maze_configs[i] == conf and 'Left' in origins[i]]))
+                escapes_conf = escs(len([o for i, o in enumerate(escapes) if maze_configs[i] == conf]),
+                          len([o for i, o in enumerate(escapes) if maze_configs[i] == conf and 'Left' in escapes[i]]))
+                if len([c for c in maze_configs if c == conf]) < origins_conf.numorigins:
+                    raise Warning('Something went wrong, dammit')
+                outcomes_perconfig[conf] = dict(origins=origins_conf, escapes=escapes_conf)
+        else: outcomes_perconfig = None
+
+        if not 'processing' in self.session.Metadata.__dict__.keys():
+            setattr(self.session.Metadata, 'processing', {})
+        self.session.Metadata.processing['Session outcomes'] = dict(origins=origins, escapes=escapes,
+                                                                    outcomes_perconfig=outcomes_perconfig)
+
+
 
     # experiment PROCESSOR #############################################################################################
     def experiment_processor(self):
         exp_name = self.session.Metadata.experiment
-        if not exp_name in self.exp_spec_classes:
+        session = self.session
+        if not exp_name in [cls.__repr__(self) for cls in self.exp_spec_classes]:
             return
         else:
             try:
-                exp = self.exp_spec_classes[self.exp_spec_classes.index(exp_name)]
-                exp()
+                idx =  [cls.__repr__(self) for cls in self.exp_spec_classes].index(exp_name)
+                exp = self.exp_spec_classes[idx]
+                exp(session)
             except:
                 raise Warning('No class was made to analyse experiment {}'.format(exp_name))
 
