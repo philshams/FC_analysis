@@ -32,8 +32,8 @@ might behave differently depending on the type of experiment
 """
 # TODO add "new" to selector type
 selector_type = 'date'  # selects which session to an 'new', 'experiment', 'session', 'date' or COHORT to
-selector = ['180603', '180604', '180605', '180606', '180607', '180625', '180626', '180628',
-           '180801', '180823', '180830', '180901', '180907', '180909']  # ['190928', '180929']
+selector = ['190928', '180929'] #  ['180603', '180604', '180605', '180606', '180607', '180625', '180626', '180628',
+           # '180801', '180823', '180830', '180901', '180907', '180909']  #
 exp_type = 'maze'
 
 
@@ -47,7 +47,7 @@ startf = 4000  # Skip the first n frames of the first video when tracking
 
 extract_rois_background = False  # If 'bg get rois' = True, set this to True to manually extract the rois from bg
 
-track_mouse = False             # <----- !!!!!!!!!!  Run tracking
+track_mouse = True             # <----- !!!!!!!!!!  Run tracking
 track_options = {
     'bg get rois': False,          # allow user to define 3 ROIs when extracting background [threat, shelter variable]
     'track whole session': False,  # Track the mouse for the entire session

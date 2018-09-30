@@ -213,17 +213,17 @@ save name:          {}
 Selector type:      {}
 selector:           {}
 Extract background: {}
-Tracking:           {}
-track options:      {}
+Tracking:           {} """.format(load_database, update_database, load_name, save_name,
+                   selector_type, selector, extract_rois_background, track_mouse),'blue'))
+        if track_mouse:
+            print(colored('Tracking options {}'.format(json.dumps(track_options, indent=3)), 'blue'))
+        print(colored("""
 Processing:         {}
 Plotting:           {}
 Debug:              {}
 Cohort:             {}
 Send Messages:      {}
-        """.format(load_database, update_database, load_name, save_name,
-                   selector_type, selector, extract_rois_background, track_mouse,
-                   json.dumps(track_options, indent=5), plotting, cohort, processing, debug, send_messages),
-                      'blue'))
+        """.format(plotting, cohort, processing, debug, send_messages), 'blue'))
 
 
 #  START

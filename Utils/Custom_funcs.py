@@ -21,7 +21,7 @@ def cut_crop_video(vidpath='',  save_format=['avi'],
         elif 'mp4' in save_format:
             clip.write_videofile(savename+'_edited'+'.mp4', codec='mpeg4')
         elif 'gif' in save_format:
-            clip.write_gif(savename+'_edited'+'.gif', fps=30)
+            clip.write_gif(savename+'_edited3'+'.gif', opt='nq', fps=30)
 
     if ret:
         return clip
@@ -29,10 +29,10 @@ def cut_crop_video(vidpath='',  save_format=['avi'],
 
 ########################################################################################################################
 if __name__ == "__main__":
-    video_to_edit = 'C:\\Users\\Federico\\Downloads\\' \
-                    '20180919_140652.mp4'
+    video_to_edit = 'D:\\Dropbox (UCL - SWC)\\Dropbox (UCL - SWC)\\Rotation_vte\\data\\z_TrialVideos' \
+                    '\\110-audio_0-2.avi'
 
-    cut_crop_video(video_to_edit, cut=True, starts=0, fins=15, crop_sel=False, crop_coord=[150, 300, 450, 300],
+    cut_crop_video(video_to_edit, cut=True, starts=60, fins=71, crop_sel=False, crop_coord=[150, 300, 450, 300],
                    save_format=['gif'])
 
 

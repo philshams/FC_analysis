@@ -17,11 +17,10 @@ class mazeprocessor:
                            - quantify different aspects of explorations
     * Analyse individual trials: - get outcome
                                  - get stuff
-
-
     """
 
     def __init__(self, session, settings=None, debugging=False):
+        print(colored('      ... maze specific processing session: {}'.format(session.name), 'green'))
         self.session = session
         self.settings = settings
         self.debug_on = debugging
@@ -39,10 +38,10 @@ class mazeprocessor:
         self.trial_processor()
 
         # Analyse the whole session
-        self.session_processor()
+        # self.session_processor()
 
         # Do experiment specfic analysis
-        self.experiment_processor()
+        # self.experiment_processor()
 
         pass
 
@@ -196,7 +195,8 @@ class mazeprocessor:
             return np.asarray([i for i, x in enumerate(lst) if x == match])
 
         if datatype == 'namedtuple':
-            vel = data.velocity
+            if 'velocity' in data._fields: vel = data.velocity
+            else: vel = False
         else:
             vel = False
 
@@ -280,10 +280,10 @@ class mazeprocessor:
         # Loop over each trial
         tracking_items = self.session.Tracking.keys()
         if tracking_items:
-            for trial_name in tracking_items:
+            for trial_name in sorted(tracking_items):
                     if 'whole' not in trial_name.lower() and 'exploration' not in trial_name.lower():
                         # Get tracking data and first frame of the trial
-                        print('Processing: {}'.format(trial_name))
+                        print('         ... maze specific processing: {}'.format(trial_name))
                         data = self.session.Tracking[trial_name]
                         startf_num = data.metadata['Start frame']
                         videonum = int(trial_name.split('_')[1].split('-')[0])
@@ -294,34 +294,38 @@ class mazeprocessor:
                         maze_configuration = self.get_maze_configuration(frame)
 
                         self.get_trial_outcome(data)
+                        self.get_status_at_timepoint(data)  # get status at stim
 
                         """ functions to write
-                        get tracking trajectory between the two
-                        get "maze" trajectory (rois)  +   get origin and escape(s) arms
                         get hesitations at T platform --> quantify head ang acc 
-                        get status at stim onset (pose, vel...)
                         get status at relevant timepoints
-                        
                         """
     @staticmethod
     def get_trial_length(trial):
         if 'Posture' in trial.dlc_tracking.keys():
-            return len(trial.dlc_tracking['Posture']['body']['x'])
+            return True, len(trial.dlc_tracking['Posture']['body']['x'])
         else:
             try:
-                return len(trial.std_tracing.x.values)
+                return True, len(trial.std_tracing.x.values)
             except:
-                raise ValueError
+                return False, False
 
     @staticmethod
-    def get_arms_of_originandescape(rois, outward=True):
+    def get_arms_of_originandescape(rois, outward=True): # TODO refactor
         """ if outward get the last shelter roi and first threat otherwise first shelter and last threat in rois
             Also if outward it gets the first arm after shelter and the last arm before threat else vicevers"""
-        # TODO arm identification
         if outward:
-            shelt =[i for i, x in enumerate(rois) if x == "Shelter_platform"][-1]
-            thrt = rois[shelt:].index('Threat_platform') + shelt
-            shelt_arm = rois[shelt+1]
+            shelt =[i for i, x in enumerate(rois) if x == "Shelter_platform"]
+            if shelt: shelt = shelt[-1]
+            else: shelt = 0
+            if 'Threat_platform' in rois[shelt:]:
+                thrt = rois[shelt:].index('Threat_platform') + shelt
+            else:
+                thrt = 0
+            try:
+                shelt_arm = rois[shelt+1]
+            except:
+                shelt_arm = rois[shelt]
             threat_arm = rois[thrt-1]
         else:
             if 'Shelter_platform' in rois:
@@ -330,8 +334,10 @@ class mazeprocessor:
             else:
                 shelt = False
                 shelt_arm = False
-            thrt = [i for i, x in enumerate(rois) if x == "Threat_platform"][-1]
-            threat_arm = rois[thrt + 1]
+            thrt = [i for i, x in enumerate(rois[:shelt]) if x == "Threat_platform"]
+            if thrt: thrt = thrt[-1]
+            else: thrt = len(rois)-1
+            threat_arm = rois[thrt]
         return shelt, thrt, shelt_arm, threat_arm
 
     def get_trial_outcome(self, data):
@@ -346,6 +352,7 @@ class mazeprocessor:
 
         results = dict(
             trial_outcome = None,
+            trial_rois_trajectory = None,
             last_at_shelter = None,
             first_at_threat = None,
             shelter_leave_arm = None,
@@ -360,13 +367,19 @@ class mazeprocessor:
         timelimit = 30  # number of seconds within which the S platf must be reached to consider the trial succesf.
         timelimit_frame = timelimit * self.session.Metadata.videodata[0]['Frame rate'][0]
 
-        trial_length = self.get_trial_length(data)
+        ret, trial_length = self.get_trial_length(data)
+        if not ret:
+            data.processing['Trial outcome'] = results
+            return
+
         stim_time = math.floor(trial_length/2)  # the stim is thought to happen at the midpoint of the trial
         results['stim_time'] = stim_time
 
-        trial_rois = self.get_roi_at_each_frame(data.dlc_tracking['Posture']['body'])  # TODO make this work
+        trial_rois = self.get_roi_at_each_frame(data.dlc_tracking['Posture']['body'])
+        results['trial_rois_trajectory'] = trial_rois
         escape_rois = trial_rois[stim_time:]
         origin_rois = trial_rois[:stim_time-1]
+
         res = self.get_arms_of_originandescape(origin_rois)
         results['last_at_shelter'] = res[0]
         results['first_at_threat'] = res[1]
@@ -389,21 +402,12 @@ class mazeprocessor:
                 # Copmlete escape
                 results['trial_outcome'] = True  # True is a complete escape
             res = self.get_arms_of_originandescape(escape_rois, outward=False)
-            results['first_at_shelter'] = res[0]
-            results['last_at_threat'] = res[1]
+            results['first_at_shelter'] = res[0] + results['stim_time']
+            results['last_at_threat'] = res[1] + results['stim_time']
             results['shelter_rach_arm'] = res[2]
             results['threat_escape_arm'] = res[3]
 
         data.processing['Trial outcome'] = results
-
-    def get_STS_trajectory(self, data):
-        """
-             - Get tracking data for frames between when it leaves the shelter and when it returns to it while also 
-                 dividing them based on pre-stim or after stim
-             - Do the same but for the maze rois trajectory (store them all together)
-             - Get escape and origin arms 
-        """
-        pass
 
         # Get hesitations
         """  
@@ -414,10 +418,38 @@ class mazeprocessor:
         """
 
         # Get status at time point
+
+    def get_status_at_timepoint(self, data, time: int = None, timename: str = 'stimulus'): # TODO add platform to status
         """
-            - Given a time point (e.g. stim onset) extract info about the mouse status at that point: location, 
-                 velocity, platform...)
+        Get the status of the mouse [location, orientation...] at a specific timepoint.
+        If not time is give the midpoint of the tracking traces is taken as stim time
         """
+        if not 'session' in data.name.lower() or 'exploration' in name.lower:
+            if data.dlc_tracking.keys():
+                if time is None:  # if a time is not give take the midpoint
+                    time = data.processing['Trial outcome']['stim_time']
+
+                # Create a named tuple with all the params from processing (e.g. head angle) and the selected time point
+                params = data.dlc_tracking['Posture']['body'].keys()
+                params = [x.replace(' ', '') for x in params]
+                params = namedtuple('params', list(params))
+                values = data.dlc_tracking['Posture']['body'].values[time]
+                status = params(*values)
+
+                # Make named tuple with posture data at timepoint
+                posture_names = namedtuple('posture', sorted(list(data.dlc_tracking['Posture'].keys())))
+                bodypart = namedtuple('bp', 'x y')
+                bodyparts = []
+                for bp, vals in sorted(data.dlc_tracking['Posture'].items()):
+                    pos = bodypart(vals['x'].values[time], vals['y'].values[time])
+                    bodyparts.append(pos)
+                posture = posture_names(*bodyparts)
+
+                complete = namedtuple('status', 'posture status')
+                complete = complete(posture, status)
+                data.processing['status at {}'.format(timename)] = complete
+            else:
+                data.processing['status at {}'.format(timename)] = None
 
         # Get relevant timepoints
         """
@@ -432,16 +464,13 @@ class mazeprocessor:
     # SESSION PROCESSOR ################################################################################################
     def session_processor(self):
         pass
-
         """ To do:
             - Get stats relative to arms of origin and arms of escapes
             - Get stats of maze rois for the whole session (when available) and just the exploration 
         
             - Get probabilities: 
                                 * Escape probability (escape, vs incomplete escape, vs no escape)
-                                * Escape arm as a function of: X pos, Y pos, arm of origin, prev trial
-                                
-        
+                                * Escape arm as a function of: X pos, Y pos, arm of origin, prev trial             
         """
 
     # experiment PROCESSOR #############################################################################################
@@ -450,7 +479,10 @@ class mazeprocessor:
         if not exp_name in self.exp_spec_classes:
             return
         else:
-            exp = self.exp_spec_classes[self.exp_spec_classes.index(exp_name)]
-            exp()
-        pass
+            try:
+                exp = self.exp_spec_classes[self.exp_spec_classes.index(exp_name)]
+                exp()
+            except:
+                raise Warning('No class was made to analyse experiment {}'.format(exp_name))
+
 
