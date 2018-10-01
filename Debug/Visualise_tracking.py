@@ -671,10 +671,13 @@ class ImgsViwer(QtGui.QMainWindow):
         self.images = {}
 
     def set_img(self, trial):
-        self.curr_img_label.setText(trial)
-        img = np.rot90(misc.imread(self.images[trial]), 3)
-        self.img.setImage(img)
-        self.curr_img = list(self.images.keys()).index(trial)
+        try:
+            self.curr_img_label.setText(trial)
+            img = np.rot90(misc.imread(self.images[trial]), 3)
+            self.img.setImage(img)
+            self.curr_img = list(self.images.keys()).index(trial)
+        except:
+            pass
 
     def next_img(self, event):
         self.curr_img += 1

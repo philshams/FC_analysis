@@ -17,6 +17,7 @@ plt.rcParams.update(params)
 import matplotlib.path as mplPath
 import math
 
+from Plotting.Plotting_utils import make_legend
 
 from Utils.Messaging import slack_chat_messenger
 from Utils.decorators import clock
@@ -90,7 +91,7 @@ class mazeprocessor:
         # Get maze structure
         self.maze_rois = self.get_maze_components()
 
-        # Analyse exploration
+        # Analyse exploration  # TODO make these two functions happen in parallel to speed things up
         self.exploration_processer()
 
         # Analyse individual trials
@@ -310,31 +311,42 @@ class mazeprocessor:
                 # find the first stim of the session
                 first_stim = 100000
                 for stims in self.session.Metadata.stimuli.values():
-                    if isinstance(stims[0], list):
-                        stims = stims[0]
-                    if not stims:
-                        continue
-                    elif min(stims) < first_stim:
-                        first_stim = min(stims) - 1
+                    for idx, vid_stims in enumerate(stims):
+                        if not vid_stims: continue
+                        else:
+                            if first_stim < 100000 and idx > 0: break
+                            first = vid_stims[0]
+                            if first < first_stim: first_stim = first - 1
 
                 # Extract the part of whole session that corresponds to the exploration
                 len_first_vid = len(whole[list(whole.keys())[0]].x)
                 if len_first_vid < first_stim:
-                    expl = whole[list(whole.keys())[0]]  # TODO stitch together multiple vids
+                    if len(whole.keys())> 1:
+                        fvideo = whole[list(whole.keys())[0]]
+                        svideo = whole[list(whole.keys())[1]]
+                        expl = self.xyv_trace_tup(np.concatenate((fvideo.x.values, svideo.x.values)),
+                                                  np.concatenate((fvideo.y.values, svideo.y.values)),
+                                                  None)
+                        if first_stim < len(expl.x):
+                            expl = self.xyv_trace_tup(expl.x[0:first_stim], expl.y[0:first_stim], None)
+                    else:
+                        expl = whole[list(whole.keys())[0]]
                 else:
+                    vid_names = sorted(list(whole.keys()))
                     if not 'velocity' in whole[list(whole.keys())[0]]._fields:
-                        vel = calc_distance_2d((whole[list(whole.keys())[0]].x, whole[list(whole.keys())[0]].y),
+                        vel = calc_distance_2d((whole[vid_names[0]].x, whole[vid_names[0]].y),
                                                vectors=True)
                     else:
                         vel = whole[list(whole.keys())[0]].vel
-                    expl = self.xyv_trace_tup(whole[list(whole.keys())[0]].x[0:first_stim],
-                                              whole[list(whole.keys())[0]].y[0:first_stim],
+                    expl = self.xyv_trace_tup(whole[vid_names[0]].x[0:first_stim],
+                                              whole[vid_names[0]].y[0:first_stim],
                                               vel[0:first_stim])
                 self.session.Tracking['Exploration'] = expl
             else:
                 return False
 
         rois_results = self.get_timeinrois_stats(expl)
+        rois_results['all rois'] = self.maze_rois
         cls_exp = Exploration()
         cls_exp.metadata = self.session.Metadata
         cls_exp.tracking = expl
@@ -593,6 +605,9 @@ class mazeprocessor:
 
 class mazecohortprocessor:
     def __init__(self, cohort):
+        self.colors = dict(left=[.2, .3, .7], right=[.7, .3, .2], centre=[.3, .7, .2],
+                           shelter='c', threat='y')
+
         name = cohort_options['name']
         print(colored('Maze processing cohort {}'.format(name), 'green'))
 
@@ -602,9 +617,58 @@ class mazecohortprocessor:
         self.process_explorations(tracking_data)
         self.process_trials(tracking_data)
 
+
+
     def process_explorations(self, tracking_data):
+        all_platforms = ['Left_far_platform', 'Left_medium_platform', 'Right_medium_platform',
+                         'Right_far_platform', 'Shelter_platform', 'Threat_platform']
+
+        all_transitions, times = {name:[] for name in all_platforms}, {name:[] for name in all_platforms}
+        fps = None
         for exp in tracking_data.explorations:
-            print(exp)
+            if not isinstance(exp, tuple):
+                print(exp.metadata)
+                if fps is None: fps = exp.metadata.videodata[0]['Frame rate'][0]
+                exp_platforms = [p for p in exp.processing['ROI analysis']['all rois'].keys() if 'platform' in p]
+
+                for p in exp_platforms:
+                    if p not in all_platforms: raise Warning()
+
+                timeinroi = {name:val for name,val in exp.processing['ROI analysis']['time_in_rois'].items()
+                            if 'platform' in name}
+                transitions = {name:val for name,val in exp.processing['ROI analysis']['transitions_count'].items()
+                            if 'platform' in name}
+
+                for name in all_platforms:
+                    if name in transitions: all_transitions[name].append(transitions[name])
+                    if name in timeinroi: times[name].append(timeinroi[name])
+
+        all_platforms = ['Left_far_platform', 'Left_medium_platform', 'Shelter_platform', 'Threat_platform',
+                         'Right_medium_platform',  'Right_far_platform', ]
+
+        f, axarr = plt.subplots(2, 1, facecolor=[0.1, 0.1, 0.1])
+        f.tight_layout()
+
+        timeax, transitionsax = axarr[0], axarr[1]
+        for idx, name in enumerate(all_platforms):
+            if not name: continue
+            type = name.split('_')[0].lower()
+            col = self.colors[type]
+            if 'far' in name: col = np.add(col, 0.25)
+
+            timeax.bar(idx-.5, np.mean(times[name])/fps, color=col, label=name)
+            transitionsax.bar(idx-.5, np.mean(all_transitions[name]), color=col, label=name)
+
+
+        for ax in axarr:
+            ax.axvline(1, color='w')
+            ax.axvline(3, color='w')
+
+        timeax.set(title='Seconds per platform', xlim=[-1, 5], ylim=[0, 300], facecolor=[0.2, 0.2, 0.2])
+        make_legend(timeax, [0.1, .1, .1], [0.8, 0.8, 0.8], changefont=8)
+        transitionsax.set(title='Number of entries per platform', xlim=[-1, 5],  facecolor=[0.2, 0.2, 0.2])
+
+        plt.show()
 
     def process_trials(self, tracking_data):
         maze_configs, origins, escapes, outcomes = [], [], [], []
@@ -646,7 +710,6 @@ class mazecohortprocessor:
         else: outcomes_perconfig = None
 
 
-        from Plotting.Plotting_utils import make_legend
         def plotty(ax, numtr, lori, cori, lesc, cesc, title='Origin and escape probabilities'):
             ax.bar(0, lori / numtr, color=[.1, .2, .4], width=.25, label='L ori')
             ax.bar(0.25, cori / numtr, color=[.2, .4, .1], width=.25, label='C ori')

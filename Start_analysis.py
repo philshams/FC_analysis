@@ -77,7 +77,7 @@ class Analysis():
                     db_copy = db_copy.drop([session_name])
 
             self.save_results(obj=db_copy, mod=new_name)
-            return
+            sys.exit()
 
         # TRACK SINGLE SESSIONS
         if not selector_type == 'cohort':
