@@ -311,7 +311,6 @@ class App(QtGui.QMainWindow):
         ####################################################################################################################
 
     ####################################################################################################################
-    @clock
     def get_session_data(self, event):
         """ Get paths of videofiles and names of tracking data + add these names to list widget"""
         if self.sessions is None:
@@ -348,7 +347,6 @@ class App(QtGui.QMainWindow):
         if self.run_exp_specific:
             self.exp_specific.update_matched_image(session.Metadata.session_id)
 
-    @clock
     def load_trial_data(self, trial_name):
         """  get data from trial and initialise plots """
         # Clear up a previously running trials
@@ -392,7 +390,6 @@ class App(QtGui.QMainWindow):
     def cleanup_plots(self):
         [p.setData([], []) for p in self.plot_items]
 
-    @clock
     def update_video_grabber(self):
         self.video_grabber.set(1, self.trial_start_frame+self.current_frame)
 
