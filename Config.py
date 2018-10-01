@@ -2,7 +2,7 @@
 Script to set up the analysis of behavioural data: defines relevant parameters and flags to control
 the different functionalities of the analysis scripts
 """
-verbose= True   # Display details of on-going processes (e.g. execution times..)
+verbose = True   # Display details of on-going processes (e.g. execution times..)
 
 
 # If loading a pre-existant database, specify name of the file it was saved to. otherwise db is generated from
@@ -11,10 +11,10 @@ load_database = True  # This is False only if you are creating a new database
 
 # Specify if you want to update the database to add recently added sessions to database
 update_database = False
-load_name = 'alldata_session_111_safe'  # name of file to load
+load_name = 'FlipFlop'  # name of file to load
 
 # Specify name with which to save the results of the analysis
-save_name = 'alldata_session_111'
+save_name = 'FlipFlop'
 
 """
 Specify set of sessions to analyse 
@@ -32,9 +32,12 @@ might behave differently depending on the type of experiment
 """
 # TODO add "new" to selector type
 selector_type = 'date'  # selects which session to an 'new', 'experiment', 'session', 'date' or COHORT to
-selector = ['190928', '180929'] #  ['180603', '180604', '180605', '180606', '180607', '180625', '180626', '180628',
+selector = ['180928', '180929'] #  ['180603', '180604', '180605', '180606', '180607', '180625', '180626', '180628',
            # '180801', '180823', '180830', '180901', '180907', '180909']  #
 exp_type = 'maze'
+
+save_as_new_database = False
+new_name = 'FlipFlop'
 
 
 """
@@ -45,11 +48,11 @@ Flags and params that control the execution of the different parts of the code
 #######################
 startf = 4000  # Skip the first n frames of the first video when tracking
 
-extract_rois_background = False  # If 'bg get rois' = True, set this to True to manually extract the rois from bg
+extract_rois_background = True  # If 'bg get rois' = True, set this to True to manually extract the rois from bg
 
-track_mouse = True             # <----- !!!!!!!!!!  Run tracking
+track_mouse = False             # <----- !!!!!!!!!!  Run tracking
 track_options = {
-    'bg get rois': False,          # allow user to define 3 ROIs when extracting background [threat, shelter variable]
+    'bg get rois': True,          # allow user to define 3 ROIs when extracting background [threat, shelter variable]
     'track whole session': True,  # Track the mouse for the entire session
     'track_exploration': False,    # Track the mouse during the exploration using the standard tracking
     'track_mouse_fast': True,      # if true only track segments of videos around the stimuli
@@ -85,11 +88,12 @@ debug = False  # If true runs a gui to debug tracking data
 """
 Cohort gives the option to pool the data from all the sessions analysed for group analysis
 """
-cohort = False                       # make a cohort or process existing one
+# make sure to set selector type as 'cohort' if you want to work on cohorts
+cohort = True                       # make a cohort or process existing one
 cohort_options = {
-    'name': 'CH_2arms_maze',     # Name of the cohort
+    'name': 'CH_FlipFlop',     # Name of the cohort
     'selector type': 'date',     # what to select the sessions to pool by [e.g. by experiment, by date...]
-    'selector': ['180625', '180626', '180628'],       # actual values to select by {e.g. session ID number]
+    'selector': ['180928', '180929'],       # actual values to select by {e.g. session ID number]
     'data to pool': ['tracking']    # what data from the sessions you want to pool in the cohort (e.g. tracking)
 }
 

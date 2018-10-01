@@ -56,7 +56,7 @@ def load_data(savelogpath, load_name, loadas='.pkl'):
         path = os.path.join(savelogpath, load_name)
         warn('Failed to load data')
         print('filename "{}" - size {}'.format(load_name, os.path.getsize(path)))
-        a = 1
+        raise Warning('Damn')
 
 
 def load_yaml(fpath):

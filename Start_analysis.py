@@ -18,7 +18,7 @@ from Plotting import Maze_cohort_summary
 from Config import load_database, update_database, load_name, save_name\
     , selector_type, selector, plotting_options, exp_type, \
     extract_rois_background, track_mouse, track_options, \
-    plotting, cohort, processing, debug, send_messages
+    plotting, cohort, processing, debug, send_messages, save_as_new_database, new_name
 
 
 ########################################################################################################################
@@ -55,7 +55,7 @@ class Analysis():
         self.main()
 
         # Save the final results
-        self.save_results(obj=self.db, mod='_completed')
+        # self.save_results(obj=self.db, mod='_completed')
 
         # Close everything
         sys.exit()
@@ -64,9 +64,24 @@ class Analysis():
         """"
         Once all is set up we apply sub-processes to individual sessions or cohorts
         """
+        if save_as_new_database:
+            db_copy = self.db.copy()
+
+            for idx, session_name in enumerate(self.db.index):
+                session = self.db.loc[session_name]
+
+                # Check if this is one of the sessions we should be processing
+                selected = check_session_selected(session.Metadata, selector_type, selector)
+
+                if not selected:
+                    db_copy = db_copy.drop([session_name])
+
+            self.save_results(obj=db_copy, mod=new_name)
+            return
+
         # TRACK SINGLE SESSIONS
         if not selector_type == 'cohort':
-            # Loop over all the sessions - Tracking 
+            # Loop over all the sessions - Tracking
             if track_mouse or extract_rois_background:
                 from Tracking.Tracking_main import Tracking
 
@@ -77,7 +92,6 @@ class Analysis():
                     selected = check_session_selected(session.Metadata, selector_type, selector)
                     if selected:
                         print(colored('---------------\nTracking session {}'.format(session_name), 'green'))
-
                         self.video_analysis(session) # <-- main tracking function
 
                 if send_messages:
@@ -168,11 +182,9 @@ class Analysis():
     def processing_cohort(self):
         # Create a cohort and store it in database
         self.db, coh = create_cohort(self.db)  # Get all the trial data in one place
-        # process cohort
-        Processing_maze.Processing_cohortMaze(coh)
 
-        # plot cohort
-        Maze_cohort_summary.MazeCohortPlotter(coh)
+        from Processing.Processing_maze import mazecohortprocessor
+        mazecohortprocessor(coh)
 
         # save
         self.save_results(obj=self.db, mod='_cohort')

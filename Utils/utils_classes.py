@@ -46,6 +46,7 @@ class Trial():
     def __str__(self):
         return 'Trial: {}'.format(self.name)
 
+
 class Exploration():
     """ Class to initialise and empty Exploration object """
     def __init__(self):
@@ -70,10 +71,10 @@ class Cohort():
         self.tracking_data = namedtuple('tracking_data', 'explorations whole_sessions trials')
 
     def __repr__(self):
-        return 'Cihirt {}'.format(self.name)
+        return 'Cohort {}'.format(self.name)
 
     def __str__(self):
-        return 'Cihirt {}'.format(self.name)
+        return 'Cohort {}'.format(self.name)
 
 
 
