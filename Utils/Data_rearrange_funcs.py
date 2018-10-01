@@ -82,7 +82,7 @@ def create_cohort(db):
                     print('         ... getting tracking data')
                     try:
                         for k, val in session['Tracking'].items():
-                            if k == 'Exploration':
+                            if 'exploration' in k.lower():
                                 ch_tracking_data['explorations'].append(val)
                             elif k == 'Whole Session':
                                 ch_tracking_data['wholesessions'].append(val)

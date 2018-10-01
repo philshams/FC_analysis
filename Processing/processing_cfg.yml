@@ -1,4 +1,4 @@
-apply standard processing: false  # Apply general processing functions or not
+apply standard processing: false   # Apply general processing functions or not
 
 # Setting for POSE reconstruction
 # Names of the DLC bodyparts tags for the different bodyparts
@@ -8,11 +8,11 @@ apply standard processing: false  # Apply general processing functions or not
 
 
 # Settings for VELOCITY extraction
-'velocity unit': 'pxperframe'       # How the velocity is computed: pixel per frame [pxperframe], pixel per second [pxpersec]
-                             # or bodylength per second [blpersec]
+'velocity unit': 'pxperframe'    # How the velocity is computed: pixel per frame [pxperframe], pixel per second [pxpersec]
+                                 # or bodylength per second [blpersec]
 ang vel unit: 'degperframe'      # Unit of meausre of angulare velocity, Either 'degperframe' or 'degpersec'
 
-'std': false                  # Extract velocity from STD tracking data - STD and DLC are also used for extraction of position relative to shelter
+'std': false                 # Extract velocity from STD tracking data - STD and DLC are also used for extraction of position relative to shelter
 'dlc': true                  # Extract velocity from DLC tracking data
 'dlc single bp': 'body'      # Extract velocity from DLC for just one body part or for all bodyparts
                              # can either be false [calc velocity for ALL body parts] or the name of the body part to be used

@@ -1,7 +1,22 @@
+from Utils.imports import *
+
+
+import matplotlib.pyplot as plt
+import matplotlib
+matplotlib.rc('axes', edgecolor=[0.8, 0.8, 0.8])
+matplotlib.rcParams['text.color'] = [0.8, 0.8, 0.8]
+matplotlib.rcParams['axes.labelcolor'] = [0.8, 0.8, 0.8]
+matplotlib.rcParams['axes.labelcolor'] = [0.8, 0.8, 0.8]
+matplotlib.rcParams['xtick.color'] = [0.8, 0.8, 0.8]
+matplotlib.rcParams['ytick.color'] = [0.8, 0.8, 0.8]
+params = {'legend.fontsize': 16,
+          'legend.handlelength': 2}
+plt.rcParams.update(params)
+
+
 import matplotlib.path as mplPath
 import math
 
-from Utils.imports import *
 
 from Utils.Messaging import slack_chat_messenger
 from Utils.decorators import clock
@@ -82,10 +97,10 @@ class mazeprocessor:
         self.trial_processor()
 
         # Analyse the whole session
-        self.session_processor()
+        # self.session_processor()
 
         # Do experiment specfic analysis
-        self.experiment_processor()
+        # self.experiment_processor()
 
         pass
 
@@ -288,7 +303,7 @@ class mazeprocessor:
     def exploration_processer(self, expl=None):
         if expl is None:          # Define the exploration phase if none is given
             if 'Exploration' in self.session.Tracking.keys():
-                expl = self.session.Tracking['Exploratin']
+                expl = self.session.Tracking['Exploration']
             elif 'Whole Session' in self.session.Tracking.keys():
                 whole = self.session.Tracking['Whole Session']
 
@@ -321,6 +336,7 @@ class mazeprocessor:
 
         rois_results = self.get_timeinrois_stats(expl)
         cls_exp = Exploration()
+        cls_exp.metadata = self.session.Metadata
         cls_exp.tracking = expl
         cls_exp.processing['ROI analysis'] = rois_results
         self.session.Tracking['Exploration processed'] = cls_exp
@@ -344,7 +360,7 @@ class mazeprocessor:
                         maze_configuration = self.get_maze_configuration(frame)
 
                         self.get_trial_outcome(data, maze_configuration)
-                        self.get_status_at_timepoint(data)  # get status at stim
+                        # self.get_status_at_timepoint(data)  # get status at stim
 
                         """ functions to write
                         get hesitations at T platform --> quantify head ang acc 
@@ -447,7 +463,7 @@ class mazeprocessor:
             return
         else:
             first_nonthreat = (nonthreats[0][0], escape_rois[nonthreats[0][0]])
-            if not 'Shelter platform' in [name for idx, name in nonthreats]:
+            if not 'Shelter_platform' in [name for idx, name in nonthreats]:
                 # Incomplete escape
                 results['trial_outcome'] = False  # False is an incomplete escape
                 res =self.get_arms_of_originandescape(escape_rois, outward=False)
@@ -560,8 +576,6 @@ class mazeprocessor:
         self.session.Metadata.processing['Session outcomes'] = dict(origins=origins, escapes=escapes,
                                                                     outcomes_perconfig=outcomes_perconfig)
 
-
-
     # experiment PROCESSOR #############################################################################################
     def experiment_processor(self):
         exp_name = self.session.Metadata.experiment
@@ -576,4 +590,106 @@ class mazeprocessor:
             except:
                 raise Warning('No class was made to analyse experiment {}'.format(exp_name))
 
+
+class mazecohortprocessor:
+    def __init__(self, cohort):
+        name = cohort_options['name']
+        print(colored('Maze processing cohort {}'.format(name), 'green'))
+
+        metad =  cohort.Metadata[name]
+        tracking_data = cohort.Tracking[name]
+
+        self.process_explorations(tracking_data)
+        self.process_trials(tracking_data)
+
+    def process_explorations(self, tracking_data):
+        for exp in tracking_data.explorations:
+            print(exp)
+
+    def process_trials(self, tracking_data):
+        maze_configs, origins, escapes, outcomes = [], [], [], []
+        for trial in tracking_data.trials:
+            maze_configs.append(trial.processing['Trial outcome']['maze_configuration'])
+            origins.append(trial.processing['Trial outcome']['threat_origin_arm'])
+            escapes.append(trial.processing['Trial outcome']['threat_escape_arm'])
+            outcomes.append(trial.processing['Trial outcome']['trial_outcome'])
+
+        # clean up
+        while None in origins:
+            idx = origins.index(None)
+            origins.pop(idx)
+            escapes.pop(idx)
+            maze_configs.pop(idx)
+            outcomes.pop(idx)
+
+        num_trials = len([t for t in outcomes if t])
+        left_origins = len([b for i, b in enumerate(origins) if 'Left' in b and outcomes[i] is not None])
+        central_origins = len([b for i, b in enumerate(origins) if 'Central' in b and outcomes[i] is not None])
+        left_escapes = len([b for i, b in enumerate(escapes) if 'Left' in b and outcomes[i] is not None])
+        central_escapes = len([b for i, b in enumerate(escapes) if 'Central' in b and outcomes[i] is not None])
+
+
+        if len(set(maze_configs)) > 1:
+            outcomes_perconfig = {name:None for name in set(maze_configs)}
+            ors = namedtuple('origins', 'numorigins numleftorigins')
+            escs = namedtuple('escapes', 'numescapes numleftescapes')
+            for conf in set(maze_configs):
+                origins_conf = ors(len([o for i,o in enumerate(origins) if maze_configs[i] == conf and outcomes[i]]),
+                          len([o for i, o in enumerate(origins) if maze_configs[i] == conf and 'Left' in origins[i]
+                               and outcomes[i]]))
+                escapes_conf = escs(len([o for i, o in enumerate(escapes) if maze_configs[i] == conf and outcomes[i]]),
+                          len([o for i, o in enumerate(escapes) if maze_configs[i] == conf and 'Left' in escapes[i]
+                               and outcomes[i]]))
+                if len([c for c in maze_configs if c == conf]) < origins_conf.numorigins:
+                    raise Warning('Something went wrong, dammit')
+                outcomes_perconfig[conf] = dict(origins=origins_conf, escapes=escapes_conf)
+        else: outcomes_perconfig = None
+
+
+        from Plotting.Plotting_utils import make_legend
+        def plotty(ax, numtr, lori, cori, lesc, cesc, title='Origin and escape probabilities'):
+            ax.bar(0, lori / numtr, color=[.1, .2, .4], width=.25, label='L ori')
+            ax.bar(0.25, cori / numtr, color=[.2, .4, .1], width=.25, label='C ori')
+            ax.bar(0.5, 1 - ((lori + cori) / numtr), color=[.4, .2, .1], width=.25, label='R ori')
+
+            ax.axvline(0.75, color=[1, 1, 1])
+
+            ax.bar(1, lesc / numtr, color=[.2, .3, .7], width=.25, label='L escape')
+            ax.bar(1.25, cesc / numtr, color=[.3, .7, .2], width=.25, label='C escape')
+            ax.bar(1.5, 1 - ((lesc + cesc) / numtr), color=[.7, .3, .2], width=.25, label='R escape')
+
+            ax.set(title='{} - {} trials'.format(title, numtr), ylim=[0, 1], facecolor=[0.2, 0.2, 0.2])
+            make_legend(ax, [0.1, .1, .1], [0.8, 0.8, 0.8], changefont=8)
+
+
+        if outcomes_perconfig is None:
+            f, axarr = plt.subplots(1, 1,  facecolor=[0.1, 0.1, 0.1])
+        else:
+            f, axarr = plt.subplots(3, 1,  facecolor=[0.1, 0.1, 0.1])
+
+
+        if outcomes_perconfig is not None:
+            ax = axarr[0]
+            plotty(ax, num_trials, left_origins, central_origins, left_escapes, central_escapes)
+        else:
+            plotty(axarr, num_trials, left_origins, central_origins, left_escapes, central_escapes)
+
+        if outcomes_perconfig is not None:
+            ax = axarr[1]
+            o = outcomes_perconfig['Right']
+            num_trials = o['escapes'].numescapes
+            left_escapes = o['escapes'].numleftescapes
+            left_origins = o['origins'].numleftorigins
+            plotty(ax, num_trials, left_origins, 0, left_escapes, 0, title='Probs for R config')
+
+
+            ax = axarr[2]
+            o = outcomes_perconfig['Left']
+            num_trials = o['escapes'].numescapes
+            left_escapes = o['escapes'].numleftescapes
+            left_origins = o['origins'].numleftorigins
+            plotty(ax, num_trials, left_origins, 0, left_escapes, 0, title='Probs for L config')
+
+        f.tight_layout()
+        plt.show()
 

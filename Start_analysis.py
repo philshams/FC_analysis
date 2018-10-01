@@ -55,7 +55,7 @@ class Analysis():
         self.main()
 
         # Save the final results
-        # self.save_results(obj=self.db, mod='_completed')
+        self.save_results(obj=self.db, mod='_completed')
 
         # Close everything
         sys.exit()
@@ -222,11 +222,14 @@ Load database:      {}
 update database:    {}
 load name:          {}
 save name:          {}
+Save new:           {}
+Save new name:      {}
+
 Selector type:      {}
 selector:           {}
 
 Extract background: {}
-Tracking:           {} """.format(load_database, update_database, load_name, save_name,
+Tracking:           {} """.format(load_database, update_database, load_name, save_name, save_as_new_database, new_name,
                    selector_type, selector, extract_rois_background, track_mouse),'blue'))
         if track_mouse:
             print(colored('Tracking options {}'.format(json.dumps(track_options, indent=3)), 'blue'))
