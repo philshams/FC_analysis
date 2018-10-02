@@ -239,7 +239,7 @@ Plotting:           {}
 Debug:              {}
 Cohort:             {}
 Send Messages:      {}
-        """.format(plotting, cohort, processing, debug, send_messages), 'blue'))
+        """.format(plotting, cohort, processing, cohort, send_messages), 'blue'))
 
 
 #  START

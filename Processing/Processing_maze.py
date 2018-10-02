@@ -4,13 +4,17 @@ from Utils.imports import *
 import matplotlib.pyplot as plt
 import matplotlib
 matplotlib.rc('axes', edgecolor=[0.8, 0.8, 0.8])
-matplotlib.rcParams['text.color'] = [0.8, 0.8, 0.8]
-matplotlib.rcParams['axes.labelcolor'] = [0.8, 0.8, 0.8]
-matplotlib.rcParams['axes.labelcolor'] = [0.8, 0.8, 0.8]
-matplotlib.rcParams['xtick.color'] = [0.8, 0.8, 0.8]
-matplotlib.rcParams['ytick.color'] = [0.8, 0.8, 0.8]
 params = {'legend.fontsize': 16,
           'legend.handlelength': 2}
+col = [0, 0, 0]
+# col = [.8, .8, .8]
+matplotlib.rc('axes', edgecolor=col)
+matplotlib.rcParams['text.color'] = col
+matplotlib.rcParams['axes.labelcolor'] = col
+matplotlib.rcParams['axes.labelcolor'] = col
+matplotlib.rcParams['xtick.color'] = col
+matplotlib.rcParams['ytick.color'] = col
+
 plt.rcParams.update(params)
 
 
@@ -91,11 +95,15 @@ class mazeprocessor:
         # Get maze structure
         self.maze_rois = self.get_maze_components()
 
-        # Analyse exploration  # TODO make these two functions happen in parallel to speed things up
-        self.exploration_processer()
+        funcs = [ self.exploration_processer, self.trial_processor]
+        pool = ThreadPool(len(funcs))
+        [pool.apply(func) for func in funcs]
+
+        # Analyse exploration
+        # self.exploration_processer()
 
         # Analyse individual trials
-        self.trial_processor()
+        # self.trial_processor()
 
         # Analyse the whole session
         # self.session_processor()
@@ -372,7 +380,7 @@ class mazeprocessor:
                         maze_configuration = self.get_maze_configuration(frame)
 
                         self.get_trial_outcome(data, maze_configuration)
-                        # self.get_status_at_timepoint(data)  # get status at stim
+                        self.get_status_at_timepoint(data)  # get status at stim
 
                         """ functions to write
                         get hesitations at T platform --> quantify head ang acc 
@@ -513,11 +521,7 @@ class mazeprocessor:
                     time = data.processing['Trial outcome']['stim_time']
 
                 # Create a named tuple with all the params from processing (e.g. head angle) and the selected time point
-                params = data.dlc_tracking['Posture']['body'].keys()
-                params = [x.replace(' ', '') for x in params]
-                params = namedtuple('params', list(params))
-                values = data.dlc_tracking['Posture']['body'].values[time]
-                status = params(*values)
+                status = data.dlc_tracking['Posture']['body'].loc[time]
 
                 # Make named tuple with posture data at timepoint
                 posture_names = namedtuple('posture', sorted(list(data.dlc_tracking['Posture'].keys())))
@@ -605,8 +609,8 @@ class mazeprocessor:
 
 class mazecohortprocessor:
     def __init__(self, cohort):
-        self.colors = dict(left=[.2, .3, .7], right=[.7, .3, .2], centre=[.3, .7, .2],
-                           shelter='c', threat='y')
+        self.colors = dict(left=[.2, .3, .7], right=[.7, .3, .2], centre=[.3, .7, .2], center=[.3, .7, .2],
+                           central=[.3, .7, .2], shelter='c', threat='y')
 
         name = cohort_options['name']
         print(colored('Maze processing cohort {}'.format(name), 'green'))
@@ -614,10 +618,74 @@ class mazecohortprocessor:
         metad =  cohort.Metadata[name]
         tracking_data = cohort.Tracking[name]
 
+        self.process_status_at_stim(tracking_data)
         self.process_explorations(tracking_data)
         self.process_trials(tracking_data)
 
 
+    def process_status_at_stim(self, tracking_data):
+        statuses = dict(positions=[], orientations=[], velocities=[], body_lengts=[], origins=[], escapes=[])
+
+        for trial in tracking_data.trials:
+            if 'status at stimulus' in trial.processing.keys():
+                # get Threat ROI location
+                trial_sess_id = int(trial.name.split('-')[0])
+                threat_loc = None
+                for expl in tracking_data.explorations:
+                    if not isinstance(expl, tuple):
+                        sess_id = expl.metadata.session_id
+                        if sess_id == trial_sess_id:
+                            threat = expl.processing['ROI analysis']['all rois']['Threat_platform']
+                            threat_loc = ((threat.topleft[0]+threat.bottomright[0])/2,
+                                          (threat.topleft[1]+threat.bottomright[1])/2)
+                            break
+                if threat_loc is None: raise Warning('Problem')
+
+                # prep status
+                status = trial.processing['status at stimulus']
+                if status is None: continue
+                outcome = trial.processing['Trial outcome']
+                ori = status.status['Orientation']
+                while ori>360: ori -= 360
+                pos = (status.status['x'], status.status['y'])
+
+                statuses['positions'].append((pos[0]-threat_loc[0], pos[1]-threat_loc[1]))
+                statuses['orientations'].append(ori)
+                statuses['velocities'].append(status.status['Velocity'])
+                statuses['body_lengts'].append(status.status['Body length'])
+                statuses['origins'].append(outcome['threat_origin_arm'])
+                statuses['escapes'].append(outcome['threat_escape_arm'])
+
+            else:
+                print('no status')
+
+        f, axarr = plt.subplots(3, 1, facecolor=[0.1, 0.1, 0.1])
+        f.tight_layout()
+        f.set_size_inches(4, 12)
+        axarr[0].scatter(np.asarray([p[0] for p in statuses['positions']]), np.asarray([p[1] for p in statuses['positions']]),
+                   c=np.asarray(statuses['orientations']), s=np.multiply(np.asarray(statuses['velocities']), 10))
+
+        sides = ['Left', 'Central', 'Right']
+        for side in sides:
+            axarr[1].scatter(np.asarray([p[0] for i, p in enumerate(statuses['positions'])
+                                         if side in statuses['origins'][i]]),
+                             np.asarray([p[1] for i, p in enumerate(statuses['positions'])
+                                         if side in statuses['origins'][i]]),
+                             c=self.colors[side.lower()], s=35, edgecolors='k', alpha=0.85)
+
+            axarr[2].scatter(np.asarray([p[0] for i, p in enumerate(statuses['positions'])
+                                         if side in statuses['escapes'][i]]),
+                             np.asarray([p[1] for i, p in enumerate(statuses['positions'])
+                                         if side in statuses['escapes'][i]]),
+                             c=self.colors[side.lower()], s=35, edgecolors=['k'], alpha=0.85)
+
+        titles = ['Position, Velocity, Orientation', 'Position, arm of ORIGIN', 'Position, arm of ESCAPE']
+        for idx, ax in enumerate(axarr):
+            ax.set(title = titles[idx], xlim=[-60, 60], ylim=[-60, 60], xlabel='x pos', ylabel='y pos',
+                   facecolor=[0.2, 0.2, 0.2])
+
+        plt.show()
+        a = 1
 
     def process_explorations(self, tracking_data):
         all_platforms = ['Left_far_platform', 'Left_medium_platform', 'Right_medium_platform',
