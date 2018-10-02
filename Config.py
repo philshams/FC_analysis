@@ -11,10 +11,14 @@ load_database = True  # This is False only if you are creating a new database
 
 # Specify if you want to update the database to add recently added sessions to database
 update_database = False
-load_name = 'FlipFlop'  # name of file to load
+load_name = 'audios'  # name of file to load
 
 # Specify name with which to save the results of the analysis
-save_name = 'FlipFlop'
+save_name = 'audios'
+
+# Save a subset of the database with a new name
+save_as_new_database = False
+new_name = 'flipflop'
 
 """
 Specify set of sessions to analyse 
@@ -32,12 +36,13 @@ might behave differently depending on the type of experiment
 """
 # TODO add "new" to selector type
 selector_type = 'date'  # selects which session to an 'new', 'experiment', 'session', 'date' or COHORT to
-selector = ['180928', '180929'] #  ['180603', '180604', '180605', '180606', '180607', '180625', '180626', '180628',
-           # '180801', '180823', '180830', '180901', '180907', '180909']  #
+selector = [ '180928', '180929']
 exp_type = 'maze'
 
-save_as_new_database = False
-new_name = 'FlipFlop'
+#  ['180603', '180604', '180605', '180606', '180607', '180625', '180626', '180628',
+# '180801', '180823', '180830', '180901', '180907', '180909', '180928', '180929']
+
+
 
 
 """
@@ -48,7 +53,7 @@ Flags and params that control the execution of the different parts of the code
 #######################
 startf = 4000  # Skip the first n frames of the first video when tracking
 
-extract_rois_background = True  # If 'bg get rois' = True, set this to True to manually extract the rois from bg
+extract_rois_background = False  # If 'bg get rois' = True, set this to True to manually extract the rois from bg
 
 track_mouse = False             # <----- !!!!!!!!!!  Run tracking
 track_options = {
@@ -64,6 +69,10 @@ track_options = {
     'cfg_std': 'C:\\Users\\Federico\\Documents\\GitHub\\FC_analysis\\Tracking\\Configs\\cfg_std_maze.yml',
     'cfg_dlc': 'C:\\Users\\Federico\\Documents\\GitHub\\FC_analysis\\Tracking\\Configs\\cfg_dlc_maze.yml'
     }
+
+# looms '180603', '180604', '180605', '180606', '180607', '180625', '180626', '180628', '180801'
+# ultrasounds '180823', '180907', '180909', '180928', '180929'
+# two arms '180625', '180626', '180628'
 
 
 #######################
@@ -89,9 +98,9 @@ debug = False  # If true runs a gui to debug tracking data
 Cohort gives the option to pool the data from all the sessions analysed for group analysis
 """
 # make sure to set selector type as 'cohort' if you want to work on cohorts
-cohort = True                       # make a cohort or process existing one
+cohort = False                       # make a cohort or process existing one
 cohort_options = {
-    'name': 'CH_FlipFlop',     # Name of the cohort
+    'name': 'CH_flipflop',     # Name of the cohort
     'selector type': 'date',     # what to select the sessions to pool by [e.g. by experiment, by date...]
     'selector': ['180928', '180929'],       # actual values to select by {e.g. session ID number]
     'data to pool': ['tracking']    # what data from the sessions you want to pool in the cohort (e.g. tracking)
@@ -104,7 +113,7 @@ cohort_options = {
 """
 Plotting still needs to be implemented 
 """
-plotting = False
+plotting = True
 plotting_options = {
     'cfg': './Plotting/plotting_cfg.yml'
 }

@@ -618,10 +618,69 @@ class mazecohortprocessor:
         metad =  cohort.Metadata[name]
         tracking_data = cohort.Tracking[name]
 
+        self.process_by_mouse(tracking_data)
+        self.process_trials(tracking_data)
         self.process_status_at_stim(tracking_data)
         self.process_explorations(tracking_data)
-        self.process_trials(tracking_data)
 
+        plt.show()
+
+    def process_by_mouse(self, tracking_data):
+        sess_id = None
+        mice = []
+        confs, ors, escs, outs = [], [], [], []
+        configs, origins, escapes, outcomes = [], [], [], []
+        counter = 0
+        for trial in tracking_data.trials:
+            tr_sess_id = int(trial.name.split('-')[0])
+            if counter == 0:
+                sess_id = tr_sess_id
+                mice.append(sess_id)
+            counter += 1
+            ors.append(trial.processing['Trial outcome']['threat_origin_arm'])
+            escs.append(trial.processing['Trial outcome']['threat_escape_arm'])
+            outs.append(trial.processing['Trial outcome']['trial_outcome'])
+            confs.append(trial.processing['Trial outcome']['maze_configuration'])
+
+            if tr_sess_id != sess_id:
+                origins.append(ors), escapes.append(escs), outcomes.append(outs), mice.append(tr_sess_id)
+                configs.append(confs)
+                confs, ors, escs, outs = [], [], [], []
+                sess_id = tr_sess_id
+        origins.append(ors), escapes.append(escs), outcomes.append(outs), configs.append(confs)
+
+        all_configs = ['All']+ [c for c in set(configs[0])]
+        sides = ['Left', 'Central', 'Right']
+        for conf in all_configs:
+            f, axarr = plt.subplots(round(len(origins)/4), 5, facecolor=[0.1, 0.1, 0.1])
+            f.tight_layout()
+            axarr = axarr.flatten()
+
+            for mousenum in range(len(origins)):
+                ori_probs, escs_probs = {side: None for side in sides}, {side: None for side in sides}
+                if conf == 'All':
+                    ors = [o for i,o in enumerate(origins[mousenum]) if outcomes[mousenum][i]]
+                    escs = [e for i,e in enumerate(escapes[mousenum]) if outcomes[mousenum][i]]
+                else:
+                    ors = [o for i, o in enumerate(origins[mousenum])
+                           if configs[mousenum][i] == conf and outcomes[mousenum][i]]
+                    escs = [e for i, e in enumerate(escapes[mousenum])
+                            if configs[mousenum][i] == conf and outcomes[mousenum][i]]
+                num_trials = len(ors)
+
+                for idx, side in enumerate(sides):
+                    ori_probs[side] = len([o for i, o in enumerate(ors) if side in o])/num_trials
+                    escs_probs[side] = len([e for i, e in enumerate(escs) if side in e])/num_trials
+
+                    axarr[mousenum].bar(idx - 4, ori_probs[side], color=self.colors[side.lower()])
+                    axarr[mousenum].bar(idx + 4, escs_probs[side], color=self.colors[side.lower()])
+
+                axarr[mousenum].axvline(0, color='w')
+                axarr[mousenum].set(title='m{} - {} trial'.format(mice[mousenum], num_trials), ylim=[0, 1],
+                                    facecolor=[0.2, 0.2, 0.2])
+
+        plt.show()
+        a = 1
 
     def process_status_at_stim(self, tracking_data):
         statuses = dict(positions=[], orientations=[], velocities=[], body_lengts=[], origins=[], escapes=[])
@@ -629,63 +688,98 @@ class mazecohortprocessor:
         for trial in tracking_data.trials:
             if 'status at stimulus' in trial.processing.keys():
                 # get Threat ROI location
-                trial_sess_id = int(trial.name.split('-')[0])
-                threat_loc = None
-                for expl in tracking_data.explorations:
-                    if not isinstance(expl, tuple):
-                        sess_id = expl.metadata.session_id
-                        if sess_id == trial_sess_id:
-                            threat = expl.processing['ROI analysis']['all rois']['Threat_platform']
-                            threat_loc = ((threat.topleft[0]+threat.bottomright[0])/2,
-                                          (threat.topleft[1]+threat.bottomright[1])/2)
-                            break
-                if threat_loc is None: raise Warning('Problem')
+                try:
+                    trial_sess_id = int(trial.name.split('-')[0])
+                    threat_loc = None
+                    for expl in tracking_data.explorations:
+                        if not isinstance(expl, tuple):
+                            sess_id = expl.metadata.session_id
+                            if sess_id == trial_sess_id:
+                                threat = expl.processing['ROI analysis']['all rois']['Threat_platform']
+                                threat_loc = ((threat.topleft[0]+threat.bottomright[0])/2,
+                                              (threat.topleft[1]+threat.bottomright[1])/2)
+                                break
+                    if threat_loc is None: raise Warning('Problem')
 
-                # prep status
-                status = trial.processing['status at stimulus']
-                if status is None: continue
-                outcome = trial.processing['Trial outcome']
-                ori = status.status['Orientation']
-                while ori>360: ori -= 360
-                pos = (status.status['x'], status.status['y'])
+                    # prep status
+                    status = trial.processing['status at stimulus']
+                    if status is None: continue
+                    outcome = trial.processing['Trial outcome']
+                    ori = status.status['Orientation']
+                    while ori>360: ori -= 360
+                    pos = (status.status['x'], status.status['y'])
 
-                statuses['positions'].append((pos[0]-threat_loc[0], pos[1]-threat_loc[1]))
-                statuses['orientations'].append(ori)
-                statuses['velocities'].append(status.status['Velocity'])
-                statuses['body_lengts'].append(status.status['Body length'])
-                statuses['origins'].append(outcome['threat_origin_arm'])
-                statuses['escapes'].append(outcome['threat_escape_arm'])
+                    statuses['positions'].append((pos[0]-threat_loc[0], pos[1]-threat_loc[1]))
+                    statuses['orientations'].append(ori)
+                    statuses['velocities'].append(status.status['Velocity'])
+                    statuses['body_lengts'].append(status.status['Body length'])
+                    statuses['origins'].append(outcome['threat_origin_arm'])
+                    statuses['escapes'].append(outcome['threat_escape_arm'])
+                except:
+                    pass
 
             else:
                 print('no status')
 
-        f, axarr = plt.subplots(3, 1, facecolor=[0.1, 0.1, 0.1])
+        f, axarr = plt.subplots(3, 2, facecolor=[0.1, 0.1, 0.1])
         f.tight_layout()
-        f.set_size_inches(4, 12)
+        f.set_size_inches(10, 20)
+        axarr = axarr.flatten()
+
+
         axarr[0].scatter(np.asarray([p[0] for p in statuses['positions']]), np.asarray([p[1] for p in statuses['positions']]),
                    c=np.asarray(statuses['orientations']), s=np.multiply(np.asarray(statuses['velocities']), 10))
 
         sides = ['Left', 'Central', 'Right']
         for side in sides:
-            axarr[1].scatter(np.asarray([p[0] for i, p in enumerate(statuses['positions'])
+            axarr[2].scatter(np.asarray([p[0] for i, p in enumerate(statuses['positions'])
                                          if side in statuses['origins'][i]]),
                              np.asarray([p[1] for i, p in enumerate(statuses['positions'])
                                          if side in statuses['origins'][i]]),
                              c=self.colors[side.lower()], s=35, edgecolors='k', alpha=0.85)
 
-            axarr[2].scatter(np.asarray([p[0] for i, p in enumerate(statuses['positions'])
+            axarr[3].scatter(np.asarray([p[0] for i, p in enumerate(statuses['positions'])
                                          if side in statuses['escapes'][i]]),
                              np.asarray([p[1] for i, p in enumerate(statuses['positions'])
                                          if side in statuses['escapes'][i]]),
                              c=self.colors[side.lower()], s=35, edgecolors=['k'], alpha=0.85)
 
-        titles = ['Position, Velocity, Orientation', 'Position, arm of ORIGIN', 'Position, arm of ESCAPE']
-        for idx, ax in enumerate(axarr):
-            ax.set(title = titles[idx], xlim=[-60, 60], ylim=[-60, 60], xlabel='x pos', ylabel='y pos',
-                   facecolor=[0.2, 0.2, 0.2])
+        axarr[4].scatter(np.asarray([p[0] for i, p in enumerate(statuses['positions'])
+                                     if statuses['escapes'][i] == statuses['origins'][i]]),
+                         np.asarray([p[1] for i, p in enumerate(statuses['positions'])
+                                     if statuses['escapes'][i] == statuses['origins'][i]]),
+                         c=[.5, .2, .7], s=35, edgecolors=['k'], alpha=0.85, label='Same')
+        axarr[4].scatter(np.asarray([p[0] for i, p in enumerate(statuses['positions'])
+                                     if statuses['escapes'][i] != statuses['origins'][i]]),
+                         np.asarray([p[1] for i, p in enumerate(statuses['positions'])
+                                     if statuses['escapes'][i] != statuses['origins'][i]]),
+                         c=[.2, .7, .5], s=35, edgecolors=['k'], alpha=0.85, label='Different')
+        make_legend(axarr[4], [0.1, .1, .1], [0.8, 0.8, 0.8], changefont=8)
 
+        axarr[5].scatter(np.asarray([p[0] for i, p in enumerate(statuses['positions'])
+                                     if statuses['orientations'][i] > 180+30]),
+                         np.asarray([p[1] for i, p in enumerate(statuses['positions'])
+                                     if statuses['orientations'][i] > 180+30]),
+                         c=[.5, .2, .7], s=35, edgecolors=['k'], alpha=0.85, label='Looking Right')
+        axarr[5].scatter(np.asarray([p[0] for i, p in enumerate(statuses['positions'])
+                                     if 180-30 <= statuses['orientations'][i] <= 180+30]),
+                         np.asarray([p[1] for i, p in enumerate(statuses['positions'])
+                                     if 180-30 <= statuses['orientations'][i] <= 180+30]),
+                         c=[.7, .5, .2], s=35, edgecolors=['k'], alpha=0.85, label='Looking Down')
+        axarr[5].scatter(np.asarray([p[0] for i, p in enumerate(statuses['positions'])
+                                     if statuses['orientations'][i] < 180-30]),
+                         np.asarray([p[1] for i, p in enumerate(statuses['positions'])
+                                     if statuses['orientations'][i] < 180-30]),
+                         c=[.2, .7, .5], s=35, edgecolors=['k'], alpha=0.85, label='looking Left')
+        make_legend(axarr[5], [0.1, .1, .1], [0.8, 0.8, 0.8], changefont=8)
+
+        titles = ['Position, Velocity, Orientation', '', 'Position, arm of ORIGIN', 'Position, arm of ESCAPE',
+                  'Position and same arm', 'Position, ORIENTATION', '', '']
+        for idx, ax in enumerate(axarr):
+            ax.set(title = titles[idx], xlim=[-75, 75], ylim=[-75, 75], xlabel='x pos', ylabel='y pos',
+                   facecolor=[0.2, 0.2, 0.2])
         plt.show()
-        a = 1
+        #a = 1
 
     def process_explorations(self, tracking_data):
         all_platforms = ['Left_far_platform', 'Left_medium_platform', 'Right_medium_platform',
@@ -736,7 +830,7 @@ class mazecohortprocessor:
         make_legend(timeax, [0.1, .1, .1], [0.8, 0.8, 0.8], changefont=8)
         transitionsax.set(title='Number of entries per platform', xlim=[-1, 5],  facecolor=[0.2, 0.2, 0.2])
 
-        plt.show()
+        # plt.show()
 
     def process_trials(self, tracking_data):
         maze_configs, origins, escapes, outcomes = [], [], [], []
@@ -822,5 +916,5 @@ class mazecohortprocessor:
             plotty(ax, num_trials, left_origins, 0, left_escapes, 0, title='Probs for L config')
 
         f.tight_layout()
-        plt.show()
+        #plt.show()
 
