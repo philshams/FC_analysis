@@ -524,7 +524,6 @@ class Plotter():
         make_legend(self.ang_vel_plot, [0.1, .1, .1], [0.8, 0.8, 0.8], changefont=8)
 
 ########################################################################################################################
-    @clock
     def plot_trial(self, trialidx):
         """
         Main plotting function of the script. calls subfuncs that take care of each subplot

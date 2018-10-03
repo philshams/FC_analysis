@@ -1,5 +1,10 @@
 from Utils.imports import *
 
+from Config import cohort_options
+
+def flatten_list(list):
+    return [item for sublist in list for item in sublist]
+
 
 def check_session_selected(metadata, selector_type: str, selector: list) -> bool:
     """

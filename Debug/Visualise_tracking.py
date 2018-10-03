@@ -1,5 +1,6 @@
 from Utils.imports import *
 
+
 class App(QtGui.QMainWindow):
     # TODO add times in shelter and in threat to progress bar [likely needs to be done in processing]
     # TODO make loading of new trial faster
@@ -21,7 +22,7 @@ class App(QtGui.QMainWindow):
 
         # exp specific window
         self.run_exp_specific = True
-        self.exp_specific = MazeViewer()
+        self.exp_specific = MazeViewer(self)
 
         # Get session Data
         self.get_session_data(None)
@@ -53,7 +54,9 @@ class App(QtGui.QMainWindow):
 
     def wheelEvent(self, e):
         steps = e.angleDelta().y() // 120
-        self.move_to_frame_number(None, frame_shift=steps)
+        try:
+            self.move_to_frame_number(None, frame_shift=steps)
+        except: pass
 
     def display_keyboard_shortcuts(self):
         print(colored('     Keyboard shortcuts:', 'white'))
@@ -690,8 +693,10 @@ class ImgsViwer(QtGui.QMainWindow):
 
 
 class MazeViewer(QtGui.QMainWindow):
-    def __init__(self, parent=None):
+    def __init__(self, mainapp, parent=None):
         super(MazeViewer, self).__init__(parent)
+
+        self.main = mainapp
 
         self.arms_colors = dict(left='#14540e', center='#954b00', right='#05335d',
                                 shelter='#8a9302', threat='#76027e')
@@ -758,9 +763,7 @@ class MazeViewer(QtGui.QMainWindow):
         self.escape_arm_label = App.create_label(self, 'Escape Arm', (4, 7, 1, 1))
         self.reaction_time_label = App.create_label(self, 'Reaction Time', (4, 6, 1, 1))
 
-        self.assign_rt_button = App.create_btn(self, 'Assign RT', (6, 0, 1, 3), func=None)
-        self.prevframe_button = App.create_btn(self, 'Prev Frame', (6, 3), func=None)
-        self.nextframe_button = App.create_btn(self, 'Next Frame', (6, 4), func=None)
+        self.assign_rt_button = App.create_btn(self, 'Assign RT', (6, 0, 1, 3), func=self.user_define_rt)
 
         self.setGeometry(3835, 1100, 1450, 1300)
 
@@ -785,6 +788,14 @@ class MazeViewer(QtGui.QMainWindow):
         rotated_frame = np.rot90(frame, 1)
         cropped_frame = rotated_frame[threat.topleft[1]:threat.bottomright[1], threat.topleft[0]:threat.bottomright[0]]
         self.img.setImage(np.rot90(cropped_frame, 3), autoLevels=False)
+
+    def user_define_rt(self, e):
+        trial_name = self.main.trial
+        tracking_data = self.main.current_working_sessions.Tracking[trial_name]
+
+        tracking_data.processing['Reaction Time'] = main.current_frame
+
+
 
 
 

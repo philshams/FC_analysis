@@ -11,10 +11,10 @@ load_database = True  # This is False only if you are creating a new database
 
 # Specify if you want to update the database to add recently added sessions to database
 update_database = False
-load_name = 'audios'  # name of file to load
+load_name = 'flipflop_processed'  # name of file to load
 
 # Specify name with which to save the results of the analysis
-save_name = 'audios'
+save_name = 'flipflop'
 
 # Save a subset of the database with a new name
 save_as_new_database = False
@@ -36,7 +36,7 @@ might behave differently depending on the type of experiment
 """
 # TODO add "new" to selector type
 selector_type = 'date'  # selects which session to an 'new', 'experiment', 'session', 'date' or COHORT to
-selector = [ '180928', '180929']
+selector = ['180928', '180929']
 exp_type = 'maze'
 
 #  ['180603', '180604', '180605', '180606', '180607', '180625', '180626', '180628',
@@ -81,7 +81,7 @@ track_options = {
 """
 Process tracking data (e.g. extract velocity trace from coordinates)
 """
-processing = True
+processing = False
 processing_options = {
     'cfg': './Processing/processing_cfg.yml'
 }
@@ -89,7 +89,7 @@ processing_options = {
 #######################
 #  DEBUGGING          #
 #######################
-debug = False  # If true runs a gui to debug tracking data
+debug = True  # If true runs a gui to debug tracking data
 
 #######################
 #  COHORT #
@@ -98,7 +98,7 @@ debug = False  # If true runs a gui to debug tracking data
 Cohort gives the option to pool the data from all the sessions analysed for group analysis
 """
 # make sure to set selector type as 'cohort' if you want to work on cohorts
-cohort = False                       # make a cohort or process existing one
+cohort = True                       # make a cohort or process existing one
 cohort_options = {
     'name': 'CH_flipflop',     # Name of the cohort
     'selector type': 'date',     # what to select the sessions to pool by [e.g. by experiment, by date...]
@@ -113,7 +113,7 @@ cohort_options = {
 """
 Plotting still needs to be implemented 
 """
-plotting = True
+plotting = False
 plotting_options = {
     'cfg': './Plotting/plotting_cfg.yml'
 }

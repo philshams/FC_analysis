@@ -55,7 +55,7 @@ class Analysis():
         self.main()
 
         # Save the final results
-        self.save_results(obj=self.db, mod='_completed')
+        # self.save_results(obj=self.db, mod='_completed')
 
         # Close everything
         sys.exit()
@@ -174,9 +174,9 @@ class Analysis():
 
             Single_trial_summary.Plotter(session)
 
-            if plotting_settings['plot exp specific'] and exp_type == 'maze':
-                from Plotting import Maze_session_summary
-                Maze_session_summary.MazeSessionPlotter(session)
+            # if plotting_settings['plot exp specific'] and exp_type == 'maze':
+            #     from Plotting import Maze_session_summary
+            #     Maze_session_summary.MazeSessionPlotter(session)
 
 ########################################################################################################################
     def processing_cohort(self):
@@ -239,7 +239,7 @@ Plotting:           {}
 Debug:              {}
 Cohort:             {}
 Send Messages:      {}
-        """.format(plotting, cohort, processing, cohort, send_messages), 'blue'))
+        """.format(processing, plotting, debug, cohort, send_messages), 'blue'))
 
 
 #  START

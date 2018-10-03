@@ -25,6 +25,7 @@ from Plotting.Plotting_utils import make_legend
 
 from Utils.Messaging import slack_chat_messenger
 from Utils.decorators import clock
+from Utils.Data_rearrange_funcs import flatten_list
 
 from Config import cohort_options
 
@@ -100,10 +101,10 @@ class mazeprocessor:
         [pool.apply(func) for func in funcs]
 
         # Analyse exploration
-        # self.exploration_processer()
+        self.exploration_processer()
 
         # Analyse individual trials
-        # self.trial_processor()
+        self.trial_processor()
 
         # Analyse the whole session
         # self.session_processor()
@@ -306,7 +307,7 @@ class mazeprocessor:
                        avg_tiime_in_roi_sec = avg_time_in_roi_sec,
                        avg_vel_per_roi=avg_vel_per_roi)
 
-        return results
+        return transitions, results
 
     # EXPLORATION PROCESSOR ############################################################################################
     def exploration_processer(self, expl=None):
@@ -353,12 +354,13 @@ class mazeprocessor:
             else:
                 return False
 
-        rois_results = self.get_timeinrois_stats(expl)
+        expl_roi_transitions, rois_results = self.get_timeinrois_stats(expl)
         rois_results['all rois'] = self.maze_rois
         cls_exp = Exploration()
         cls_exp.metadata = self.session.Metadata
         cls_exp.tracking = expl
         cls_exp.processing['ROI analysis'] = rois_results
+        cls_exp.processing['ROI transitions'] = expl_roi_transitions
         self.session.Tracking['Exploration processed'] = cls_exp
 
     # TRIAL PROCESSOR ##################################################################################################
@@ -618,10 +620,11 @@ class mazecohortprocessor:
         metad =  cohort.Metadata[name]
         tracking_data = cohort.Tracking[name]
 
+        self.process_explorations(tracking_data)
+
         self.process_by_mouse(tracking_data)
         self.process_trials(tracking_data)
         self.process_status_at_stim(tracking_data)
-        self.process_explorations(tracking_data)
 
         plt.show()
 
@@ -782,19 +785,28 @@ class mazecohortprocessor:
         #a = 1
 
     def process_explorations(self, tracking_data):
-        all_platforms = ['Left_far_platform', 'Left_medium_platform', 'Right_medium_platform',
+        all_platforms = ['Left_far_platform', 'Left_med_platform', 'Right_med_platform',
+                         'Right_far_platform', 'Shelter_platform', 'Threat_platform']
+        alt_all_platforms = ['Left_far_platform', 'Left_medium_platform', 'Right_medium_platform',
                          'Right_far_platform', 'Shelter_platform', 'Threat_platform']
 
+        transitions_list = []
         all_transitions, times = {name:[] for name in all_platforms}, {name:[] for name in all_platforms}
         fps = None
         for exp in tracking_data.explorations:
             if not isinstance(exp, tuple):
-                print(exp.metadata)
                 if fps is None: fps = exp.metadata.videodata[0]['Frame rate'][0]
                 exp_platforms = [p for p in exp.processing['ROI analysis']['all rois'].keys() if 'platform' in p]
 
-                for p in exp_platforms:
-                    if p not in all_platforms: raise Warning()
+                transitions_list.append(exp.processing['ROI transitions'])
+
+                for p in exp_platforms:  # This is here because some experiments have the platforms named differently
+                    if p not in all_platforms:
+                        all_platforms = alt_all_platforms
+                        all_transitions, times = {name: [] for name in all_platforms}, {name: [] for name in
+                                                                                        all_platforms}
+                        break
+                        # raise Warning()
 
                 timeinroi = {name:val for name,val in exp.processing['ROI analysis']['time_in_rois'].items()
                             if 'platform' in name}
@@ -805,8 +817,21 @@ class mazecohortprocessor:
                     if name in transitions: all_transitions[name].append(transitions[name])
                     if name in timeinroi: times[name].append(timeinroi[name])
 
-        all_platforms = ['Left_far_platform', 'Left_medium_platform', 'Shelter_platform', 'Threat_platform',
-                         'Right_medium_platform',  'Right_far_platform', ]
+        all_platforms = [all_platforms[0], all_platforms[1], all_platforms[4],
+                         all_platforms[5], all_platforms[2], all_platforms[3]]
+
+        # Get platforms to and from threat
+        all_alternations = []
+        for sess in transitions_list:
+            alternations = [(sess[i-1], sess[i+1]) for i,roi in enumerate(sess)
+                            if 0<i<len(sess)-1 and 'threat' in roi.lower()]
+            all_alternations.append(alternations)
+
+        all_alternations = flatten_list(all_alternations)
+        num_threat_visits = len(all_alternations)
+        num_threat_aternations = len([pp for pp in all_alternations if pp[0]!=pp[1]])
+        alternation_probability = round((num_threat_aternations/num_threat_visits), 2)
+        print('Average prob: {}'.format(alternation_probability))
 
         f, axarr = plt.subplots(2, 1, facecolor=[0.1, 0.1, 0.1])
         f.tight_layout()
