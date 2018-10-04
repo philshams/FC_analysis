@@ -37,8 +37,8 @@ class App(QtGui.QMainWindow):
         if e.key() == QtCore.Qt.Key_Escape:
             self.close()
             self.previews.close()
+            if self.run_exp_specific: self.exp_specific.close()
             print('Shutting down...')
-            sys.exit()
         elif e.key() == QtCore.Qt.Key_W:  # W = Faster
             self.increase_speed(None)
         elif e.key() == QtCore.Qt.Key_S:  # S = Slower
@@ -765,7 +765,7 @@ class MazeViewer(QtGui.QMainWindow):
 
         self.assign_rt_button = App.create_btn(self, 'Assign RT', (6, 0, 1, 3), func=self.user_define_rt)
 
-        self.setGeometry(3835, 1100, 1450, 1300)
+        self.setGeometry(3835, 40, 1450, 1000)
 
     def update_matched_image(self, sessid):
         for f in os.listdir(self.matchedfld):
@@ -779,10 +779,12 @@ class MazeViewer(QtGui.QMainWindow):
     def update_frame(self, session, trialname, frame):
         # Get the frame and crop it around the threat ROI, then display it
         processing_data = session.Tracking[trialname].processing
-        if not 'Maze rois' in processing_data.keys():
+
+        if not 'maze_rois' in processing_data['Trial outcome'].keys():
+            print('no rois no fun')
             return
         else:
-            rois = processing_data['Maze rois']
+            rois = processing_data['Trial outcome']['maze_rois']
             threat = rois['Threat_platform']
 
         rotated_frame = np.rot90(frame, 1)
@@ -792,15 +794,12 @@ class MazeViewer(QtGui.QMainWindow):
     def user_define_rt(self, e):
         trial_name = self.main.trial
         tracking_data = self.main.current_working_sessions.Tracking[trial_name]
+        tracking_data.processing['Reaction Time'] = self.main.current_frame
 
-        tracking_data.processing['Reaction Time'] = main.current_frame
-
-
-
-
-
-
-
+        print("""
+     Session {}, 
+     trial: {} 
+     rt: {}""".format(self.main.session.name, trial_name, self.main.current_frame))
 
 
 if __name__ == '__main__':

@@ -11,10 +11,10 @@ load_database = True  # This is False only if you are creating a new database
 
 # Specify if you want to update the database to add recently added sessions to database
 update_database = False
-load_name = 'flipflop_processed'  # name of file to load
+load_name = 'alldata_session_111_processed'  # name of file to load
 
 # Specify name with which to save the results of the analysis
-save_name = 'flipflop'
+save_name = 'reaction_times'
 
 # Save a subset of the database with a new name
 save_as_new_database = False
@@ -35,12 +35,13 @@ Experiment_type specifies which kind of experiment we are analysing (e.g. maze o
 might behave differently depending on the type of experiment
 """
 # TODO add "new" to selector type
-selector_type = 'date'  # selects which session to an 'new', 'experiment', 'session', 'date' or COHORT to
-selector = ['180928', '180929']
+selector_type = 'cohort'  # selects which session to an 'new', 'experiment', 'session', 'date' or COHORT to
+selector = ['180603', '180604', '180605', '180606', '180607', '180625', '180626', '180628',
+            '180801', '180823', '180830', '180901', '180907', '180909', '180928', '180929']
 exp_type = 'maze'
 
 #  ['180603', '180604', '180605', '180606', '180607', '180625', '180626', '180628',
-# '180801', '180823', '180830', '180901', '180907', '180909', '180928', '180929']
+# '180801', '180823', '180907', '180909', '180928', '180929']
 
 
 
@@ -73,6 +74,7 @@ track_options = {
 # looms '180603', '180604', '180605', '180606', '180607', '180625', '180626', '180628', '180801'
 # ultrasounds '180823', '180907', '180909', '180928', '180929'
 # two arms '180625', '180626', '180628'
+# squared: '180801', '180823'
 
 
 #######################
@@ -81,7 +83,7 @@ track_options = {
 """
 Process tracking data (e.g. extract velocity trace from coordinates)
 """
-processing = False
+processing = True
 processing_options = {
     'cfg': './Processing/processing_cfg.yml'
 }
@@ -89,7 +91,7 @@ processing_options = {
 #######################
 #  DEBUGGING          #
 #######################
-debug = True  # If true runs a gui to debug tracking data
+debug = False  # If true runs a gui to debug tracking data
 
 #######################
 #  COHORT #
@@ -102,7 +104,8 @@ cohort = True                       # make a cohort or process existing one
 cohort_options = {
     'name': 'CH_flipflop',     # Name of the cohort
     'selector type': 'date',     # what to select the sessions to pool by [e.g. by experiment, by date...]
-    'selector': ['180928', '180929'],       # actual values to select by {e.g. session ID number]
+    'selector': ['180603', '180604', '180605', '180606', '180607', '180625', '180626', '180628',
+                 '180801', '180823', '180830', '180901', '180907', '180909', '180928', '180929'],       # actual values to select by {e.g. session ID number]
     'data to pool': ['tracking']    # what data from the sessions you want to pool in the cohort (e.g. tracking)
 }
 
