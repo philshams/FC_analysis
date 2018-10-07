@@ -1,6 +1,5 @@
 from Utils.imports import *
 
-
 import matplotlib.pyplot as plt
 import matplotlib
 matplotlib.rc('axes', edgecolor=[0.8, 0.8, 0.8])
@@ -18,101 +17,37 @@ matplotlib.rcParams['ytick.color'] = col
 plt.rcParams.update(params)
 
 
-import matplotlib.path as mplPath
 import math
 
 from Plotting.Plotting_utils import make_legend
-
-from Utils.Messaging import slack_chat_messenger
-from Utils.decorators import clock
 from Utils.Data_rearrange_funcs import flatten_list
 
 from Config import cohort_options
 
 
-class FlipFlop:
-    # TODO look at the two explorations, find a way to track the second exploration too
-    def __init__(self, session):
-        self.name = 'FlipFlop Maze'
-        sess_outcomes = session.Metadata.processing['Session outcomes']
-        perconfig = sess_outcomes['outcomes_perconfig']
-
-        numr = perconfig['Right']['origins'].numorigins
-        numr_left = perconfig['Right']['origins'].numleftorigins
-        numrors, numrescs = perconfig['Right']['origins'].numorigins - numr_left, perconfig['Right']['escapes'].numescapes - numr_left
-        if numr: probr = numrescs/ numr
-        else: probr = 0
-
-        numl = perconfig['Left']['origins'].numorigins
-        numl_left = perconfig['Left']['origins'].numleftorigins
-        numlors, numlescs = perconfig['Left']['origins'].numorigins - numl_left, perconfig['Left']['escapes'].numescapes - numl_left
-        if numl: probl = numlescs/numl
-        else: probl = 0
-
-        print(""" Session {}
-        For Right configuration:
-            {} trials
-            {} R origns
-            {} R escapes
-            {} R escape probability
-        
-        for Left configuration:
-            {} trials
-            {} R origins
-            {} R escapes
-            {} R escape probability
-           
-        """.format(session.name, numr, numrors, numrescs, probr, numl, numlors, numlescs, probl))
-
-        def name(self):
-            return 'FlipFlop Maze'
-
-    def __repr__(self):
-        return 'FlipFlop Maze'
-    def __str__(self):
-        return 'FlipFlop Maze'
-
-
-
-experiment_specific_classes = [FlipFlop]
+arms_colors = dict(left=(255, 0, 0), central=(0, 255, 0), right=(0, 0, 255), shelter=(200, 180, 0),
+                        threat=(0, 180, 200))
 
 class mazeprocessor:
-    """
-    * analyse exploration: - define exploration
-                           - quantify different aspects of explorations
-    * Analyse individual trials: - get outcome
-                                 - get stuff
-    """
-
+    # TODO session processor
     def __init__(self, session, settings=None, debugging=False):
+        # Initialise variables
         print(colored('      ... maze specific processing session: {}'.format(session.name), 'green'))
         self.session = session
         self.settings = settings
         self.debug_on = debugging
-        self.exp_spec_classes = experiment_specific_classes
 
+        self.colors = arms_colors
         self.xyv_trace_tup = namedtuple('trace', 'x y velocity')
 
         # Get maze structure
         self.maze_rois = self.get_maze_components()
 
+        # Analyse exploration and trials in parallel
         funcs = [ self.exploration_processer, self.trial_processor]
         pool = ThreadPool(len(funcs))
         [pool.apply(func) for func in funcs]
 
-        # Analyse exploration
-        self.exploration_processer()
-
-        # Analyse individual trials
-        self.trial_processor()
-
-        # Analyse the whole session
-        # self.session_processor()
-
-        # Do experiment specfic analysis
-        # self.experiment_processor()
-
-        pass
 
     # UTILS ############################################################################################################
     def get_templates(self):
@@ -148,31 +83,29 @@ class mazeprocessor:
         """ Uses template matching to identify the different components of the maze and their location """
 
         def loop_over_templates(templates, img, bridge_mode=False):
-            cols = dict(left=(255, 0, 0), central=(0, 255, 0), right=(0, 0, 255), shelter=(200, 180, 0),
-                        threat=(0, 180, 200))
+            """ in bridge mode we use the info about the pre-supposed location of the bridge to increase accuracy """
             rois = {}
             point = namedtuple('point', 'topleft bottomright')
 
+            # Set up open CV
             font = cv2.FONT_HERSHEY_SIMPLEX
-            if len(img.shape) == 2:
-                colored_bg = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
-            else:
-                colored_bg = img
+            if len(img.shape) == 2:  colored_bg = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+            else: colored_bg = img
 
+            # Loop over the templates
             for n, template in enumerate(templates):
                 id = os.path.split(template)[1].split('_')[0]
-                col = cols[id.lower()]
+                col = self.colors[id.lower()]
                 templ = cv2.imread(template)
-                if len(templ.shape) == 3:
-                    templ = cv2.cvtColor(templ, cv2.COLOR_BGR2GRAY)
+                if len(templ.shape) == 3: templ = cv2.cvtColor(templ, cv2.COLOR_BGR2GRAY)
                 w, h = templ.shape[::-1]
 
-                res = cv2.matchTemplate(gray, templ, cv2.TM_CCOEFF_NORMED)
+                res = cv2.matchTemplate(gray, templ, cv2.TM_CCOEFF_NORMED)  # <-- template matchin here
                 rheight, rwidth = res.shape
-                if not bridge_mode:
-                    min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
+                if not bridge_mode:  # platforms
+                    min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)  # location of best template match
                     top_left = max_loc
-                else:  # take only the relevant quadrant
+                else:  # take only the relevant quadrant of the frame based on bridge name
                     if id == 'Left':
                         res = res[:, 0:int(rwidth / 2)]
                         hor_sum = 0
@@ -190,11 +123,11 @@ class mazeprocessor:
                         res = res[:int(rheight / 2):, :]
                         ver_sum = 0
 
-                    min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
+                    min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)  # location of best template match
                     top_left = (max_loc[0] + hor_sum, max_loc[1] + ver_sum)
 
+                # Get location and mark on the frame the position of the template
                 bottom_right = (top_left[0] + w, top_left[1] + h)
-
                 midpoint = point(top_left, bottom_right)
                 rois[os.path.split(template)[1].split('.')[0]] = midpoint
                 cv2.rectangle(colored_bg, top_left, bottom_right, col, 2)
@@ -203,14 +136,13 @@ class mazeprocessor:
                             font, 0.5, (255, 255, 255), 2, cv2.LINE_AA)
             return colored_bg, rois
 
+        # Get bg
         bg = self.session.Metadata.videodata[0]['Background']
-        if len(bg.shape) == 3:
-            gray = cv2.cvtColor(bg, cv2.COLOR_BGR2GRAY)
-        else:
-            gray = bg
+        if len(bg.shape) == 3: gray = cv2.cvtColor(bg, cv2.COLOR_BGR2GRAY)
+        else: gray = bg
 
+        # get templates
         base_fld, bg_folder, platf_templates, bridge_templates, maze_templates = self.get_templates()
-
         if maze_templates:
             img = [t for t in maze_templates if 'default' in t]
             bg = cv2.imread(img[0])
@@ -226,6 +158,7 @@ class mazeprocessor:
         display, bridges = loop_over_templates(bridge_templates, display, bridge_mode=True)
         cv2.imwrite(os.path.join(base_fld, 'Matched\\{}.png'.format(self.session.name)), display)
 
+        # Return locations of the templates
         dic = {**platforms, **bridges}
         return dic
 
@@ -512,7 +445,8 @@ class mazeprocessor:
 
         # Get status at time point
 
-    def get_status_at_timepoint(self, data, time: int = None, timename: str = 'stimulus'): # TODO add platform to status
+    @staticmethod
+    def get_status_at_timepoint(data, time: int = None, timename: str = 'stimulus'): # TODO add platform to status
         """
         Get the status of the mouse [location, orientation...] at a specific timepoint.
         If not time is give the midpoint of the tracking traces is taken as stim time
@@ -549,64 +483,6 @@ class mazeprocessor:
             - shortest and longest bodylength
         
         """
-
-    # SESSION PROCESSOR ################################################################################################
-    def session_processor(self):
-        """ To do:
-            - Get stats relative to arms of origin and arms of escapes
-            - Get stats of maze rois for the whole session (when available) and just the exploration 
-        
-            - Get probabilities: 
-                                * Escape probability (escape, vs incomplete escape, vs no escape)
-                                * Escape arm as a function of: X pos, Y pos, arm of origin, prev trial             
-        """
-        tracking_items = self.session.Tracking.keys()
-        maze_configs, origins, escapes = [], [], []
-        if tracking_items:
-            for trial_name in sorted(tracking_items):
-                if 'whole' not in trial_name.lower() and 'exploration' not in trial_name.lower():
-                    # extract results of processing steps
-                    data = self.session.Tracking[trial_name]
-
-                    maze_configs.append(data.processing['Trial outcome']['maze_configuration'])
-                    origins.append(data.processing['Trial outcome']['threat_origin_arm'])
-                    escapes.append(data.processing['Trial outcome']['threat_escape_arm'])
-
-        left_origins = len([b for b in origins if 'Left' in b])
-        left_escapes = len([b for b in escapes if 'Left' in b])
-
-        if len(set(maze_configs)) > 1:
-            outcomes_perconfig = {name:None for name in set(maze_configs)}
-            ors = namedtuple('origins', 'numorigins numleftorigins')
-            escs = namedtuple('escapes', 'numescapes numleftescapes')
-            for conf in set(maze_configs):
-                origins_conf = ors(len([o for i,o in enumerate(origins) if maze_configs[i] == conf]),
-                          len([o for i, o in enumerate(origins) if maze_configs[i] == conf and 'Left' in origins[i]]))
-                escapes_conf = escs(len([o for i, o in enumerate(escapes) if maze_configs[i] == conf]),
-                          len([o for i, o in enumerate(escapes) if maze_configs[i] == conf and 'Left' in escapes[i]]))
-                if len([c for c in maze_configs if c == conf]) < origins_conf.numorigins:
-                    raise Warning('Something went wrong, dammit')
-                outcomes_perconfig[conf] = dict(origins=origins_conf, escapes=escapes_conf)
-        else: outcomes_perconfig = None
-
-        if not 'processing' in self.session.Metadata.__dict__.keys():
-            setattr(self.session.Metadata, 'processing', {})
-        self.session.Metadata.processing['Session outcomes'] = dict(origins=origins, escapes=escapes,
-                                                                    outcomes_perconfig=outcomes_perconfig)
-
-    # experiment PROCESSOR #############################################################################################
-    def experiment_processor(self):
-        exp_name = self.session.Metadata.experiment
-        session = self.session
-        if not exp_name in [cls.__repr__(self) for cls in self.exp_spec_classes]:
-            return
-        else:
-            try:
-                idx =  [cls.__repr__(self) for cls in self.exp_spec_classes].index(exp_name)
-                exp = self.exp_spec_classes[idx]
-                exp(session)
-            except:
-                raise Warning('No class was made to analyse experiment {}'.format(exp_name))
 
 
 class mazecohortprocessor:
