@@ -34,14 +34,14 @@ class Processing:
                     self.define_processing_metadata()
                     # Apply processes in parallel
                     # TODO use decorator to make sure that functions are automatically added to the list, avoid bugs
-                    funcs = [self.extract_bodylength, self.extract_velocity, self.extract_location_relative_shelter,
-                              self.extract_orientation]
+                    funcs = [self.extract_bodylength, self.extract_velocity,
+                             self.extract_location_relative_shelter,   self.extract_orientation]
                     pool = ThreadPool(len(funcs))
                     [pool.apply(func) for func in funcs]
 
                     # Other processing steps will not be done in parallel
                     self.extract_ang_velocity()
-                    # PoseReconstructor(self.tracking_data.dlc_tracking['Posture'])  # WORK IN PROGRESS, buggy
+
 
                 except:
                     warnings.warn('Could not analyse this trial!!!')  # but avoid crashing the whole analysis

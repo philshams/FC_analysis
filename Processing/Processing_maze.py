@@ -18,9 +18,11 @@ plt.rcParams.update(params)
 
 
 import math
+import scipy.stats
 
 from Plotting.Plotting_utils import make_legend
 from Utils.Data_rearrange_funcs import flatten_list
+from Utils.maths import line_smoother
 
 from Config import cohort_options
 
@@ -44,10 +46,9 @@ class mazeprocessor:
         self.maze_rois = self.get_maze_components()
 
         # Analyse exploration and trials in parallel
-        funcs = [ self.exploration_processer, self.trial_processor]
+        funcs = [self.exploration_processer, self.trial_processor]
         pool = ThreadPool(len(funcs))
         [pool.apply(func) for func in funcs]
-
 
     # UTILS ############################################################################################################
     def get_templates(self):
@@ -373,6 +374,7 @@ class mazeprocessor:
          """
 
         results = dict(
+            maze_rois = None,
             maze_configuration=None,
             trial_outcome = None,
             trial_rois_trajectory = None,
@@ -387,6 +389,7 @@ class mazeprocessor:
             stim_time = None
         )
         results['maze_configuration'] = maze_config
+        results['maze_rois'] = self.maze_rois
 
         timelimit = 30  # number of seconds within which the S platf must be reached to consider the trial succesf.
         timelimit_frame = timelimit * self.session.Metadata.videodata[0]['Frame rate'][0]
@@ -423,8 +426,11 @@ class mazeprocessor:
                 results['trial_outcome'] = False  # False is an incomplete escape
                 res =self.get_arms_of_originandescape(escape_rois, outward=False)
             else:
-                # Copmlete escape
-                results['trial_outcome'] = True  # True is a complete escape
+                # Complete escape
+                fps = self.session.Metadata.videodata[0]['Frame rate'][0]
+                time_to_shelter = escape_rois.index('Shelter_platform')/fps
+                if time_to_shelter > 9: results['trial_outcome'] = False  # Too slow
+                else:  results['trial_outcome'] = True  # True is a complete escape
             res = self.get_arms_of_originandescape(escape_rois, outward=False)
             results['first_at_shelter'] = res[0] + results['stim_time']
             results['last_at_threat'] = res[1] + results['stim_time']
@@ -496,13 +502,134 @@ class mazecohortprocessor:
         metad =  cohort.Metadata[name]
         tracking_data = cohort.Tracking[name]
 
+        self.process_status_at_stim(tracking_data)
+        self.plot_velocites_grouped(tracking_data, metad, selector='exp')
+
         self.process_explorations(tracking_data)
 
         self.process_by_mouse(tracking_data)
         self.process_trials(tracking_data)
-        self.process_status_at_stim(tracking_data)
 
         plt.show()
+        a = 1
+
+    def plot_velocites_grouped(self, tracking_data, metadata, selector='exp'):
+        # divide cohrt data into groups
+        tags = []
+        assigned_tags = {}
+        for session in metadata.sessions_in_cohort:
+            if selector == 'exp':
+                tags.append(session[1].experiment)
+                assigned_tags[str(session[1].session_id)] = session[1].experiment
+            elif selector == 'stim_type':
+                tags = ['visual', 'audio', ]
+                break
+
+        tags = [t for t in set(tags)]
+        colors = [ [.2, .2, .4], [.2, .4, .2],  [.4, .4, .2], [.4, .2, .2], [.2, .4, .4]]
+        colors = {name:col for name,col in zip(tags, colors)}
+
+        max_counterscounters = {t:0 for t in tags}
+        for trial in tracking_data.trials:
+            if not trial.processing['Trial outcome']['trial_outcome']: continue
+            sessid = trial.name.split('-')[0]
+            if selector == 'exp':
+                tag = assigned_tags[sessid]
+            elif selector == 'stim_type':
+                tag = trial.metadata['Stim type']
+            max_counterscounters[tag] = max_counterscounters[tag] + 1
+
+        f, axarr = plt.subplots(2, 2, facecolor=[0.1, 0.1, 0.1])
+        axarr = axarr.flatten()
+        # f.tight_layout()
+
+        velocities = {name:np.zeros((3600, max_counterscounters[name])) for name in tags}
+        head_velocities = {name:np.zeros((3600, max_counterscounters[name])) for name in tags}
+        counters =  {t:0 for t in tags}
+        for trial in tracking_data.trials:
+            if not trial.processing['Trial outcome']['trial_outcome'] or trial.processing['Trial outcome']['trial_outcome'] is None :
+                print(trial.name, 'no escape')
+                continue
+            sessid = trial.name.split('-')[0]
+            if selector == 'exp': tag = assigned_tags[sessid]
+            else: tag = trial.metadata['Stim type']
+
+            vel = line_smoother(trial.dlc_tracking['Posture']['body']['Velocity'].values)
+            acc = line_smoother(np.diff(vel))
+            head_ang_vel = np.abs(line_smoother(trial.dlc_tracking['Posture']['body']['Head ang vel'].values))
+
+            axarr[0].plot(vel, color=colors[tag], alpha=0.15)
+            axarr[2].plot(head_ang_vel, color=colors[tag], alpha=0.15)
+            axarr[1].plot(vel, color=colors[tag], alpha=0.15)
+
+            if len(vel)<3600:
+                v, a = np.zeros(3600), np.zeros(3600)
+                v[:len(vel)] = vel
+                a[:len(vel)] = head_ang_vel
+                vel, head_ang_vel = v, a
+
+            velocities[tag][:, counters[tag]] = vel
+            head_velocities[tag][:, counters[tag]] = head_ang_vel
+            counters[tag] = counters[tag] + 1
+
+        medians = []
+        for name, val in velocities.items():
+            if name == 'PathInt2': lg = '2Arms Maze'
+            elif name == 'PathInt': lg = '3Arms Maze'
+            else: lg = name
+            avg_vel = np.mean(val, axis=1)
+            sem_avg_vel = np.std(val, axis=1) / math.sqrt(max_counterscounters[name])
+            median_vel = np.median(val, axis=1)
+            medians.append(median_vel)
+            try:
+                low_perc = np.percentile(val, 25, axis=1)
+                high_perc = np.percentile(val, 75, axis=1)
+            except:
+                 a = 2
+            axarr[0].errorbar(x=np.linspace(0, len(avg_vel), len(avg_vel)), y=avg_vel, yerr=sem_avg_vel,
+                              color=np.add(colors[name], 0.3), alpha=0.65,
+                          linewidth=4, label=lg)
+            axarr[1].plot(median_vel, color=np.add(colors[name], 0.3), alpha=0.65, linewidth=5, label=lg)
+            # axarr[1].plot(low_perc, color=np.subtract(colors[name], 0.3), alpha=0.65, linewidth=2, label=None)
+            # axarr[1].plot(high_perc, color=np.subtract(colors[name], 0.3), alpha=0.65, linewidth=2, label=None)
+
+        for name, val in head_velocities.items():
+            if name == 'PathInt2': lg = '2Arms Maze'
+            elif name == 'PathInt': lg = '3Arms Maze'
+            else: lg = name
+
+            avg_vel = np.median(val, axis=1)
+            sem_avg_vel = np.std(val, axis=1) / math.sqrt(max_counterscounters[name])
+            axarr[2].errorbar(x=np.linspace(0, len(avg_vel), len(avg_vel)), y=avg_vel, yerr=sem_avg_vel,
+                              color=np.add(colors[name], 0.3), alpha=0.65,
+                              linewidth=4, label=lg)
+
+            # axarr[2].plot(avg_vel, color=np.add(colors[name], 0.3), alpha=0.65, linewidth=5, label=lg)
+
+
+
+        # median_pvals = []
+        # for i in range(3600):
+        #     s, p = scipy.stats.ranksums(velocities['FlipFlop Maze'][i, :],
+        #                                 velocities['PathInt2'][i, :])
+        #     median_pvals.append(p)
+        # axarr[3].set_yscale('log')
+        # axarr[3].plot(median_pvals, color=[.7, .7, .7], linewidth=2)
+        # axarr[3].axhline(0.05/3600, color='w', linestyle=':')
+
+        for ax in axarr:
+            ax.axvline(1800, color='w')
+            make_legend(ax, [0.1, .1, .1], [0.8, 0.8, 0.8], changefont=16)
+
+        axarr[0].set(title='MEAN VELOCITY aligned to stim', xlim=[1780, 1950], xlabel='Frames', ylabel='px/frame',
+                     ylim=[-0.5, 20], facecolor=[.0, .0, .0])
+        axarr[1].set(title='MEDIAN Velocity aligned to stim', xlim=[1780, 1950],  xlabel='Frames', ylabel='px/frame',
+                     ylim=[-0.5, 20], facecolor=[.0, .0, .0])
+        axarr[3].set(title='Medians Wilcoxon rank-sum p-Val', xlim=[1780, 1950], ylim=[0, 1],
+                     xlabel='Frames', ylabel='px/frame', facecolor=[.0, .0, .0])
+        axarr[2].set(title='MEAN Head Angular VELOCITY', xlim=[1780, 2000], ylim=[-0.1, 20], xlabel='Frames',
+                     ylabel='def/frame',  facecolor=[.0, .0, .0])
+        a = 1
 
     def process_by_mouse(self, tracking_data):
         sess_id = None
@@ -564,6 +691,9 @@ class mazecohortprocessor:
     def process_status_at_stim(self, tracking_data):
         statuses = dict(positions=[], orientations=[], velocities=[], body_lengts=[], origins=[], escapes=[])
 
+        orientation_th = 30  # degrees away from facing south considered as facing left or right
+        orientation_arm_probability = {ori:[0, 0, 0] for ori in ['looking_left', 'looking_down', 'looking_right']}
+        non_alternations, alltrials = 0, 0
         for trial in tracking_data.trials:
             if 'status at stimulus' in trial.processing.keys():
                 # get Threat ROI location
@@ -594,12 +724,49 @@ class mazecohortprocessor:
                     statuses['body_lengts'].append(status.status['Body length'])
                     statuses['origins'].append(outcome['threat_origin_arm'])
                     statuses['escapes'].append(outcome['threat_escape_arm'])
+
+                    # Check correlation between escape arm and orientation at stim
+                    if not outcome['trial_outcome']:
+                        print(trial.name, ' no escape')
+                        continue
+                    if 0 < ori < 180-orientation_th:
+                        look = 'looking_right'
+                    elif 180-orientation_th <= ori <= 180 + orientation_th:
+                        look = 'looking_down'
+                    else:
+                        look = 'looking_left'
+                    if 'Left' in outcome['threat_escape_arm']: esc = 0
+                    elif 'Central' in outcome['threat_escape_arm']: esc = 1
+                    else: esc = 2
+                    orientation_arm_probability[look][esc] = orientation_arm_probability[look][esc] + 1
+
+                    # Check probability of alternating
+                    alltrials += 1
+                    if outcome['threat_origin_arm'] == outcome['threat_escape_arm']: non_alternations += 1
                 except:
+                    raise Warning('ops')
                     pass
 
             else:
                 print('no status')
 
+        # Print probability of alternation (oirigin vs escape)
+        print('Across this dataset, the probability of escaping on the arm of origin was: {}'.format(non_alternations/alltrials))
+
+        # Plot probability of arm given orientation
+        f, axarr = plt.subplots(3, 1, facecolor=[0.1, 0.1, 0.1])
+        for idx, look in enumerate(orientation_arm_probability.keys()):
+            outcomes = orientation_arm_probability[look]
+            num_trials = sum(outcomes)
+            ax = axarr[idx]
+
+            for i, out in enumerate(outcomes):
+                ax.bar(i, out/num_trials)
+            ax.set(title='Escape probs for trials {}'.format(look), ylim=[0, 1], xlabel='escape arm', ylabel='probability',
+                   facecolor=[0.2, 0.2, 0.2])
+
+
+        # Plot location and stuff
         f, axarr = plt.subplots(3, 2, facecolor=[0.1, 0.1, 0.1])
         f.tight_layout()
         f.set_size_inches(10, 20)
@@ -657,8 +824,7 @@ class mazecohortprocessor:
         for idx, ax in enumerate(axarr):
             ax.set(title = titles[idx], xlim=[-75, 75], ylim=[-75, 75], xlabel='x pos', ylabel='y pos',
                    facecolor=[0.2, 0.2, 0.2])
-        plt.show()
-        #a = 1
+        # plt.show()
 
     def process_explorations(self, tracking_data):
         all_platforms = ['Left_far_platform', 'Left_med_platform', 'Right_med_platform',
