@@ -128,17 +128,6 @@ def dlc_retreive_data(datafolder, database, clips_l):
                     # merge with existing trial
                     trial.dlc_tracking['Posture'] = dlc_data
 
-    # Return the list of trials for each session
-    for session_name in database.index:
-        sess_num = session_name.split('_')[0]
-        if sess_num in sessions_data.keys():
-            session = database.loc[session_name]
-            dlc_trials = sessions_data[sess_num]
-
-            for trial_name, trial in dlc_trials.items():
-                old_trial = session['Tracking'][trial_name]
-                session['Tracking'][trial_name] = merge_std_dlc_trials(old_trial, trial)
-
     return database
 
 
