@@ -46,7 +46,7 @@ class Processing:
                 except:
                     warnings.warn('Could not analyse this trial!!!')  # but avoid crashing the whole analysis
                     print(colored('          trial {} could not be processed!'.format(data_name), 'yellow'))
-                    slack_chat_messenger('Could not process trial {}'.format(data_name))
+                    # slack_chat_messenger('Could not process trial {}'.format(data_name))
 
         # Call experiment specific processing tools [only implemented for maze experiments]
         if self.settings['apply exp-specific']:
@@ -126,16 +126,16 @@ class Processing:
 
         # Get the position of the two bodyparts
         head, _ = from_dlc_to_single_bp(data, self.settings['head'])
+        neck, _ = from_dlc_to_single_bp(data, self.settings['neck'])
         body, _ = from_dlc_to_single_bp(data, self.settings['body'])
         tail, _ = from_dlc_to_single_bp(data, self.settings['tail'])
 
         # Get angle relative to frame
-        absolute_angle = calc_angle_2d(body, tail, vectors=True)
+        absolute_angle = calc_angle_2d(neck, tail, vectors=True)
         data.dlc_tracking['Posture']['body']['Orientation'] = [x+360 for x in absolute_angle]
 
-
-        # Get head angle relative to body angle
-        absolute_angle_head = calc_angle_2d(head, body, vectors=True)
+        # Get head angle
+        absolute_angle_head = calc_angle_2d(head, neck, vectors=True)
         data.dlc_tracking['Posture']['body']['Head angle'] = [x+360 for x in absolute_angle_head]
 
     @clock

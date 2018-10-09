@@ -3,6 +3,7 @@ apply standard processing: true   # Apply general processing functions or not
 # Setting for POSE reconstruction
 # Names of the DLC bodyparts tags for the different bodyparts
 'body': 'body'              # BODY and TAIL are also used for ORIENTATION extraction
+'neck': 'neck'
 'head': 'snout'
 'tail': 'tail'
 

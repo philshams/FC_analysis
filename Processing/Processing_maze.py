@@ -20,7 +20,8 @@ plt.rcParams.update(params)
 import math
 import scipy.stats
 
-from Plotting.Plotting_utils import make_legend
+
+from Plotting.Plotting_utils import make_legend, save_all_open_figs
 from Utils.Data_rearrange_funcs import flatten_list
 from Utils.maths import line_smoother
 
@@ -33,6 +34,9 @@ arms_colors = dict(left=(255, 0, 0), central=(0, 255, 0), right=(0, 0, 255), she
 class mazeprocessor:
     # TODO session processor
     def __init__(self, session, settings=None, debugging=False):
+        self.escape_duration_limit = 45  # number of seconds within which the S platf must be reached to consider the trial succesf.
+
+
         # Initialise variables
         print(colored('      ... maze specific processing session: {}'.format(session.name), 'green'))
         self.session = session
@@ -391,8 +395,6 @@ class mazeprocessor:
         results['maze_configuration'] = maze_config
         results['maze_rois'] = self.maze_rois
 
-        timelimit = 30  # number of seconds within which the S platf must be reached to consider the trial succesf.
-        timelimit_frame = timelimit * self.session.Metadata.videodata[0]['Frame rate'][0]
 
         ret, trial_length = self.get_trial_length(data)
         if not ret:
@@ -429,7 +431,7 @@ class mazeprocessor:
                 # Complete escape
                 fps = self.session.Metadata.videodata[0]['Frame rate'][0]
                 time_to_shelter = escape_rois.index('Shelter_platform')/fps
-                if time_to_shelter > 9: results['trial_outcome'] = False  # Too slow
+                if time_to_shelter > self.escape_duration_limit: results['trial_outcome'] = False  # Too slow
                 else:  results['trial_outcome'] = True  # True is a complete escape
             res = self.get_arms_of_originandescape(escape_rois, outward=False)
             results['first_at_shelter'] = res[0] + results['stim_time']
@@ -493,6 +495,9 @@ class mazeprocessor:
 
 class mazecohortprocessor:
     def __init__(self, cohort):
+
+        fig_save_fld = 'D:\\Dropbox (UCL - SWC)\\Dropbox (UCL - SWC)\\Rotation_vte\\Presentations\\181017_graphs'
+
         self.colors = dict(left=[.2, .3, .7], right=[.7, .3, .2], centre=[.3, .7, .2], center=[.3, .7, .2],
                            central=[.3, .7, .2], shelter='c', threat='y')
 
@@ -501,16 +506,19 @@ class mazecohortprocessor:
 
         metad =  cohort.Metadata[name]
         tracking_data = cohort.Tracking[name]
+        self.process_trials(tracking_data)
 
-        self.process_status_at_stim(tracking_data)
         self.plot_velocites_grouped(tracking_data, metad, selector='exp')
+        self.process_status_at_stim(tracking_data)
 
         self.process_explorations(tracking_data)
 
-        self.process_by_mouse(tracking_data)
-        self.process_trials(tracking_data)
+        # self.process_by_mouse(tracking_data)
 
-        plt.show()
+        # plt.show()
+
+        save_all_open_figs(target_fld=fig_save_fld, name=name, format='svg')
+
         a = 1
 
     def plot_velocites_grouped(self, tracking_data, metadata, selector='exp'):
@@ -539,12 +547,15 @@ class mazecohortprocessor:
                 tag = trial.metadata['Stim type']
             max_counterscounters[tag] = max_counterscounters[tag] + 1
 
-        f, axarr = plt.subplots(2, 2, facecolor=[0.1, 0.1, 0.1])
+        f, axarr = plt.subplots(3, 2, facecolor=[0.1, 0.1, 0.1])
         axarr = axarr.flatten()
         # f.tight_layout()
 
         velocities = {name:np.zeros((3600, max_counterscounters[name])) for name in tags}
         head_velocities = {name:np.zeros((3600, max_counterscounters[name])) for name in tags}
+        body_lengths = {name:np.zeros((3600, max_counterscounters[name])) for name in tags}
+        head_body_angles = {name:np.zeros((3600, max_counterscounters[name])) for name in tags}
+
         counters =  {t:0 for t in tags}
         for trial in tracking_data.trials:
             if not trial.processing['Trial outcome']['trial_outcome'] or trial.processing['Trial outcome']['trial_outcome'] is None :
@@ -557,19 +568,34 @@ class mazecohortprocessor:
             vel = line_smoother(trial.dlc_tracking['Posture']['body']['Velocity'].values)
             acc = line_smoother(np.diff(vel))
             head_ang_vel = np.abs(line_smoother(trial.dlc_tracking['Posture']['body']['Head ang vel'].values))
+            body_len = line_smoother(trial.dlc_tracking['Posture']['body']['Body length'].values)
+
+            pre_stim_mean_bl = np.mean(body_len[(1800-121):1799])
+            body_len = np.divide(body_len, pre_stim_mean_bl)
+
+            body_ang =  line_smoother(trial.dlc_tracking['Posture']['body']['Orientation'].values)
+            head_ang = line_smoother(trial.dlc_tracking['Posture']['body']['Head angle'].values)
+            while np.any(body_ang[body_ang>360]): body_ang[body_ang>360] -= 360
+            while np.any(head_ang[head_ang>360]): head_ang[head_ang>360] -= 360
+            hb_angle = np.abs(line_smoother(np.diff(np.radians(body_ang)-np.radians(head_ang))))
 
             axarr[0].plot(vel, color=colors[tag], alpha=0.15)
             axarr[2].plot(head_ang_vel, color=colors[tag], alpha=0.15)
             axarr[1].plot(vel, color=colors[tag], alpha=0.15)
+            axarr[4].plot(body_len, color=colors[tag], alpha=0.15)
+            axarr[5].plot(hb_angle, color=colors[tag], alpha=0.15)
 
-            if len(vel)<3600:
-                v, a = np.zeros(3600), np.zeros(3600)
-                v[:len(vel)] = vel
-                a[:len(vel)] = head_ang_vel
-                vel, head_ang_vel = v, a
+            v, a, b, h = np.zeros(3600), np.zeros(3600), np.zeros(3600), np.zeros(3600)
+            v[:len(vel)] = vel
+            a[:len(vel)] = head_ang_vel
+            b[:len(vel)] = body_len
+            h[:len(hb_angle)] = hb_angle
+            vel, head_ang_vel, body_len, hb_angle = v, a, b, h
 
             velocities[tag][:, counters[tag]] = vel
             head_velocities[tag][:, counters[tag]] = head_ang_vel
+            body_lengths[tag][:, counters[tag]] = body_len
+            head_body_angles[tag][:, counters[tag]] = hb_angle
             counters[tag] = counters[tag] + 1
 
         medians = []
@@ -604,10 +630,27 @@ class mazecohortprocessor:
                               color=np.add(colors[name], 0.3), alpha=0.65,
                               linewidth=4, label=lg)
 
-            # axarr[2].plot(avg_vel, color=np.add(colors[name], 0.3), alpha=0.65, linewidth=5, label=lg)
+        for name, val in body_lengths.items():
+            if name == 'PathInt2':   lg = '2Arms Maze'
+            elif name == 'PathInt': lg = '3Arms Maze'
+            else:  lg = name
 
+            avg_bl = np.median(val, axis=1)
+            sem_avg_bl = np.std(val, axis=1) / math.sqrt(max_counterscounters[name])
+            axarr[4].errorbar(x=np.linspace(0, len(avg_bl), len(avg_bl)), y=avg_bl, yerr=sem_avg_bl,
+                              color=np.add(colors[name], 0.3), alpha=0.65,
+                              linewidth=4, label=lg)
 
+        for name, val in head_body_angles.items():
+            if name == 'PathInt2': lg = '2Arms Maze'
+            elif name == 'PathInt':  lg = '3Arms Maze'
+            else:   lg = name
 
+            avg_ang = np.median(val, axis=1)
+            sem_avg_ang = np.std(val, axis=1) / math.sqrt(max_counterscounters[name])
+            axarr[5].errorbar(x=np.linspace(0, len(avg_ang), len(avg_ang)), y=avg_ang, yerr=sem_avg_ang,
+                              color=np.add(colors[name], 0.3), alpha=0.65,
+                              linewidth=4, label=lg)
         # median_pvals = []
         # for i in range(3600):
         #     s, p = scipy.stats.ranksums(velocities['FlipFlop Maze'][i, :],
@@ -621,14 +664,19 @@ class mazecohortprocessor:
             ax.axvline(1800, color='w')
             make_legend(ax, [0.1, .1, .1], [0.8, 0.8, 0.8], changefont=16)
 
-        axarr[0].set(title='MEAN VELOCITY aligned to stim', xlim=[1780, 1950], xlabel='Frames', ylabel='px/frame',
+        xlims = [1780, 1950]
+        axarr[0].set(title='MEAN VELOCITY aligned to stim', xlim=xlims, xlabel='Frames', ylabel='px/frame',
                      ylim=[-0.5, 20], facecolor=[.0, .0, .0])
-        axarr[1].set(title='MEDIAN Velocity aligned to stim', xlim=[1780, 1950],  xlabel='Frames', ylabel='px/frame',
+        axarr[1].set(title='MEDIAN Velocity aligned to stim', xlim=xlims,  xlabel='Frames', ylabel='px/frame',
                      ylim=[-0.5, 20], facecolor=[.0, .0, .0])
-        axarr[3].set(title='Medians Wilcoxon rank-sum p-Val', xlim=[1780, 1950], ylim=[0, 1],
+        axarr[3].set(title='Medians Wilcoxon rank-sum p-Val', xlim=xlims, ylim=[0, 1],
                      xlabel='Frames', ylabel='px/frame', facecolor=[.0, .0, .0])
-        axarr[2].set(title='MEAN Head Angular VELOCITY', xlim=[1780, 2000], ylim=[-0.1, 20], xlabel='Frames',
+        axarr[2].set(title='MEAN Head Angular VELOCITY', xlim=xlims, ylim=[-0.1, 20], xlabel='Frames',
                      ylabel='def/frame',  facecolor=[.0, .0, .0])
+        axarr[4].set(title='MEAN normalised body LENGTH', xlim=xlims, ylim=[0.5, 1.25], xlabel='Frames',
+                     ylabel='def/frame', facecolor=[.0, .0, .0])
+        axarr[5].set(title='MEAN head-body angle', xlim=xlims, ylim=[0, 0.6], xlabel='Frames',
+                     ylabel='def/frame', facecolor=[.0, .0, .0])
         a = 1
 
     def process_by_mouse(self, tracking_data):
@@ -902,37 +950,30 @@ class mazecohortprocessor:
     def process_trials(self, tracking_data):
         maze_configs, origins, escapes, outcomes = [], [], [], []
         for trial in tracking_data.trials:
+            outcome = trial.processing['Trial outcome']['trial_outcome']
+            if not outcome:
+                print(trial.name, ' no escape')
+                continue
             maze_configs.append(trial.processing['Trial outcome']['maze_configuration'])
             origins.append(trial.processing['Trial outcome']['threat_origin_arm'])
             escapes.append(trial.processing['Trial outcome']['threat_escape_arm'])
-            outcomes.append(trial.processing['Trial outcome']['trial_outcome'])
+            outcomes.append(outcome)
 
-        # clean up
-        while None in origins:
-            idx = origins.index(None)
-            origins.pop(idx)
-            escapes.pop(idx)
-            maze_configs.pop(idx)
-            outcomes.pop(idx)
-
-        num_trials = len([t for t in outcomes if t])
-        left_origins = len([b for i, b in enumerate(origins) if 'Left' in b and outcomes[i] is not None])
-        central_origins = len([b for i, b in enumerate(origins) if 'Central' in b and outcomes[i] is not None])
-        left_escapes = len([b for i, b in enumerate(escapes) if 'Left' in b and outcomes[i] is not None])
-        central_escapes = len([b for i, b in enumerate(escapes) if 'Central' in b and outcomes[i] is not None])
-
+        num_trials = len(outcomes)
+        left_origins = len([b for b in origins if 'Left' in b])
+        central_origins = len([b for  b in origins if 'Central' in b])
+        left_escapes = len([b for b in escapes if 'Left' in b])
+        central_escapes = len([b for b in escapes if 'Central' in b ])
 
         if len(set(maze_configs)) > 1:
             outcomes_perconfig = {name:None for name in set(maze_configs)}
             ors = namedtuple('origins', 'numorigins numleftorigins')
             escs = namedtuple('escapes', 'numescapes numleftescapes')
             for conf in set(maze_configs):
-                origins_conf = ors(len([o for i,o in enumerate(origins) if maze_configs[i] == conf and outcomes[i]]),
-                          len([o for i, o in enumerate(origins) if maze_configs[i] == conf and 'Left' in origins[i]
-                               and outcomes[i]]))
-                escapes_conf = escs(len([o for i, o in enumerate(escapes) if maze_configs[i] == conf and outcomes[i]]),
-                          len([o for i, o in enumerate(escapes) if maze_configs[i] == conf and 'Left' in escapes[i]
-                               and outcomes[i]]))
+                origins_conf = ors(len([o for i,o in enumerate(origins) if maze_configs[i] == conf]),
+                                   len([o for i, o in enumerate(origins) if maze_configs[i] == conf and 'Left' in origins[i]]))
+                escapes_conf = escs(len([o for i, o in enumerate(escapes) if maze_configs[i] == conf]),
+                                    len([o for i, o in enumerate(escapes) if maze_configs[i] == conf and 'Left' in escapes[i]]))
                 if len([c for c in maze_configs if c == conf]) < origins_conf.numorigins:
                     raise Warning('Something went wrong, dammit')
                 outcomes_perconfig[conf] = dict(origins=origins_conf, escapes=escapes_conf)
@@ -940,18 +981,21 @@ class mazecohortprocessor:
 
 
         def plotty(ax, numtr, lori, cori, lesc, cesc, title='Origin and escape probabilities'):
-            ax.bar(0, lori / numtr, color=[.1, .2, .4], width=.25, label='L ori')
-            ax.bar(0.25, cori / numtr, color=[.2, .4, .1], width=.25, label='C ori')
-            ax.bar(0.5, 1 - ((lori + cori) / numtr), color=[.4, .2, .1], width=.25, label='R ori')
+
+            basecolor = [.3, .3, .3]
+
+            ax.bar(0, lori / numtr, color=basecolor, width=.25, label='L ori')
+            ax.bar(0.25, cori / numtr, color=np.add(basecolor, .2), width=.25, label='C ori')
+            ax.bar(0.5, 1 - ((lori + cori) / numtr), color=np.add(basecolor, .4), width=.25, label='R ori')
 
             ax.axvline(0.75, color=[1, 1, 1])
 
-            ax.bar(1, lesc / numtr, color=[.2, .3, .7], width=.25, label='L escape')
-            ax.bar(1.25, cesc / numtr, color=[.3, .7, .2], width=.25, label='C escape')
-            ax.bar(1.5, 1 - ((lesc + cesc) / numtr), color=[.7, .3, .2], width=.25, label='R escape')
+            ax.bar(1, lesc / numtr, color=basecolor, width=.25, label='L escape')
+            ax.bar(1.25, cesc / numtr, color=np.add(basecolor, .2), width=.25, label='C escape')
+            ax.bar(1.5, 1 - ((lesc + cesc) / numtr), color=np.add(basecolor, .4), width=.25, label='R escape')
 
             ax.set(title='{} - {} trials'.format(title, numtr), ylim=[0, 1], facecolor=[0.2, 0.2, 0.2])
-            make_legend(ax, [0.1, .1, .1], [0.8, 0.8, 0.8], changefont=8)
+            # make_legend(ax, [0.1, .1, .1], [0.8, 0.8, 0.8], changefont=8)
 
 
         if outcomes_perconfig is None:
@@ -968,19 +1012,14 @@ class mazecohortprocessor:
 
         if outcomes_perconfig is not None:
             ax = axarr[1]
-            o = outcomes_perconfig['Right']
-            num_trials = o['escapes'].numescapes
-            left_escapes = o['escapes'].numleftescapes
-            left_origins = o['origins'].numleftorigins
-            plotty(ax, num_trials, left_origins, 0, left_escapes, 0, title='Probs for R config')
+            for idx, config in enumerate(sorted(outcomes_perconfig.keys())):
+                ax = axarr[idx+1]
 
-
-            ax = axarr[2]
-            o = outcomes_perconfig['Left']
-            num_trials = o['escapes'].numescapes
-            left_escapes = o['escapes'].numleftescapes
-            left_origins = o['origins'].numleftorigins
-            plotty(ax, num_trials, left_origins, 0, left_escapes, 0, title='Probs for L config')
+                o = outcomes_perconfig[config]
+                num_trials = o['escapes'].numescapes
+                left_escapes = o['escapes'].numleftescapes
+                left_origins = o['origins'].numleftorigins
+                plotty(ax, num_trials, left_origins, 0, left_escapes, 0, title='{} config'.format(config))
 
         f.tight_layout()
         #plt.show()
