@@ -19,7 +19,9 @@ plt.rcParams.update(params)
 
 import math
 import scipy.stats
-
+import random
+import seaborn as sns
+from scipy.stats import norm
 
 from Plotting.Plotting_utils import make_legend, save_all_open_figs
 from Utils.Data_rearrange_funcs import flatten_list
@@ -506,18 +508,97 @@ class mazecohortprocessor:
 
         metad =  cohort.Metadata[name]
         tracking_data = cohort.Tracking[name]
+
         self.process_trials(tracking_data)
 
-        self.plot_velocites_grouped(tracking_data, metad, selector='exp')
-        self.process_status_at_stim(tracking_data)
+        self.sample_escapes_probabilities(tracking_data)
 
-        self.process_explorations(tracking_data)
+        # self.plot_velocites_grouped(tracking_data, metad, selector='escape_arm')
+        # self.process_status_at_stim(tracking_data)
+
+        # self.process_explorations(tracking_data)
 
         # self.process_by_mouse(tracking_data)
 
         # plt.show()
 
         save_all_open_figs(target_fld=fig_save_fld, name=name, format='svg')
+        plt.show()
+        a = 1
+
+    def coin_simultor(self, num_samples=24, num_iters=10000):
+        probs = []
+        for itern in tqdm(range(num_iters)):
+            data = [random.randint(0, 1) for x in range(num_samples)]
+            prob_one = len([n for n in data if n==1])/len(data)
+            probs.append(prob_one)
+
+        f, ax = plt.subplots(1, 1, facecolor=[0.1, 0.1, 0.1])
+        ax.set(facecolor=[0.2, 0.2, 0.2], xlim=[0,1], ylim=[0, 4000])
+        basecolor = [.3, .3, .3]
+
+        ax.hist(probs, color=(basecolor), bins=75)
+        avg = np.mean(probs)
+        # ax.axvline(avg, color=basecolor, linewidth=4, linestyle=':')
+        print('mean {}'.format(avg))
+
+
+    def sample_escapes_probabilities(self, tracking_data, num_samples=15, num_iters=10000):
+        sides = ['Left', 'Central', 'Right']
+        # get escapes
+        maze_configs, origins, escapes, outcomes = [], [], [], []
+        for trial in tracking_data.trials:
+            outcome = trial.processing['Trial outcome']['trial_outcome']
+            if not outcome:
+                print(trial.name, ' no escape')
+                continue
+            if trial.processing['Trial outcome']['maze_configuration'] == 'Left':
+                print(trial.name, ' left config')
+                continue
+
+            maze_configs.append(trial.processing['Trial outcome']['maze_configuration'])
+            origins.append(trial.processing['Trial outcome']['threat_origin_arm'])
+            escapes.append(trial.processing['Trial outcome']['threat_escape_arm'])
+            outcomes.append(outcome)
+
+        num_trials = len(outcomes)
+        left_escapes = len([b for b in escapes if 'Left' in b])
+        central_escapes = len([b for b in escapes if 'Central' in b ])
+
+        print('\nFound {} trials, escape probabilities: {}-Left, {}-Centre'.format(num_trials,
+                                                                             round(left_escapes/num_trials, 2),
+                                                                             round(central_escapes/num_trials, 2)))
+
+
+        if num_samples > num_trials: raise Warning('Too many samples')
+
+        probs = {name:[] for name in sides}
+        for iter in tqdm(range(num_iters)):
+            sel_trials = random.sample(escapes, num_samples)
+            p = 0
+            for side in sides:
+                probs[side].append(len([b for b in sel_trials if side in b])/num_samples)
+                p += len([b for b in sel_trials if side in b])/num_samples
+                if p > 1: raise Warning('Something went wrong....')
+
+        f, ax = plt.subplots(1, 1,  facecolor=[0.1, 0.1, 0.1])
+        ax.set(facecolor=[0.2, 0.2, 0.2])
+        basecolor = [.3, .3, .3]
+
+        for idx, side in enumerate(probs.keys()):
+            if not np.any(np.asarray(probs[side])): continue
+            # sns.kdeplot(probs[side], bw=0.05, shade=True, color=np.add(basecolor, 0.2*idx), label=side, ax=ax)
+            ax.hist(probs[side], color=np.add(basecolor, 0.2*idx), bins=50, label=side)
+            # sns.distplot(probs[side], bins=3, label=side, ax=ax)
+            # sns.distplot(probs[side], fit=norm, hist=False, kde=False, norm_hist=True, ax=ax)
+
+        for idx, side in enumerate(probs.keys()):
+            if not np.any(np.asarray(probs[side])): continue
+            avg = np.mean(probs[side])
+            ax.axvline(avg, color=np.add(basecolor, 0.2 * idx), linewidth=4, linestyle=':')
+            print('side {} mean {}'.format(side,avg))
+
+        make_legend(ax, [0.1, .1, .1], [0.8, 0.8, 0.8], changefont=16)
 
         a = 1
 
@@ -530,7 +611,10 @@ class mazecohortprocessor:
                 tags.append(session[1].experiment)
                 assigned_tags[str(session[1].session_id)] = session[1].experiment
             elif selector == 'stim_type':
-                tags = ['visual', 'audio', ]
+                tags = ['visual', 'audio']
+                break
+            elif selector == 'escape_arm':
+                tags = ['Left', 'Central', 'Right' ]
                 break
 
         tags = [t for t in set(tags)]
@@ -545,6 +629,11 @@ class mazecohortprocessor:
                 tag = assigned_tags[sessid]
             elif selector == 'stim_type':
                 tag = trial.metadata['Stim type']
+            elif selector == 'escape_arm':
+                tag = trial.processing['Trial outcome']['threat_escape_arm'].split('_')[0]
+                if tag not in max_counterscounters.keys():
+                    print(trial.name, 'has weird tag: {}'.format(tag))
+                    continue
             max_counterscounters[tag] = max_counterscounters[tag] + 1
 
         f, axarr = plt.subplots(3, 2, facecolor=[0.1, 0.1, 0.1])
@@ -563,7 +652,10 @@ class mazecohortprocessor:
                 continue
             sessid = trial.name.split('-')[0]
             if selector == 'exp': tag = assigned_tags[sessid]
-            else: tag = trial.metadata['Stim type']
+            elif selector == 'stim_type': tag = trial.metadata['Stim type']
+            elif selector == 'escape_arm': tag = trial.processing['Trial outcome']['threat_escape_arm'].split('_')[0]
+
+            if tag not in max_counterscounters.keys(): continue
 
             vel = line_smoother(trial.dlc_tracking['Posture']['body']['Velocity'].values)
             acc = line_smoother(np.diff(vel))
@@ -947,8 +1039,16 @@ class mazecohortprocessor:
 
         # plt.show()
 
-    def process_trials(self, tracking_data):
+    def process_trials(self, tracking_data, select_by_speed='fastest'):
+        """ select by speed can be:
+                fastest: 33% of trials with fastest time to peak acceleration
+                slowest: 33% of trials with slowest time to peak acceleration
+                False: take all trials
+
+            The code looks at the peak to acceleration in the first 2s (60 frames)
+        """
         maze_configs, origins, escapes, outcomes = [], [], [], []
+        frames_to_peak_acc = []
         for trial in tracking_data.trials:
             outcome = trial.processing['Trial outcome']['trial_outcome']
             if not outcome:
@@ -958,6 +1058,11 @@ class mazecohortprocessor:
             origins.append(trial.processing['Trial outcome']['threat_origin_arm'])
             escapes.append(trial.processing['Trial outcome']['threat_escape_arm'])
             outcomes.append(outcome)
+
+            # Get time to peak acceleration
+            head_ang_vel = np.abs(line_smoother(trial.dlc_tracking['Posture']['body']['Head ang vel'].values)[1800:1860])
+            frames_to_peak_acc.append(np.argmax(head_ang_vel))
+
 
         num_trials = len(outcomes)
         left_origins = len([b for b in origins if 'Left' in b])
