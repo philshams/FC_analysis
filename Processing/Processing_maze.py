@@ -509,11 +509,12 @@ class mazecohortprocessor:
         metad =  cohort.Metadata[name]
         tracking_data = cohort.Tracking[name]
 
+        self.plot_velocites_grouped(tracking_data, metad, selector='stim_type')
+
         self.process_trials(tracking_data)
 
         self.sample_escapes_probabilities(tracking_data)
 
-        # self.plot_velocites_grouped(tracking_data, metad, selector='escape_arm')
         # self.process_status_at_stim(tracking_data)
 
         # self.process_explorations(tracking_data)
@@ -541,7 +542,6 @@ class mazecohortprocessor:
         avg = np.mean(probs)
         # ax.axvline(avg, color=basecolor, linewidth=4, linestyle=':')
         print('mean {}'.format(avg))
-
 
     def sample_escapes_probabilities(self, tracking_data, num_samples=15, num_iters=10000):
         sides = ['Left', 'Central', 'Right']
@@ -603,7 +603,7 @@ class mazecohortprocessor:
         a = 1
 
     def plot_velocites_grouped(self, tracking_data, metadata, selector='exp'):
-        # divide cohrt data into groups
+        # Get experiment tags and plotting colors
         tags = []
         assigned_tags = {}
         for session in metadata.sessions_in_cohort:
@@ -614,14 +614,15 @@ class mazecohortprocessor:
                 tags = ['visual', 'audio']
                 break
             elif selector == 'escape_arm':
-                tags = ['Left', 'Central', 'Right' ]
+                tags = ['Left', 'Central', 'Right']
                 break
-
         tags = [t for t in set(tags)]
-        colors = [ [.2, .2, .4], [.2, .4, .2],  [.4, .4, .2], [.4, .2, .2], [.2, .4, .4]]
-        colors = {name:col for name,col in zip(tags, colors)}
+        # colors = [[.2, .2, .4], [.2, .4, .2], [.4, .4, .2], [.4, .2, .2], [.2, .4, .4]]
+        colors = [[.35, .35, .35], [.4, .2, .2]]
+        colors = {name: col for name, col in zip(tags, colors)}
 
-        max_counterscounters = {t:0 for t in tags}
+        # Get number of trials per tag
+        max_counterscounters = {t: 0 for t in tags}
         for trial in tracking_data.trials:
             if not trial.processing['Trial outcome']['trial_outcome']: continue
             sessid = trial.name.split('-')[0]
@@ -636,139 +637,115 @@ class mazecohortprocessor:
                     continue
             max_counterscounters[tag] = max_counterscounters[tag] + 1
 
+        # initialise figure
         f, axarr = plt.subplots(3, 2, facecolor=[0.1, 0.1, 0.1])
         axarr = axarr.flatten()
+        axes_dict = {'vel': axarr[0], 'acc': axarr[1], 'angvel': axarr[2], 'angacc': axarr[3],
+                     'nbl': axarr[4], 'bang': axarr[5]}
         # f.tight_layout()
 
-        velocities = {name:np.zeros((3600, max_counterscounters[name])) for name in tags}
-        head_velocities = {name:np.zeros((3600, max_counterscounters[name])) for name in tags}
-        body_lengths = {name:np.zeros((3600, max_counterscounters[name])) for name in tags}
-        head_body_angles = {name:np.zeros((3600, max_counterscounters[name])) for name in tags}
+        # itialise container vars
+        template_dict = {name: np.zeros((3600, max_counterscounters[name])) for name in tags}
 
-        counters =  {t:0 for t in tags}
+        variables_dict = dict(
+            velocities={name: np.zeros((3600, max_counterscounters[name])) for name in tags},
+            accelerations={name: np.zeros((3600, max_counterscounters[name])) for name in tags},
+            head_velocities={name: np.zeros((3600, max_counterscounters[name])) for name in tags},
+            head_accelerations={name: np.zeros((3600, max_counterscounters[name])) for name in tags},
+            body_lengths={name: np.zeros((3600, max_counterscounters[name])) for name in tags},
+            head_body_angles={name: np.zeros((3600, max_counterscounters[name])) for name in tags})
+
+        # loop over trials and assign the data to the correct tag in the variables dict
+        counters = {t: 0 for t in tags}
         for trial in tracking_data.trials:
-            if not trial.processing['Trial outcome']['trial_outcome'] or trial.processing['Trial outcome']['trial_outcome'] is None :
+            # Skip no escape trials
+            if not trial.processing['Trial outcome']['trial_outcome'] or \
+                    trial.processing['Trial outcome']['trial_outcome'] is None:
                 print(trial.name, 'no escape')
                 continue
+            # Get tag
             sessid = trial.name.split('-')[0]
-            if selector == 'exp': tag = assigned_tags[sessid]
-            elif selector == 'stim_type': tag = trial.metadata['Stim type']
-            elif selector == 'escape_arm': tag = trial.processing['Trial outcome']['threat_escape_arm'].split('_')[0]
-
+            if selector == 'exp':
+                tag = assigned_tags[sessid]
+            elif selector == 'stim_type':
+                tag = trial.metadata['Stim type']
+            elif selector == 'escape_arm':
+                tag = trial.processing['Trial outcome']['threat_escape_arm'].split('_')[0]
             if tag not in max_counterscounters.keys(): continue
 
-            vel = line_smoother(trial.dlc_tracking['Posture']['body']['Velocity'].values)
-            acc = line_smoother(np.diff(vel))
-            head_ang_vel = np.abs(line_smoother(trial.dlc_tracking['Posture']['body']['Head ang vel'].values))
+            # Get variables
+            vel = line_smoother(trial.dlc_tracking['Posture']['body']['Velocity'].values, order=10)
+            acc = line_smoother(np.diff(vel), order=10)
+            head_ang_vel = np.abs(line_smoother(trial.dlc_tracking['Posture']['body']['Head ang vel'].values), order=10)
+            head_ang_acc = line_smoother(np.diff(head_ang_vel), order=10)
             body_len = line_smoother(trial.dlc_tracking['Posture']['body']['Body length'].values)
-
-            pre_stim_mean_bl = np.mean(body_len[(1800-121):1799])
+            pre_stim_mean_bl = np.mean(body_len[(1800 - 121):1799])  # bodylength randomised to the 4s before the stim
             body_len = np.divide(body_len, pre_stim_mean_bl)
 
-            body_ang =  line_smoother(trial.dlc_tracking['Posture']['body']['Orientation'].values)
+            # Head-body angle variable
+            body_ang = line_smoother(trial.dlc_tracking['Posture']['body']['Orientation'].values)
             head_ang = line_smoother(trial.dlc_tracking['Posture']['body']['Head angle'].values)
-            while np.any(body_ang[body_ang>360]): body_ang[body_ang>360] -= 360
-            while np.any(head_ang[head_ang>360]): head_ang[head_ang>360] -= 360
-            hb_angle = np.abs(line_smoother(np.diff(np.radians(body_ang)-np.radians(head_ang))))
+            while np.any(body_ang[body_ang > 360]): body_ang[body_ang > 360] -= 360
+            while np.any(head_ang[head_ang > 360]): head_ang[head_ang > 360] -= 360
+            hb_angle = np.abs(line_smoother(np.diff(np.radians(body_ang) - np.radians(head_ang))))
 
-            axarr[0].plot(vel, color=colors[tag], alpha=0.15)
-            axarr[2].plot(head_ang_vel, color=colors[tag], alpha=0.15)
-            axarr[1].plot(vel, color=colors[tag], alpha=0.15)
-            axarr[4].plot(body_len, color=colors[tag], alpha=0.15)
-            axarr[5].plot(hb_angle, color=colors[tag], alpha=0.15)
+            # store variables in dictionray and plot them
+            temp_dict = {'vel': vel, 'acc': acc, 'angvel': head_ang_vel, 'angacc': head_ang_acc,
+                              'nbl': body_len, 'bang': hb_angle}
 
-            v, a, b, h = np.zeros(3600), np.zeros(3600), np.zeros(3600), np.zeros(3600)
-            v[:len(vel)] = vel
-            a[:len(vel)] = head_ang_vel
-            b[:len(vel)] = body_len
-            h[:len(hb_angle)] = hb_angle
-            vel, head_ang_vel, body_len, hb_angle = v, a, b, h
 
-            velocities[tag][:, counters[tag]] = vel
-            head_velocities[tag][:, counters[tag]] = head_ang_vel
-            body_lengths[tag][:, counters[tag]] = body_len
-            head_body_angles[tag][:, counters[tag]] = hb_angle
+            # make sure all vairbales are of the same length
+            tgtlen = 3600
+            for vname, vdata in temp_dict.items():
+                while len(vdata) < tgtlen:
+                    vdata = np.append(vdata, 0)
+                    temp_dict[vname] = vdata
+
+            for vname, vdata in temp_dict.items():
+                axes_dict[vname].plot(vdata, color=colors[tag], alpha=0.15)
+
+            # Update container vars and tags counters
+            variables_dict['velocities'][tag][:, counters[tag]] = temp_dict['vel']
+            variables_dict['accelerations'][tag][:, counters[tag]] = temp_dict['acc']
+            variables_dict['head_velocities'][tag][:, counters[tag]] = temp_dict['angvel']
+            variables_dict['head_accelerations'][tag][:, counters[tag]] = temp_dict['angacc']
+            variables_dict['body_lengths'][tag][:, counters[tag]] = temp_dict['nbl']
+            variables_dict['head_body_angles'][tag][:, counters[tag]] = temp_dict['bang']
             counters[tag] = counters[tag] + 1
 
-        medians = []
-        for name, val in velocities.items():
-            if name == 'PathInt2': lg = '2Arms Maze'
-            elif name == 'PathInt': lg = '3Arms Maze'
-            else: lg = name
-            avg_vel = np.mean(val, axis=1)
-            sem_avg_vel = np.std(val, axis=1) / math.sqrt(max_counterscounters[name])
-            median_vel = np.median(val, axis=1)
-            medians.append(median_vel)
-            try:
-                low_perc = np.percentile(val, 25, axis=1)
-                high_perc = np.percentile(val, 75, axis=1)
-            except:
-                 a = 2
-            axarr[0].errorbar(x=np.linspace(0, len(avg_vel), len(avg_vel)), y=avg_vel, yerr=sem_avg_vel,
-                              color=np.add(colors[name], 0.3), alpha=0.65,
-                          linewidth=4, label=lg)
-            axarr[1].plot(median_vel, color=np.add(colors[name], 0.3), alpha=0.65, linewidth=5, label=lg)
-            # axarr[1].plot(low_perc, color=np.subtract(colors[name], 0.3), alpha=0.65, linewidth=2, label=None)
-            # axarr[1].plot(high_perc, color=np.subtract(colors[name], 0.3), alpha=0.65, linewidth=2, label=None)
+        # Plot means and SEM
+        def means_plotter(var, ax):
+            for name, val in var.items():
+                if name == 'PathInt2': lg = '2Arms Maze'
+                elif name == 'PathInt': lg = '3Arms Maze'
+                else: lg = name
+                avg = np.mean(val, axis=1)
+                sem = np.std(val, axis=1) / math.sqrt(max_counterscounters[name])
+                ax.errorbar(x=np.linspace(0, len(avg), len(avg)), y=avg, yerr=sem,
+                            color=np.add(colors[name], 0.3), alpha=0.65, linewidth=4, label=lg)
 
-        for name, val in head_velocities.items():
-            if name == 'PathInt2': lg = '2Arms Maze'
-            elif name == 'PathInt': lg = '3Arms Maze'
-            else: lg = name
+        means_plotter(variables_dict['velocities'], axes_dict['vel'])
+        means_plotter(variables_dict['accelerations'], axes_dict['acc'])
+        means_plotter(variables_dict['head_velocities'], axes_dict['angvel'])
+        means_plotter(variables_dict['head_accelerations'], axes_dict['angacc'])
+        means_plotter(variables_dict['body_lengths'], axes_dict['nbl'])
+        means_plotter(variables_dict['head_body_angles'], axes_dict['bang'])
 
-            avg_vel = np.median(val, axis=1)
-            sem_avg_vel = np.std(val, axis=1) / math.sqrt(max_counterscounters[name])
-            axarr[2].errorbar(x=np.linspace(0, len(avg_vel), len(avg_vel)), y=avg_vel, yerr=sem_avg_vel,
-                              color=np.add(colors[name], 0.3), alpha=0.65,
-                              linewidth=4, label=lg)
+        # Update axes
+        xlims, facecolor = [1780, 1950], [.0, .0, .0]
+        axes_params = {'vel': ('MEAN VELOCITY aligned to stim', [-0.5, 20], 'Frames', 'px/frame'),
+                       'acc': ('MEDIAN ACCELERATION aligned to stim', [-0.5, 1], 'Frames', ''),
+                       'angvel': ('MEAN Head Angular VELOCITY', [-0.1, 20], 'Frames', 'deg/frame'),
+                       'angacc': ('MEAN Head Angular ACCELERATION', [-1, 1], 'Frames', ''),
+                       'nbl': ('MEAN normalised body LENGTH', [0.5, 1.25], 'Frames', 'arbritary unit'),
+                       'bang': ('MEAN head-body angle', [0, 0.6], 'Frames', 'deg')}
 
-        for name, val in body_lengths.items():
-            if name == 'PathInt2':   lg = '2Arms Maze'
-            elif name == 'PathInt': lg = '3Arms Maze'
-            else:  lg = name
-
-            avg_bl = np.median(val, axis=1)
-            sem_avg_bl = np.std(val, axis=1) / math.sqrt(max_counterscounters[name])
-            axarr[4].errorbar(x=np.linspace(0, len(avg_bl), len(avg_bl)), y=avg_bl, yerr=sem_avg_bl,
-                              color=np.add(colors[name], 0.3), alpha=0.65,
-                              linewidth=4, label=lg)
-
-        for name, val in head_body_angles.items():
-            if name == 'PathInt2': lg = '2Arms Maze'
-            elif name == 'PathInt':  lg = '3Arms Maze'
-            else:   lg = name
-
-            avg_ang = np.median(val, axis=1)
-            sem_avg_ang = np.std(val, axis=1) / math.sqrt(max_counterscounters[name])
-            axarr[5].errorbar(x=np.linspace(0, len(avg_ang), len(avg_ang)), y=avg_ang, yerr=sem_avg_ang,
-                              color=np.add(colors[name], 0.3), alpha=0.65,
-                              linewidth=4, label=lg)
-        # median_pvals = []
-        # for i in range(3600):
-        #     s, p = scipy.stats.ranksums(velocities['FlipFlop Maze'][i, :],
-        #                                 velocities['PathInt2'][i, :])
-        #     median_pvals.append(p)
-        # axarr[3].set_yscale('log')
-        # axarr[3].plot(median_pvals, color=[.7, .7, .7], linewidth=2)
-        # axarr[3].axhline(0.05/3600, color='w', linestyle=':')
-
-        for ax in axarr:
+        for axname, ax in axes_dict.items():
             ax.axvline(1800, color='w')
             make_legend(ax, [0.1, .1, .1], [0.8, 0.8, 0.8], changefont=16)
+            ax.set(title=axes_params[axname][0], xlim=xlims, ylim=axes_params[axname][1],
+                   xlabel=axes_params[axname][2], ylabel=axes_params[axname][3], facecolor=facecolor)
 
-        xlims = [1780, 1950]
-        axarr[0].set(title='MEAN VELOCITY aligned to stim', xlim=xlims, xlabel='Frames', ylabel='px/frame',
-                     ylim=[-0.5, 20], facecolor=[.0, .0, .0])
-        axarr[1].set(title='MEDIAN Velocity aligned to stim', xlim=xlims,  xlabel='Frames', ylabel='px/frame',
-                     ylim=[-0.5, 20], facecolor=[.0, .0, .0])
-        axarr[3].set(title='Medians Wilcoxon rank-sum p-Val', xlim=xlims, ylim=[0, 1],
-                     xlabel='Frames', ylabel='px/frame', facecolor=[.0, .0, .0])
-        axarr[2].set(title='MEAN Head Angular VELOCITY', xlim=xlims, ylim=[-0.1, 20], xlabel='Frames',
-                     ylabel='def/frame',  facecolor=[.0, .0, .0])
-        axarr[4].set(title='MEAN normalised body LENGTH', xlim=xlims, ylim=[0.5, 1.25], xlabel='Frames',
-                     ylabel='def/frame', facecolor=[.0, .0, .0])
-        axarr[5].set(title='MEAN head-body angle', xlim=xlims, ylim=[0, 0.6], xlabel='Frames',
-                     ylabel='def/frame', facecolor=[.0, .0, .0])
         a = 1
 
     def process_by_mouse(self, tracking_data):
@@ -1039,11 +1016,12 @@ class mazecohortprocessor:
 
         # plt.show()
 
-    def process_trials(self, tracking_data, select_by_speed='fastest'):
+    def process_trials(self, tracking_data, select_by_speed=True):
         """ select by speed can be:
+            True to select
                 fastest: 33% of trials with fastest time to peak acceleration
                 slowest: 33% of trials with slowest time to peak acceleration
-                False: take all trials
+            False: take all trials
 
             The code looks at the peak to acceleration in the first 2s (60 frames)
         """
@@ -1060,9 +1038,28 @@ class mazecohortprocessor:
             outcomes.append(outcome)
 
             # Get time to peak acceleration
-            head_ang_vel = np.abs(line_smoother(trial.dlc_tracking['Posture']['body']['Head ang vel'].values)[1800:1860])
-            frames_to_peak_acc.append(np.argmax(head_ang_vel))
+            if select_by_speed:
+                head_ang_vel = np.abs(line_smoother(trial.dlc_tracking['Posture']['body']['Head ang vel'].values)[1800:1860])
+                frames_to_peak_acc.append(np.argmax(head_ang_vel))
 
+        if select_by_speed:
+            fast_th = sorted(frames_to_peak_acc)[0:round(len(frames_to_peak_acc)/4)][-1]
+            slow_th = sorted(frames_to_peak_acc)[round(2*(len(frames_to_peak_acc)/4)):][0]
+
+            fast_index, slow_index = [], []
+            for idx, speed in enumerate(frames_to_peak_acc):
+                if speed <= fast_th: fast_index.append(idx)
+                elif speed >= slow_th: slow_index.append(idx)
+
+            nfast_trilas= len(fast_index)
+            fast_lesc_prob = len([e for i,e in enumerate(escapes) if i in fast_index and 'Left' in e])/nfast_trilas
+            fast_cesc_prob = len([e for i, e in enumerate(escapes) if i in fast_index and 'Central' in e]) / nfast_trilas
+            fast_resc_prob = 1 - (fast_lesc_prob + fast_cesc_prob)
+
+            nslow_trilas= len(slow_index)
+            slow_lesc_prob = len([e for i,e in enumerate(escapes) if i in slow_index and 'Left' in e])/nslow_trilas
+            slow_cesc_prob = len([e for i, e in enumerate(escapes) if i in slow_index and 'Central' in e]) / nslow_trilas
+            slow_resc_prob = 1 - (slow_lesc_prob + slow_cesc_prob)
 
         num_trials = len(outcomes)
         left_origins = len([b for b in origins if 'Left' in b])
