@@ -16,7 +16,7 @@ matplotlib.rcParams['ytick.color'] = col
 
 plt.rcParams.update(params)
 
-
+import array
 import math
 import scipy.stats
 import random
@@ -36,7 +36,7 @@ arms_colors = dict(left=(255, 0, 0), central=(0, 255, 0), right=(0, 0, 255), she
 class mazeprocessor:
     # TODO session processor
     def __init__(self, session, settings=None, debugging=False):
-        self.escape_duration_limit = 45  # number of seconds within which the S platf must be reached to consider the trial succesf.
+        self.escape_duration_limit = 9  # number of seconds within which the S platf must be reached to consider the trial succesf.
 
 
         # Initialise variables
@@ -509,12 +509,11 @@ class mazecohortprocessor:
         metad =  cohort.Metadata[name]
         tracking_data = cohort.Tracking[name]
 
-        self.sample_escapes_probabilities(tracking_data)
-
         self.plot_velocites_grouped(tracking_data, metad, selector='exp')
 
         self.process_trials(tracking_data)
 
+        self.sample_escapes_probabilities(tracking_data)
 
         # self.process_status_at_stim(tracking_data)
 
@@ -604,6 +603,16 @@ class mazecohortprocessor:
         a = 1
 
     def plot_velocites_grouped(self, tracking_data, metadata, selector='exp'):
+        def line_smoother(data, order=0):
+            return data
+
+        align_to_det = False
+        detections_file = 'D:\\Dropbox (UCL - SWC)\\Dropbox (UCL - SWC)\\Rotation_vte\\analysis\\det_times.txt'
+        smooth_lines = False
+        aligne_at_stim_time = False
+        if smooth_lines:
+            from Utils.maths import line_smoother
+
         # Get experiment tags and plotting colors
         tags = []
         assigned_tags = {}
@@ -641,8 +650,8 @@ class mazecohortprocessor:
         # initialise figure
         f, axarr = plt.subplots(3, 2, facecolor=[0.1, 0.1, 0.1])
         axarr = axarr.flatten()
-        axes_dict = {'vel': axarr[0], 'acc': axarr[1], 'angvel': axarr[2], 'angacc': axarr[3],
-                     'nbl': axarr[4], 'bang': axarr[5]}
+        axes_dict = {'vel': axarr[0], 'time_to_escape_bridge': axarr[1], 'angvel': axarr[2], 'time_to_shelter': axarr[3],
+                     'nbl': axarr[4], 'vel_at_esc_br': axarr[5]}
         # f.tight_layout()
 
         # itialise container vars
@@ -650,11 +659,11 @@ class mazecohortprocessor:
 
         variables_dict = dict(
             velocities={name: np.zeros((3600, max_counterscounters[name])) for name in tags},
-            accelerations={name: np.zeros((3600, max_counterscounters[name])) for name in tags},
+            time_to_escape_bridge={name: [] for name in tags},
             head_velocities={name: np.zeros((3600, max_counterscounters[name])) for name in tags},
-            head_accelerations={name: np.zeros((3600, max_counterscounters[name])) for name in tags},
+            time_to_shelter={name: [] for name in tags},
             body_lengths={name: np.zeros((3600, max_counterscounters[name])) for name in tags},
-            head_body_angles={name: np.zeros((3600, max_counterscounters[name])) for name in tags})
+            velocity_at_escape_bridge={name: [] for name in tags})
 
         # loop over trials and assign the data to the correct tag in the variables dict
         counters = {t: 0 for t in tags}
@@ -674,48 +683,77 @@ class mazecohortprocessor:
                 tag = trial.processing['Trial outcome']['threat_escape_arm'].split('_')[0]
             if tag not in max_counterscounters.keys(): continue
 
-            # Get variables
-            vel = line_smoother(trial.dlc_tracking['Posture']['body']['Velocity'].values, order=10)
-            acc = line_smoother(np.diff(vel), order=10)
-            head_ang_vel = np.abs(line_smoother(trial.dlc_tracking['Posture']['body']['Head ang vel'].values), order=10)
-            head_ang_acc = line_smoother(np.diff(head_ang_vel), order=10)
+            time_to_escape_bridge = [i for i,r in enumerate(trial.processing['Trial outcome']['trial_rois_trajectory'][1800:]) if 'Threat' not in r][0] # line_smoother(np.diff(vel), order=10)
+            head_ang_vel = np.abs(line_smoother(trial.dlc_tracking['Posture']['body']['Body ang vel'].values), order=10)
+            time_to_shelter = [i for i,r in enumerate(trial.processing['Trial outcome']['trial_rois_trajectory'][1800:]) if 'Shelter' in r][0] # line_smoother(np.diff(head_ang_vel), order=10)
             body_len = line_smoother(trial.dlc_tracking['Posture']['body']['Body length'].values)
-            pre_stim_mean_bl = np.mean(body_len[(1800 - 121):1799])  # bodylength randomised to the 4s before the stim
+            # pre_stim_mean_bl = np.mean(body_len[(1800 - 31):1799])  # bodylength randomised to the 4s before the stim
+            pre_stim_mean_bl = body_len[1800]
             body_len = np.divide(body_len, pre_stim_mean_bl)
 
+            vel = line_smoother(trial.dlc_tracking['Posture']['body']['Velocity'].values, order=10)
+            vel = np.divide(vel, pre_stim_mean_bl)
+
             # Head-body angle variable
-            body_ang = line_smoother(trial.dlc_tracking['Posture']['body']['Orientation'].values)
-            head_ang = line_smoother(trial.dlc_tracking['Posture']['body']['Head angle'].values)
-            while np.any(body_ang[body_ang > 360]): body_ang[body_ang > 360] -= 360
-            while np.any(head_ang[head_ang > 360]): head_ang[head_ang > 360] -= 360
-            hb_angle = np.abs(line_smoother(np.diff(np.radians(body_ang) - np.radians(head_ang))))
+            # body_ang = line_smoother(np.rad2deg(np.unwrap(np.deg2rad(trial.dlc_tracking['Posture']['body']['Orientation']))))
+            # head_ang = line_smoother(np.rad2deg(np.unwrap(np.deg2rad(trial.dlc_tracking['Posture']['body']['Head angle']))))
+            # headbody_ang = np.abs(line_smoother(np.subtract(head_ang, body_ang)))
+            # headbody_ang = np.subtract(headbody_ang, headbody_ang[1800])
+            # hb_angle = headbody_ang
+            vel_at_escape_bridge = vel[1800+time_to_escape_bridge]
 
             # store variables in dictionray and plot them
-            temp_dict = {'vel': vel, 'acc': acc, 'angvel': head_ang_vel, 'angacc': head_ang_acc,
-                              'nbl': body_len, 'bang': hb_angle}
+            temp_dict = {'vel': vel, 'time_to_escape_bridge': time_to_escape_bridge, 'angvel': head_ang_vel,
+                         'time_to_shelter': time_to_shelter,
+                         'nbl': body_len, 'vel_at_esc_br': vel_at_escape_bridge}
+
+
+            if aligne_at_stim_time:
+                for n, v in temp_dict.items():
+                    try:  temp_dict[n] = np.subtract(v, v[1800])
+                    except: pass
 
 
             # make sure all vairbales are of the same length
             tgtlen = 3600
             for vname, vdata in temp_dict.items():
-                while len(vdata) < tgtlen:
-                    vdata = np.append(vdata, 0)
-                    temp_dict[vname] = vdata
+                if isinstance(vdata, np.ndarray):
+                    while len(vdata) < tgtlen:
+                        vdata = np.append(vdata, 0)
+                        temp_dict[vname] = vdata
+
+
+            if align_to_det:
+                with open(detections_file, 'r') as f:
+                    check = False
+                    for line in f:
+                        if trial.name in line:
+                            det = int(line.split(' ')[-1])
+                            check = True
+                            break
+                if check:
+                    for n,v in temp_dict.items():
+                        if isinstance(v, np.ndarray):
+                            v = v[det-1800:]
+                            v = np.append(v, np.zeros(det-1800))
+                            temp_dict[n] = v
 
             for vname, vdata in temp_dict.items():
-                axes_dict[vname].plot(vdata, color=colors[tag], alpha=0.15)
+                if isinstance(vdata, np.ndarray):
+                    axes_dict[vname].plot(vdata, color=colors[tag], alpha=0.15)
 
             # Update container vars and tags counters
             variables_dict['velocities'][tag][:, counters[tag]] = temp_dict['vel']
-            variables_dict['accelerations'][tag][:, counters[tag]] = temp_dict['acc']
+            variables_dict['time_to_escape_bridge'][tag].append(temp_dict['time_to_escape_bridge'])
             variables_dict['head_velocities'][tag][:, counters[tag]] = temp_dict['angvel']
-            variables_dict['head_accelerations'][tag][:, counters[tag]] = temp_dict['angacc']
+            variables_dict['time_to_shelter'][tag].append(temp_dict['time_to_shelter'])
             variables_dict['body_lengths'][tag][:, counters[tag]] = temp_dict['nbl']
-            variables_dict['head_body_angles'][tag][:, counters[tag]] = temp_dict['bang']
+            variables_dict['velocity_at_escape_bridge'][tag].append(temp_dict['vel_at_esc_br'])
             counters[tag] = counters[tag] + 1
 
         # Plot means and SEM
         def means_plotter(var, ax):
+            means = []
             for name, val in var.items():
                 if name == 'PathInt2': lg = '2Arms Maze'
                 elif name == 'PathInt': lg = '3Arms Maze'
@@ -724,52 +762,97 @@ class mazecohortprocessor:
                 sem = np.std(val, axis=1) / math.sqrt(max_counterscounters[name])
                 ax.errorbar(x=np.linspace(0, len(avg), len(avg)), y=avg, yerr=sem,
                             color=np.add(colors[name], 0.3), alpha=0.65, linewidth=4, label=lg)
+                means.append(avg)
+            return means
 
-        means_plotter(variables_dict['velocities'], axes_dict['vel'])
-        means_plotter(variables_dict['accelerations'], axes_dict['acc'])
-        means_plotter(variables_dict['head_velocities'], axes_dict['angvel'])
-        means_plotter(variables_dict['head_accelerations'], axes_dict['angacc'])
-        means_plotter(variables_dict['body_lengths'], axes_dict['nbl'])
-        means_plotter(variables_dict['head_body_angles'], axes_dict['bang'])
+        def scatter_plotter(var, ax):
+            for idx, (name, val) in enumerate(var.items()):
+                if name == 'PathInt2': lg = '2Arms Maze'
+                elif name == 'PathInt': lg = '3Arms Maze'
+                else: lg = name
+                y = np.divide(np.random.rand(len(val)), 4) + 0.5*idx +0.05
+                ax.scatter(val, y, color=colors[name], alpha=0.65, s=30, label=lg)
+                ax.axvline(np.median(val), color=colors[name], alpha=0.5, linewidth=2)
+
+        mean_vels = means_plotter(variables_dict['velocities'], axes_dict['vel'])
+        mean_blengths = means_plotter(variables_dict['body_lengths'], axes_dict['nbl'])
+        mean_headvels = means_plotter(variables_dict['head_velocities'], axes_dict['angvel'])
+
+        scatter_plotter(variables_dict['time_to_escape_bridge'], axes_dict['time_to_escape_bridge'])
+        scatter_plotter(variables_dict['time_to_shelter'], axes_dict['time_to_shelter'])
+        scatter_plotter(variables_dict['velocity_at_escape_bridge'], axes_dict['vel_at_esc_br'])
 
         # Update axes
-        xlims, facecolor = [1785, 1950], [.0, .0, .0]
-        axes_params = {'vel': ('MEAN VELOCITY aligned to stim', [-0.5, 20], 'Frames', 'px/frame'),
-                       'acc': ('MEDIAN ACCELERATION aligned to stim', [-0.5, 1], 'Frames', ''),
-                       'angvel': ('MEAN Head Angular VELOCITY', [-0.1, 20], 'Frames', 'deg/frame'),
-                       'angacc': ('MEAN Head Angular ACCELERATION', [-1, 1], 'Frames', ''),
-                       'nbl': ('MEAN normalised body LENGTH', [0.5, 1.25], 'Frames', 'arbritary unit'),
-                       'bang': ('MEAN head-body angle', [0, 0.6], 'Frames', 'deg')}
+        xlims, scatter_xlims, facecolor = [1785, 1890], [0, 270], [.0, .0, .0]
+        t1 = np.arange(xlims[0], xlims[1] + 15, 15)
+        t2 = np.arange(scatter_xlims[0], scatter_xlims[1] + 15, 15)
+        t3 = np.arange(0, 0.5 + 0.05, 0.05)
+
+        axes_params = {'vel': ('MEAN VELOCITY aligned to stim', xlims, [-0.05, 0.25], 'Frames', 'bl/frame', t1),
+                       'time_to_escape_bridge': ('Time to escape bridge', scatter_xlims, [0, 1], 'Frames', '', t2),
+                       'angvel': ('MEAN Head Angular VELOCITY', xlims, [-2, 10], 'Frames', 'deg/frame', t1),
+                       'time_to_shelter': ('Time to sheleter', scatter_xlims, [0, 1], 'Frames', '', t2),
+                       'nbl': ('MEAN normalised body LENGTH', xlims, [0.5, 1.5], 'Frames', 'arbritary unit', t1),
+                       'vel_at_esc_br': ('Velocity at escape bridge', [0, 0.5], [0, 1], 'Frames', 'deg', t3)}
 
         for axname, ax in axes_dict.items():
             ax.axvline(1800, color='w')
             make_legend(ax, [0.1, .1, .1], [0.8, 0.8, 0.8], changefont=16)
-            ax.set(title=axes_params[axname][0], xlim=xlims, ylim=axes_params[axname][1],
-                   xticks = np.arange(xlims[0], xlims[1]+15, 15),
-                   xlabel=axes_params[axname][2], ylabel=axes_params[axname][3], facecolor=facecolor)
+            ax.set(title=axes_params[axname][0], xlim=axes_params[axname][1], ylim=axes_params[axname][2],
+                   xticks=axes_params[axname][5],
+                   xlabel=axes_params[axname][3], ylabel=axes_params[axname][4], facecolor=facecolor)
+
+        ####################################################################################
+        ####################################################################################
+        ####################################################################################
+
+        all_means = [mean_vels, mean_headvels, mean_blengths]
+        ttls, names = ['flipflop', 'twoarms'], ['velocity', 'head velocity', 'bodylength']
+        colors = ['r', 'g', 'm']
+        f, ax = plt.subplots(2, 2, facecolor=[0.1, 0.1, 0.1])
+        ax = ax.flatten()
+        for n in range(2):
+            for idx, means in enumerate(all_means):
+                d = means[n][1800: 1860]
+                mind, maxd = np.min(d), np.max(d)
+                # normed = np.divide(np.subtract(d, mind), (maxd-mind))
+                normed = d
+
+                ax[n].plot(normed, linewidth=2, alpha=0.5, color=colors[idx], label=names[idx])
+                ax[n+2].plot(np.diff(normed), linewidth=2, alpha=0.5, color=colors[idx], label=names[idx])
+
+            make_legend(ax[n], [0.1, .1, .1], [0.8, 0.8, 0.8], changefont=16)
+            ax[n].set(facecolor=facecolor, title = ttls[n])
+            ax[n+2].set(facecolor=facecolor, title = ttls[n])
 
         # Generate a scatter plot of when the max ang vel is reached for each trial (in the 60 frames after stim)
         f, ax = plt.subplots(facecolor=[0.1, 0.1, 0.1])
+        baseline_range, test_range = 1790, 60
         maxes = {}
-        for idx, (name, values) in enumerate(variables_dict['head_accelerations'].items()):
-            baseline = np.mean(variables_dict['head_accelerations'][name][1708:1798,:], axis=0)
-            baseline_std = np.std(variables_dict['head_accelerations'][name][1708:1798,:], axis=0)
-            th = np.add(baseline, 1.5*baseline_std)
-            above_th = np.argmax(variables_dict['head_accelerations'][name][1799:1859,:]>th, axis=0).astype('float')
+        for idx, (name, values) in enumerate(variables_dict['body_lengths'].items()):
+            baseline = np.mean(variables_dict['body_lengths'][name][1799-baseline_range:1799,:], axis=0)
+            baseline_std = np.std(variables_dict['body_lengths'][name][1799-baseline_range:1799,:], axis=0)
+            # th = np.add(baseline, 1.0*baseline_std)
+            # above_th = np.argmax(variables_dict['body_lengths'][name][1799:1859,:]>th, axis=0).astype('float')
+            th = 0.95
+            # above_th = np.argmax(variables_dict['body_lengths'][name][1800:1800+test_range,:]>th, axis=0).astype('float')
+            above_th = np.argmax(np.subtract(variables_dict['body_lengths'][name][1799:1859,:], th)<=0, axis=0).astype('float')
             above_th[above_th == 0] = np.nan
-            # maxes[name] = np.argmax(variables_dict['head_velocities'][name][1799:1829,:], axis=0)
+            #belo_th = np.argmax(np.subtract(variables_dict['body_lengths'][name][1799:1859,:], th)>=0.10, axis=0).astype('float')
+            #belo_th[belo_th == 0] = np.nan
+
             randomy = np.divide(np.random.rand(len(above_th)), 4) + 1 - idx*0.5
             ax.scatter(above_th, randomy, color=colors[name], alpha=0.85, s=15, label=name)
             ax.axvline(np.nanmedian(above_th), color=colors[name], linewidth=2, linestyle=':')
-            # ax.axvline(np.nanmean(above_th) - np.nanstd(above_th), color=colors[name], linewidth=1, linestyle=':')
-            # ax.axvline(np.nanmean(above_th) + np.nanstd(above_th), color=colors[name], linewidth=1, linestyle=':')
+            #ax.scatter(belo_th, np.subtract(randomy, 0.5), color=np.add(colors[name], 0.35), alpha=0.85, s=15, label=name)
+            #ax.axvline(np.nanmedian(belo_th), color=np.add(colors[name], .35), linewidth=2, linestyle=':')
+
 
 
         ax.set(facecolor=facecolor, xlim=[0, 60])
         make_legend(ax, [0.1, .1, .1], [0.8, 0.8, 0.8], changefont=16)
 
         a = 1
-
 
     def process_by_mouse(self, tracking_data):
         sess_id = None
@@ -1039,7 +1122,7 @@ class mazecohortprocessor:
 
         # plt.show()
 
-    def process_trials(self, tracking_data, select_by_speed=True):
+    def process_trials(self, tracking_data, select_by_speed=False):
         """ select by speed can be:
             True to select
                 fastest: 33% of trials with fastest time to peak acceleration
@@ -1085,6 +1168,7 @@ class mazecohortprocessor:
         central_origins = len([b for  b in origins if 'Central' in b])
         left_escapes = len([b for b in escapes if 'Left' in b])
         central_escapes = len([b for b in escapes if 'Central' in b ])
+        r_escapes = num_trials - left_escapes - central_escapes
 
         if len(set(maze_configs)) > 1:
             outcomes_perconfig = {name:None for name in set(maze_configs)}
@@ -1098,32 +1182,34 @@ class mazecohortprocessor:
                 if len([c for c in maze_configs if c == conf]) < origins_conf.numorigins:
                     raise Warning('Something went wrong, dammit')
                 outcomes_perconfig[conf] = dict(origins=origins_conf, escapes=escapes_conf)
-        else: outcomes_perconfig = None
 
+                resc = len([o for i, o in enumerate(escapes) if maze_configs[i] == conf and 'Right' in escapes[i]])
+                ntr = len([o for i, o in enumerate(escapes) if maze_configs[i] == conf])
+                if 'Right' in conf:
+                    self.coin_power(n=ntr, n_rescapes=resc)
+                else:
+                    self.coin_power(n=ntr, n_rescapes=resc)
+
+        else:
+            self.coin_power(n=num_trials, n_rescapes=r_escapes)
+            outcomes_perconfig = None
 
         def plotty(ax, numtr, lori, cori, lesc, cesc, title='Origin and escape probabilities'):
-
             basecolor = [.3, .3, .3]
-
             ax.bar(0, lori / numtr, color=basecolor, width=.25, label='L ori')
             ax.bar(0.25, cori / numtr, color=np.add(basecolor, .2), width=.25, label='C ori')
             ax.bar(0.5, 1 - ((lori + cori) / numtr), color=np.add(basecolor, .4), width=.25, label='R ori')
-
             ax.axvline(0.75, color=[1, 1, 1])
-
             ax.bar(1, lesc / numtr, color=basecolor, width=.25, label='L escape')
             ax.bar(1.25, cesc / numtr, color=np.add(basecolor, .2), width=.25, label='C escape')
             ax.bar(1.5, 1 - ((lesc + cesc) / numtr), color=np.add(basecolor, .4), width=.25, label='R escape')
-
             ax.set(title='{} - {} trials'.format(title, numtr), ylim=[0, 1], facecolor=[0.2, 0.2, 0.2])
-            # make_legend(ax, [0.1, .1, .1], [0.8, 0.8, 0.8], changefont=8)
-
+            make_legend(ax, [0.1, .1, .1], [0.8, 0.8, 0.8], changefont=8)
 
         if outcomes_perconfig is None:
             f, axarr = plt.subplots(1, 1,  facecolor=[0.1, 0.1, 0.1])
         else:
             f, axarr = plt.subplots(3, 1,  facecolor=[0.1, 0.1, 0.1])
-
 
         if outcomes_perconfig is not None:
             ax = axarr[0]
@@ -1144,4 +1230,25 @@ class mazecohortprocessor:
 
         f.tight_layout()
         #plt.show()
+
+
+    def coin_power(self, n=100, n_rescapes=0):
+        from scipy.stats import binom
+
+        print('BEGIN TESTING COIN POWER WITH {} TRIALS AND {} R ESCAPES'.format(n, n_rescapes))
+        alpha = 0.05
+        outcomes = []
+        for p in np.linspace(0, 1, 101):
+            p = round(p, 2)
+            # interval(alpha, n, p, loc=0)	Endpoints of the range that contains alpha percent of the distribution
+            failure_range = binom.interval(1 - alpha, n, p)
+            if failure_range[0] <= n_rescapes <= failure_range[1]:
+                print('Cannot reject null hypothesis that p = {} - range: {}'.format(p, failure_range))
+                outcomes.append(1)
+            else:
+                print('Null hypotesis: p = {} - REJECTED'.format(p))
+                outcomes.append(0)
+        f, ax = plt.subplots(1, 1,  facecolor=[0.1, 0.1, 0.1])
+        ax.plot(outcomes, linewidth=2, color=[.6, .6, .6])
+        ax.set(facecolor=[0, 0, 0])
 

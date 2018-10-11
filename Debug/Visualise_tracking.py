@@ -499,7 +499,7 @@ class App(QtGui.QMainWindow):
     ####################################################################################################################
     ####################################################################################################################
 
-    def update_by_frame(self, event, start_frame=1200):
+    def update_by_frame(self, event, start_frame=1750):
         """ When called it starts video playback at frame start_frame
             While it is running video playback can be stopped or altered by other functions """
         def get_plotting_fps(self):
@@ -587,7 +587,9 @@ class App(QtGui.QMainWindow):
         if frame_shift is not None:
             self.current_frame += frame_shift
         else:
-            self.current_frame = int(self.goto_frame_edit.text())
+            try:
+                self.current_frame = int(self.goto_frame_edit.text())
+            except: pass
         self.current_frame_label.setText('Frame: {}'.format(self.current_frame))
         self.update_video_grabber()
 
@@ -759,11 +761,11 @@ class MazeViewer(QtGui.QMainWindow):
         self.view.addItem(self.matched_img)
 
         self.curr_arm_label = App.create_label(self, 'Current Arm', (3, 6, 1, 1))
-        self.origin_arm_label = App.create_label(self, 'Origin Arm', (3, 7, 1, 1))
-        self.escape_arm_label = App.create_label(self, 'Escape Arm', (4, 7, 1, 1))
-        self.reaction_time_label = App.create_label(self, 'Reaction Time', (4, 6, 1, 1))
+        # self.origin_arm_label = App.create_label(self, 'Origin Arm', (3, 7, 1, 1))
+        # self.escape_arm_label = App.create_label(self, 'Escape Arm', (4, 7, 1, 1))
+        # self.reaction_time_label = App.create_label(self, 'Reaction Time', (4, 6, 1, 1))
 
-        self.assign_rt_button = App.create_btn(self, 'Assign RT', (6, 0, 1, 3), func=self.user_define_rt)
+        self.assign_rt_button = App.create_btn(self, 'Assign det. time', (3, 7, 1, 1), func=self.user_define_rt)
 
         self.setGeometry(3835, 40, 1450, 1000)
 
@@ -780,6 +782,12 @@ class MazeViewer(QtGui.QMainWindow):
         # Get the frame and crop it around the threat ROI, then display it
         processing_data = session.Tracking[trialname].processing
 
+        # print on which ROI is the mouse
+        fr_num = self.main.current_frame
+        roi = processing_data['Trial outcome']['trial_rois_trajectory'][fr_num]
+        self.curr_arm_label.setText(roi)
+
+        # show zoomed in frame
         if not 'maze_rois' in processing_data['Trial outcome'].keys():
             print('no rois no fun')
             return
@@ -789,17 +797,24 @@ class MazeViewer(QtGui.QMainWindow):
 
         rotated_frame = np.rot90(frame, 1)
         cropped_frame = rotated_frame[threat.topleft[1]:threat.bottomright[1], threat.topleft[0]:threat.bottomright[0]]
-        self.img.setImage(np.rot90(cropped_frame, 3), autoLevels=False)
+        cropped_frame = np.rot90(cropped_frame, 3)
+        # kernel = np.array([[0, -1, 0], [-1, 5, -1], [0, -1, 0]])
+        # sharpened_frame = cv2.filter2D(cropped_frame, -1, kernel)
+        self.img.setImage(cropped_frame, autoLevels=False)
 
     def user_define_rt(self, e):
         trial_name = self.main.trial
         tracking_data = self.main.current_working_sessions.Tracking[trial_name]
-        tracking_data.processing['Reaction Time'] = self.main.current_frame
+        tracking_data.processing['Detection Time'] = self.main.current_frame
+
+        with open('D:\\Dropbox (UCL - SWC)\\Dropbox (UCL - SWC)\\Rotation_vte\\analysis\\det_times.txt', 'a+') as f:
+            f.write('\nSession {} - Trial {} - Detection time: {}'.format(self.main.session.name, trial_name,
+                                                                          self.main.current_frame))
 
         print("""
      Session {}, 
      trial: {} 
-     rt: {}""".format(self.main.session.name, trial_name, self.main.current_frame))
+     dt: {}""".format(self.main.session.name, trial_name, self.main.current_frame))
 
 
 if __name__ == '__main__':
