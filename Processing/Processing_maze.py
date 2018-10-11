@@ -509,11 +509,12 @@ class mazecohortprocessor:
         metad =  cohort.Metadata[name]
         tracking_data = cohort.Tracking[name]
 
-        self.plot_velocites_grouped(tracking_data, metad, selector='stim_type')
+        self.sample_escapes_probabilities(tracking_data)
+
+        self.plot_velocites_grouped(tracking_data, metad, selector='exp')
 
         self.process_trials(tracking_data)
 
-        self.sample_escapes_probabilities(tracking_data)
 
         # self.process_status_at_stim(tracking_data)
 
@@ -527,7 +528,7 @@ class mazecohortprocessor:
         plt.show()
         a = 1
 
-    def coin_simultor(self, num_samples=24, num_iters=10000):
+    def coin_simultor(self, num_samples=10, num_iters=10000):
         probs = []
         for itern in tqdm(range(num_iters)):
             data = [random.randint(0, 1) for x in range(num_samples)]
@@ -543,7 +544,7 @@ class mazecohortprocessor:
         # ax.axvline(avg, color=basecolor, linewidth=4, linestyle=':')
         print('mean {}'.format(avg))
 
-    def sample_escapes_probabilities(self, tracking_data, num_samples=15, num_iters=10000):
+    def sample_escapes_probabilities(self, tracking_data, num_samples=9, num_iters=50000):
         sides = ['Left', 'Central', 'Right']
         # get escapes
         maze_configs, origins, escapes, outcomes = [], [], [], []
@@ -588,15 +589,15 @@ class mazecohortprocessor:
         for idx, side in enumerate(probs.keys()):
             if not np.any(np.asarray(probs[side])): continue
             # sns.kdeplot(probs[side], bw=0.05, shade=True, color=np.add(basecolor, 0.2*idx), label=side, ax=ax)
-            ax.hist(probs[side], color=np.add(basecolor, 0.2*idx), bins=50, label=side)
+            ax.hist(probs[side], color=np.add(basecolor, 0.2*idx), bins = 150,   label=side)
             # sns.distplot(probs[side], bins=3, label=side, ax=ax)
             # sns.distplot(probs[side], fit=norm, hist=False, kde=False, norm_hist=True, ax=ax)
 
-        for idx, side in enumerate(probs.keys()):
-            if not np.any(np.asarray(probs[side])): continue
-            avg = np.mean(probs[side])
-            ax.axvline(avg, color=np.add(basecolor, 0.2 * idx), linewidth=4, linestyle=':')
-            print('side {} mean {}'.format(side,avg))
+        # for idx, side in enumerate(probs.keys()):
+        #     if not np.any(np.asarray(probs[side])): continue
+        #     avg = np.mean(probs[side])
+        #     ax.axvline(avg, color=np.add(basecolor, 0.2 * idx), linewidth=4, linestyle=':')
+        #     print('side {} mean {}'.format(side,avg))
 
         make_legend(ax, [0.1, .1, .1], [0.8, 0.8, 0.8], changefont=16)
 
@@ -618,7 +619,7 @@ class mazecohortprocessor:
                 break
         tags = [t for t in set(tags)]
         # colors = [[.2, .2, .4], [.2, .4, .2], [.4, .4, .2], [.4, .2, .2], [.2, .4, .4]]
-        colors = [[.35, .35, .35], [.4, .2, .2]]
+        colors = [[.40, .28, .22], [.35, .35, .35]]
         colors = {name: col for name, col in zip(tags, colors)}
 
         # Get number of trials per tag
@@ -732,7 +733,7 @@ class mazecohortprocessor:
         means_plotter(variables_dict['head_body_angles'], axes_dict['bang'])
 
         # Update axes
-        xlims, facecolor = [1780, 1950], [.0, .0, .0]
+        xlims, facecolor = [1785, 1950], [.0, .0, .0]
         axes_params = {'vel': ('MEAN VELOCITY aligned to stim', [-0.5, 20], 'Frames', 'px/frame'),
                        'acc': ('MEDIAN ACCELERATION aligned to stim', [-0.5, 1], 'Frames', ''),
                        'angvel': ('MEAN Head Angular VELOCITY', [-0.1, 20], 'Frames', 'deg/frame'),
@@ -744,9 +745,31 @@ class mazecohortprocessor:
             ax.axvline(1800, color='w')
             make_legend(ax, [0.1, .1, .1], [0.8, 0.8, 0.8], changefont=16)
             ax.set(title=axes_params[axname][0], xlim=xlims, ylim=axes_params[axname][1],
+                   xticks = np.arange(xlims[0], xlims[1]+15, 15),
                    xlabel=axes_params[axname][2], ylabel=axes_params[axname][3], facecolor=facecolor)
 
+        # Generate a scatter plot of when the max ang vel is reached for each trial (in the 60 frames after stim)
+        f, ax = plt.subplots(facecolor=[0.1, 0.1, 0.1])
+        maxes = {}
+        for idx, (name, values) in enumerate(variables_dict['head_accelerations'].items()):
+            baseline = np.mean(variables_dict['head_accelerations'][name][1708:1798,:], axis=0)
+            baseline_std = np.std(variables_dict['head_accelerations'][name][1708:1798,:], axis=0)
+            th = np.add(baseline, 1.5*baseline_std)
+            above_th = np.argmax(variables_dict['head_accelerations'][name][1799:1859,:]>th, axis=0).astype('float')
+            above_th[above_th == 0] = np.nan
+            # maxes[name] = np.argmax(variables_dict['head_velocities'][name][1799:1829,:], axis=0)
+            randomy = np.divide(np.random.rand(len(above_th)), 4) + 1 - idx*0.5
+            ax.scatter(above_th, randomy, color=colors[name], alpha=0.85, s=15, label=name)
+            ax.axvline(np.nanmedian(above_th), color=colors[name], linewidth=2, linestyle=':')
+            # ax.axvline(np.nanmean(above_th) - np.nanstd(above_th), color=colors[name], linewidth=1, linestyle=':')
+            # ax.axvline(np.nanmean(above_th) + np.nanstd(above_th), color=colors[name], linewidth=1, linestyle=':')
+
+
+        ax.set(facecolor=facecolor, xlim=[0, 60])
+        make_legend(ax, [0.1, .1, .1], [0.8, 0.8, 0.8], changefont=16)
+
         a = 1
+
 
     def process_by_mouse(self, tracking_data):
         sess_id = None
@@ -1039,27 +1062,23 @@ class mazecohortprocessor:
 
             # Get time to peak acceleration
             if select_by_speed:
-                head_ang_vel = np.abs(line_smoother(trial.dlc_tracking['Posture']['body']['Head ang vel'].values)[1800:1860])
-                frames_to_peak_acc.append(np.argmax(head_ang_vel))
+                accel = trial.dlc_tracking['Posture']['body']['Head ang vel'].values
+                baseline = np.mean(accel[1708:1798])
+                baseline_std = np.std(accel[1708:1798])
+                th = baseline + (1.5 * baseline_std)
+                above_th = np.argmax(accel[1799:1859] > th).astype('float')
+                if above_th == 0: above_th = np.nan
+                frames_to_peak_acc.append(above_th)
 
         if select_by_speed:
-            fast_th = sorted(frames_to_peak_acc)[0:round(len(frames_to_peak_acc)/4)][-1]
-            slow_th = sorted(frames_to_peak_acc)[round(2*(len(frames_to_peak_acc)/4)):][0]
-
-            fast_index, slow_index = [], []
-            for idx, speed in enumerate(frames_to_peak_acc):
-                if speed <= fast_th: fast_index.append(idx)
-                elif speed >= slow_th: slow_index.append(idx)
-
-            nfast_trilas= len(fast_index)
-            fast_lesc_prob = len([e for i,e in enumerate(escapes) if i in fast_index and 'Left' in e])/nfast_trilas
-            fast_cesc_prob = len([e for i, e in enumerate(escapes) if i in fast_index and 'Central' in e]) / nfast_trilas
+            # Take trials with time to [ang acc > th] within a certain duration
+            fast_outcomes = []
+            for idx, nframes in enumerate(frames_to_peak_acc):
+                if nframes < 10: fast_outcomes.append(escapes[idx])
+            nfast_trilas = len(fast_outcomes)
+            fast_lesc_prob = len([e for e in fast_outcomes if 'Left' in e]) / nfast_trilas
+            fast_cesc_prob = len([e for e in fast_outcomes if 'Central' in e]) / nfast_trilas
             fast_resc_prob = 1 - (fast_lesc_prob + fast_cesc_prob)
-
-            nslow_trilas= len(slow_index)
-            slow_lesc_prob = len([e for i,e in enumerate(escapes) if i in slow_index and 'Left' in e])/nslow_trilas
-            slow_cesc_prob = len([e for i, e in enumerate(escapes) if i in slow_index and 'Central' in e]) / nslow_trilas
-            slow_resc_prob = 1 - (slow_lesc_prob + slow_cesc_prob)
 
         num_trials = len(outcomes)
         left_origins = len([b for b in origins if 'Left' in b])
