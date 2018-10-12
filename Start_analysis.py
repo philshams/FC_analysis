@@ -183,7 +183,7 @@ class Analysis():
         # Create a cohort and store it in database
         self.db, coh = create_cohort(self.db)  # Get all the trial data in one place
 
-        from Processing.Processing_maze import mazecohortprocessor
+        from Processing.Processing_maze_cohort import mazecohortprocessor
         mazecohortprocessor(coh)
 
         # save

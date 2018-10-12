@@ -32,6 +32,7 @@ from Config import cohort_options
 arms_colors = dict(left=(255, 0, 0), central=(0, 255, 0), right=(0, 0, 255), shelter=(200, 180, 0),
                         threat=(0, 180, 200))
 
+
 class mazecohortprocessor:
     def __init__(self, cohort):
 
@@ -46,11 +47,12 @@ class mazecohortprocessor:
         metad =  cohort.Metadata[name]
         tracking_data = cohort.Tracking[name]
 
+        self.sample_escapes_probabilities(tracking_data)
+
         self.plot_velocites_grouped(tracking_data, metad, selector='exp')
 
         self.process_trials(tracking_data)
 
-        self.sample_escapes_probabilities(tracking_data)
 
         # self.process_status_at_stim(tracking_data)
 
@@ -80,7 +82,7 @@ class mazecohortprocessor:
         # ax.axvline(avg, color=basecolor, linewidth=4, linestyle=':')
         print('mean {}'.format(avg))
 
-    def sample_escapes_probabilities(self, tracking_data, num_samples=False, num_iters=10000, replacement=True):
+    def sample_escapes_probabilities(self, tracking_data, num_samples=24, num_iters=10000, replacement=True):
         sides = ['Left', 'Central', 'Right']
         # get escapes
         maze_configs, origins, escapes, outcomes = [], [], [], []
@@ -114,7 +116,8 @@ class mazecohortprocessor:
             if not replacement:
                 sel_trials = random.sample(escapes, num_samples)
             else:
-                sel_trials = random.choices(escapes, k=num_samples)
+                sel_trials = [random.choice(escapes) for _ in escapes]
+                sel_trials = sel_trials[:num_samples]
             p = 0
             for side in sides:
                 probs[side].append(len([b for b in sel_trials if side in b])/num_samples)
