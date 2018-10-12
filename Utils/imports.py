@@ -48,7 +48,9 @@ from Utils.Messaging import slack_chat_messenger
 from Utils.utils_classes import Trial, Cohort
 
 # Processing
-from Processing.Processing_maze import mazeprocessor,  mazecohortprocessor  # , ProcessingTrialsMaze, ProcessingSessionMaze
+from Processing.Processing_maze import mazeprocessor
+from Processing.Processing_maze_cohort import mazecohortprocessor
+from Processing.Processing_maze_expspecific import *
 from Processing.Processing_utils import *
 from multiprocessing.dummy import Pool as ThreadPool
 
