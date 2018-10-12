@@ -7,7 +7,7 @@ from termcolor import colored
 
 def save_data(savelogpath, load_name, save_name, loaded_db_size, object=None, name_modifier='', saveas='pkl'):
     """ saves an object (the database) to file. If the object is not a dataframe, turns it into one"""
-    print(colored('\n     ... saving', 'yellow'))
+    print(colored('\nSaving {}'.format(save_name), 'yellow'))
     # Avoid overwriting
     if load_name == save_name:
         save_name += '_safe'
@@ -36,18 +36,17 @@ def save_data(savelogpath, load_name, save_name, loaded_db_size, object=None, na
             if counter > 10000:
                 break
 
-        print(colored('           ... data saved as {}\n'.format(save_name), 'yellow'))
+        print(colored('Data saved as {}\n'.format(save_name), 'yellow'))
     except:
         if object is None:
-            warn(colored('           ... tried to save a "None" object', 'yellow'))
+            warn(colored('Tried to save a "None" object', 'yellow'))
         else:
-            warn(colored('           ... something went wrong with saving', 'yellow'))
+            warn(colored('Something went wrong with saving', 'yellow'))
 
 
 def load_data(savelogpath, load_name, loadas='.pkl'):
     """ load data into a pandas datafrrame"""
-    print('====================================\n====================================\n'
-          'Loading database from: {}'.format(load_name))
+    print(colored('Loading database from: {}'.format(load_name),color='yellow'))
     try:
         db = pd.read_pickle(os.path.join(savelogpath, load_name))
         return db

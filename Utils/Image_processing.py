@@ -1,10 +1,10 @@
 import cv2
-
+from termcolor import colored
 
 def process_background(background, track_options):
     """ extract background: first frame of first video of a session
     Allow user to specify ROIs on the background image """
-    print('     ... extracting background')
+    print(colored('Extracting ROIs:','green'))
 
     cv2.startWindowThread()
     if len(background.shape) == 3:
@@ -15,12 +15,27 @@ def process_background(background, track_options):
     blur = cv2.blur(gray, (15, 15))
     edges = cv2.Canny(blur, 25, 30)
 
-    rois = {'Shelter': None, 'Threat': None, 'Task': None}
+    cv2.namedWindow('background')
+    cv2.imshow('background', gray)
+
+    rois = {'Shelter': None}
     if track_options['bg get rois']:          # Get user to define Shelter ROI
         for rname in rois.keys():
-            print('\n\nPlease mark {}'.format(rname))
-            rois[rname] = cv2.selectROI(gray, fromCenter=False)
+            print(colored('Please mark {}'.format(rname),'green'))
+            # rois[rname] = cv2.selectROI(gray, fromCenter=False)
+
+            cv2.setMouseCallback('background', mouse_callback, 0)  # Mouse callback
+
+            while True:
+                if cv2.waitKey(10) & 0xFF == ord('q'):
+                    break
+
+            print(colored('   done', 'green'))
 
     return edges, rois
 
 
+# mouse callback function
+def mouse_callback(event,x,y, flags, params):
+    if event == cv2.EVENT_LBUTTONDOWN:
+        print(x, y)

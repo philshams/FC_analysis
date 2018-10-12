@@ -14,7 +14,7 @@ from Utils.loadsave_funcs import load_yaml
 from Utils.decorators import clock
 
 from Config import startf, exp_type, track_options
-
+from termcolor import colored
 ########################################################################################################################
 ########################################################################################################################
 ########################################################################################################################
@@ -53,10 +53,10 @@ class Tracking():
         self.coord_l = []
 
         #### NOW TRACK ####
-        try:
-            self.main()
-        except:
-            warn('Something went wrong with tracking')
+        # try:
+        self.main()
+        # except:
+        #     warn('Something went wrong with tracking')
 
     def main(self):
         """
@@ -71,24 +71,24 @@ class Tracking():
             self.track_exploration()
 
         # Track whole session
-        try:
+        # try:
             if track_options['track whole session']:
                 self.track_wholesession()
-        except:
-            warn('Could not succesfully complete whole session tracking for {}'.format(str(self.session)))
+        # except:
+        #     warn('Could not succesfully complete whole session tracking for {}'.format(str(self.session)))
 
         # Track single trials
         if track_options['track_mouse_fast']:
             self.track_trials()
 
-    @clock
+    # @clock
     def track_exploration(self):
         if track_options['track whole session']:
             # No need to track the exploration, we will be tracking the whole session anyway so we can extract
             # the exploration data from there
             pass
         else:
-            print('     ... tracking Exploration')
+            print(colored('Tracking exploration...','green'))
             all_stims = self.session['Metadata'].stimuli.values()
             all_stims = [item for sublist in all_stims for item in sublist]
             all_stims = [item for sublist in all_stims for item in sublist]
@@ -106,10 +106,10 @@ class Tracking():
                                                                           tracked.data.y,
                                                                           tracked.data.orientation)
 
-    @clock
+    # @clock
     def track_wholesession(self):
         # Check if tracking the whole session
-        print('     ... tracking the whole session')
+        print(colored('Tracking the whole session...', 'green'))
         self.session['Tracking']['Whole Session'] = {}
         video_tracking_data = namedtuple('coordinates', 'x y ori')
 
@@ -126,10 +126,10 @@ class Tracking():
             if track_options['track_exploration']:
                 print('Need to write a function to extract the exploration data from the whole session data')
 
-    @clock
+    # @clock
     def track_trials(self):
         cfg = self.cfg
-        print('     ... tracking individual trials')
+        print(colored('Tracking individual trials...', 'green'))
         for stim_type, stims in self.session['Metadata'].stimuli.items():
             # For each stim type get the list of stim frames
             if not stims:
@@ -137,7 +137,7 @@ class Tracking():
 
             for vid_num, stims_video in enumerate(stims):  # Loop over each video in the session
                 for idx, stim in enumerate(stims_video):  # Loop over each stim for each video
-                    try:
+                    # try:
                         # SET UP - ######################################
                         self.videoname = '{}-{}_{}-{}'.format(self.session['Metadata'].session_id, stim_type, vid_num, idx)
 
@@ -156,11 +156,21 @@ class Tracking():
                         """
                         For STD tracking extract the position of the mouse contour using self.tracking()
                         """
+                        print('extracting clips')
+                        start_sec = start_frame * (1 / self.fps)
+                        stop_sec = stop_frame * (1 / self.fps)
+                        trial_clip = cut_crop_video(self.session['Metadata'].video_file_paths[vid_num][0],
+                                            cut=True, starts=start_sec, fins=stop_sec,
+                                            save_format=None, ret=True)
+
+                        self.dlc_config_settings['clips'][stim_type][self.videoname] = trial_clip
+
+
                         if track_options['use_stdtracking']:
-                            print('     ... processing trial {} - Standard tracking'.format(self.videoname))
+                            print(colored('processing trial {} - standard tracking'.format(self.videoname),'green'))
 
                             trial = self.tracking(self.background, self.session['Metadata'].video_file_paths[vid_num][0],
-                                                  start_frame=start_frame, stop_frame=stop_frame, video_fps=self.fps)
+                                                  start_frame=start_frame, stop_frame=stop_frame, video_fps=self.fps, justCoM=track_options['stdtracking_justCoM'])
 
                             trial = Data_rearrange_funcs.restructure_trial_data(trial, stim_type, idx, vid_num)
                             trial.metadata = trial_metadata
@@ -184,17 +194,18 @@ class Tracking():
                                                         cut=True, starts=start_sec, fins=stop_sec,
                                                         save_format=None, ret=True)
                             self.dlc_config_settings['clips'][stim_type][self.videoname] = trial_clip
-                    except:
-                        warn('Could not succesfully completestd tracking for session {}'.format(str(self.session)))
+                    # except:
+                    #     warn('Could not succesfully completestd tracking for session {}'.format(str(self.session)))
 
         # DLC TRACKING - SAVE CLIPS - ######################################
-        if track_options['use_deeplabcut']:
-            if self.dlc_config_settings['clips']['visual'] or self.dlc_config_settings['clips']['audio']:
-                print('        ... extracting trials video clips')
+        # if track_options['use_deeplabcut']:
+        #     if self.dlc_config_settings['clips']['visual'] or self.dlc_config_settings['clips']['audio']:
+        #         print('        ... extracting trials video clips')
                 # Update a list of sessions whose clips have been saved
                 # These are the sessions that will be processed using DLC
                 # If there are other videos from other sessions in the target folder, DLC
                 # will ignore them
+                print('saving clips')
                 session_clips_l = save_trial_clips(self.dlc_config_settings['clips'],
                                                 self.dlc_config_settings['clips_folder'])
                 self.clips_l.append(session_clips_l)
@@ -202,8 +213,8 @@ class Tracking():
 
 ########################################################################################################################
 ########################################################################################################################
-    @clock
-    def tracking(self, bg, video_path, start_frame=1, video_fps=30, stop_frame=-1, justCoM=True):
+    # @clock
+    def tracking(self, bg, video_path, start_frame=1, stop_frame=-1, video_fps=30, justCoM=True):
         # Create video capture
         cap = cv2.VideoCapture(video_path)
         ret, firstframe = cap.read()
@@ -229,10 +240,10 @@ class Tracking():
         if self.cfg['preview']:
             cv2.namedWindow('bg')
             cv2.imshow('bg', bg)
-            cv2.moveWindow('bg', 3200, 0)
+            cv2.moveWindow('bg', 1200, 0)
             cv2.waitKey(1)
 
-        # Start tracing
+        # Start tracking
         for f in range(start_frame, stop_frame):
             if not stop_frame == -1 and f > stop_frame:
                 return self

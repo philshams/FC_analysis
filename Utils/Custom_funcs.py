@@ -19,7 +19,7 @@ def cut_crop_video(vidpath='',  save_format=['avi'],
 
     if save_format:
         if 'avi' in save_format:
-            clip.write_videofile(savename+'_edited'+'.avi', codec='png')
+            clip.write_videofile(savename+'_edited'+'.avi', codec='xvid') # png before
         elif 'mp4' in save_format:
             clip.write_videofile(savename+'_edited'+'.mp4', codec='mpeg4')
         elif 'gif' in save_format:

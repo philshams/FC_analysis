@@ -1,6 +1,6 @@
-datalog: 'D:\Dropbox (UCL - SWC)\Dropbox (UCL - SWC)\Rotation_vte\analysis\datalog.xls'
-save fld: 'D:\Dropbox (UCL - SWC)\Dropbox (UCL - SWC)\Rotation_vte\analysis'
-DLC folder: 'C:\Users\Federico\Documents\GitHub\DeepLabCut'
+datalog: 'C:\Drive\DLC\data\experiments.xls'
+save fld: 'C:\Drive\DLC\data'
+DLC folder: 'C:\Drive\DLC\DeepLabCut'
 
 
 

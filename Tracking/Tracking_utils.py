@@ -289,25 +289,25 @@ def display_results(f, frame, threshold, magnif_factor, tracking):
         return resized_image
 
     # get larger version of frame
-    frame = enlarge_frame(frame, magnif_factor)
-    largth = enlarge_frame(threshold, magnif_factor)
+    # frame = enlarge_frame(frame, magnif_factor)
+    # largth = enlarge_frame(threshold, magnif_factor)
 
     # display frame number
     font = cv2.FONT_HERSHEY_SIMPLEX
     cv2.putText(frame, str(f), (100, 50), font, 2, (0, 0, 255), 2, cv2.LINE_AA)
-    cv2.putText(frame, 'vel:{}'.format(str(int(tracking.velocity[0][f - 1]))), (100, 100), font, 2, (0, 255, 0)
-                , 2, cv2.LINE_AA)
-    cv2.putText(frame, 'dir:{}'.format(str(int(tracking.direction[0][f - 1]))), (350, 100), font, 2,
-                (0, 255, 0), 2, cv2.LINE_AA)
-    cv2.putText(frame, 'orient.:{}'.format(str(int(tracking.orientation[0][f - 1]))), (600, 100), font,
-                2, (0, 255, 0), 2, cv2.LINE_AA)
+    # cv2.putText(frame, 'vel:{}'.format(str(int(tracking.velocity[0][f - 1]))), (100, 100), font, 2, (0, 255, 0)
+    #             , 2, cv2.LINE_AA)
+    # cv2.putText(frame, 'dir:{}'.format(str(int(tracking.direction[0][f - 1]))), (350, 100), font, 2,
+    #             (0, 255, 0), 2, cv2.LINE_AA)
+    # cv2.putText(frame, 'orient.:{}'.format(str(int(tracking.orientation[0][f - 1]))), (600, 100), font,
+    #             2, (0, 255, 0), 2, cv2.LINE_AA)
 
     # display results
-    cv2.namedWindow('frame')
-    cv2.namedWindow('th')
+    # cv2.namedWindow('frame')
+    # cv2.namedWindow('th')
     cv2.imshow('frame', frame)
     cv2.imshow('th', largth)
-    cv2.moveWindow('frame', 0, 0)
-    cv2.moveWindow('th', 0, 900)
+    # cv2.moveWindow('frame', 0, 0)
+    # cv2.moveWindow('th', 0, 900)
 
 

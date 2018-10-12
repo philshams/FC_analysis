@@ -6,9 +6,9 @@ from Config import verbose
 def clock(func):
     """ Decorator to time the execution of a function and print the result"""
     @functools.wraps(func)
-    def clocked(self, *args):
+    def clocked(self, *args, **kwargs):
         t0 = time.perf_counter()
-        result = func(self, *args)
+        result = func(self, *args, **kwargs)
         elapsed = time.perf_counter() - t0
         if verbose:
             name = func.__name__

@@ -1,3 +1,6 @@
+import time
+start = time.time()
+
 from tqdm import tqdm
 import sys
 import warnings
@@ -11,8 +14,8 @@ from Utils.Data_rearrange_funcs import create_cohort, check_session_selected
 from Utils.Messaging import slack_chat_messenger
 from Utils.decorators import clock
 
-from Tracking.Tracking_main import Tracking
 from Processing import Processing_main, Processing_exp_maze
+
 from Plotting import Single_trial_summary
 from Plotting import Maze_cohort_summary
 
@@ -69,22 +72,23 @@ class Analysis():
         if not selector_type == 'cohort':
             # Loop over all the sessions - Tracking 
             if track_mouse or extract_rois_background:
-                for session_name in tqdm(sorted(self.db.index)):
+                for session_name in sorted(self.db.index):
                     session = self.db.loc[session_name]
                     
                     # Check if this is one of the sessions we should be processing
                     selected = check_session_selected(session.Metadata, selector_type, selector)
                     if selected:
-                        print(colored('---------------\nTracking session {}'.format(session_name), 'green'))
+                        print(colored('\nTracking session {}'.format(session_name), 'green'))
 
                         self.video_analysis(session) # <-- main tracking function
 
                 if send_messages:
                     slack_chat_messenger('Finished STD tracking')
 
-                if track_mouse:
+                if track_options['use_deeplabcut']:
                     # Finish DLC tracking [extract pose on saved clips]
                     try:
+                        from Tracking.Tracking_main import Tracking
                         self.db = Tracking.tracking_use_dlc(self.db, self.clips_l)
                     except:
                         warnings.warn('Something went wront with DLC tracking ')
@@ -129,7 +133,7 @@ class Analysis():
         return
 
 ########################################################################################################################
-    @clock
+    # @clock
     def video_analysis(self, session):
         """ EXTRACT useful information from the videos for one session"""
         # Process background: get maze edges and user selected ROIs
@@ -141,19 +145,20 @@ class Analysis():
 
         # Tracking
         if track_mouse:
-            try:
+            # try:
+                from Tracking.Tracking_main import Tracking
                 tracked = Tracking(session, self.TF_setup, self.TF_settings, self.clips_l)
                 self.TF_setup = tracked.TF_setup
                 self.TF_settings = tracked.TF_settings
                 self.clips_l = tracked.clips_l
-            except:
-                warnings.warn('Something went wrong with tracking')
+            # except:
+            #     warnings.warn('Something went wrong with tracking')
         self.save_results(obj=self.db, mod='_tracking')
 
     def processing_session(self, session):
             Processing_main.Processing(session, self.db)
 
-    @clock
+    # @clock
     def plotting_session(self, session):
             plotting_settings = load_yaml(plotting_options['cfg'])
 
@@ -194,40 +199,32 @@ class Analysis():
             if update_database:  # add new sessions from datalog.csv
                 self.db = create_database(self.datalog_path, database=self.db)
 
+            path = os.path.join(self.save_fld, load_name)
+            self.loaded_database_size = os.path.getsize(path)
+            print(colored('Loaded database from: {} with size {}'.format(load_name, self.loaded_database_size),
+                          'yellow'))
+
         else:  # Create database from scratch
             self.db = create_database(self.datalog_path)
-
-        path = os.path.join(self.save_fld, load_name)
-        self.loaded_database_size = os.path.getsize(path)
-        print(colored('Loaded database from file "{}" with size {}'.format(load_name, self.loaded_database_size), 'yellow'))
+            self.save_results(obj=self.db, mod=None)
 
     def print_planned_processing(self):
         """ When starting a new run, print the options specified in Config.py for the user to check """
         import json
-        print(colored(""""
-            Load database: {}
-                update database: {}
-                load name: {}
-                save name: {}
-                
-            Selector type: {}
-                selector:  {}
-            
-            Extract background: {}
-            Tracking: {}
-                track options: {}
-                
-            Processing: {}
-            Plotting: {}
-            Debug: {}
-            
-            Cohort: {}
-            
-            Send Messages: {}
-        """.format(load_database, update_database, load_name, save_name,
-                   selector_type, selector, extract_rois_background, track_mouse,
-                   json.dumps(track_options, indent=30), plotting, cohort, processing, debug, send_messages),
-                      'white'))
+
+        if load_database:
+            print(colored('Loading database: {}'.format(load_name),'blue'))
+        if update_database:
+            print(colored('Updating database'.format(load_name), 'blue'))
+        if selector_type == 'all':
+            print(colored('Analyzing all sessions', 'blue'))
+        else:
+            print(colored('Selector type: {}\nselector: {}'.format(selector_type, selector), 'blue'))
+
+        print(colored('Extract background: {}\nTracking: {}\ntrack options: {}\n'
+            'Processing: {}\nPlotting: {}\nDebug: {}\nCohort: {}\nSend Messages: {}\n'.format(
+            extract_rois_background, track_mouse,json.dumps(track_options, indent=3),
+            processing, plotting, debug, cohort, send_messages),'blue'))
 
 
 #  START

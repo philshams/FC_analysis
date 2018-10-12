@@ -45,7 +45,7 @@ def create_database(datalogpath, database=None):
         for sessname, metadata in sorted(session_dict.items()):
             database['Metadata'][sessname] = metadata
 
-        print('==========================\n==========================\n\nDatabase initialised succesfully')
+        print('\nDatabase initialised succesfully\n==========================\n')
         return database
 
     def get_session_videodata(videos):
@@ -78,12 +78,12 @@ def create_database(datalogpath, database=None):
         for line in sessions:
             session_id = line['Sess.ID']
             if session_id:  # we loaded a line with session info
-                session_name = '{}_{}_{}'.format(line['Sess.ID'], line['Date'], line['MouseID'])
+                session_name = 'Session_{}_Date_{}_Mouse_{}'.format(line['Sess.ID'], line['Date'], line['MouseID'])
 
                 # Check if session is already in database
-                print('       ... Session {}'.format(session_name))
+                print('Opening {}'.format(session_name))
                 if database is not None and session_name in database.index:
-                        print('           ... session already in database')
+                        print('Session is already in database')
                         continue
 
                 # Create the metadata
@@ -120,7 +120,7 @@ def create_database(datalogpath, database=None):
                     """
                     try:
                         # Try to load a .tdms
-                        print('           ... loading metadata from .tdms')
+                        print('Loading {}: {}'.format(session_name,os.path.basename(tdmspath)))
                         tdms = TdmsFile(tdmspath)
                         if session_metadata.software == 'behaviour':
                             visual_rec_stims, audio_rec_stims, digital_rec_stims = [], [], []
@@ -140,7 +140,7 @@ def create_database(datalogpath, database=None):
                                             elif 'digital' in str(obj).lower():
                                                 digital_rec_stims.append(framen)
                                             else:
-                                                print('                  ... couldnt load stim correctly')
+                                                print('Couldnt load stim correctly')
 
                             session_metadata.stimuli['visual'].append(visual_rec_stims)
                             session_metadata.stimuli['audio'].append(audio_rec_stims)
@@ -155,7 +155,7 @@ def create_database(datalogpath, database=None):
 
                     except:
                         import warnings
-                        warnings.warn('                  ... could not load .tdms ')
+                        warnings.warn('Could not load .tdms ')
 
                 # Add to dictionary (or update entry)
                 sessions_dict[session_name] = session_metadata
@@ -166,9 +166,9 @@ def create_database(datalogpath, database=None):
 
     # Load excel spreadsheet
     if database is None:
-        print('========================\nCreating database from datalog.csv')
+        print('========================\nCreating database from experiments.csv')
     else:
-        print('========================\nUpdating database from datalog.csv')
+        print('========================\nUpdating database from experiments.csv')
 
     try:
         loaded_excel = pyexcel.get_records(file_name=datalogpath)
@@ -207,7 +207,7 @@ def create_database(datalogpath, database=None):
             path = os.path.join(line['Base fld'], line['Exp fld'], recording)
             if not os.path.exists(path):
                 raise ValueError('Folder not found\n{}'.format(path))
-    print('     Excel spreadsheet loaded correctly. Now loading metadata')
+    print('Excel spreadsheet loaded correctly. Now loading metadata.')
 
     # Use loaded metadata to create the database. Threadpooled for faster execution
     num_parallel_processes = 3
