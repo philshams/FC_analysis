@@ -230,6 +230,26 @@ class Processing:
                         bp_data['Acceleration_{}'.format(un)] = calc_acceleration(distance, unit=un, fps=fps,
                                                                                             bodylength=bodylength)
 
+            # Check if movement is in the direction the mouse if facing or not (for "body" velocity)
+            if not self.settings['dlc single bp']:
+                body_data = data.dlc_tracking['Posture'][self.settings['body']]
+                head_data = data.dlc_tracking['Posture'][self.settings['head']]
+                distances, result = [], []
+                for i in range(len(body_data.values)):
+                    body_pos = (body_data.loc[i]['x'], body_data.loc[i]['y'])
+                    head_pos = (head_data.loc[i]['x'], head_data.loc[i]['y'])
+                    if i > 0:
+                        now_d = calc_distance_2d((body_pos[i], head_pos[i-1]), vectors=False)
+                        prev_d = calc_distance_2d((body_pos[i-1], head_pos[i-1]), vectors=False)
+                        if now_d <= prev_d: result.append(1)
+                        else: result.append(-1)
+                    else:
+                        result.append(1)
+                data.dlc_tracking['Posture'][self.settings['body']]['Velocity Direction Multiplier'] = result
+
+
+
+
     @clock
     def extract_ang_velocity(self):
         """
