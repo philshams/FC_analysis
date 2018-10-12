@@ -80,7 +80,7 @@ class mazecohortprocessor:
         # ax.axvline(avg, color=basecolor, linewidth=4, linestyle=':')
         print('mean {}'.format(avg))
 
-    def sample_escapes_probabilities(self, tracking_data, num_samples=9, num_iters=50000):
+    def sample_escapes_probabilities(self, tracking_data, num_samples=False, num_iters=10000, replacement=True):
         sides = ['Left', 'Central', 'Right']
         # get escapes
         maze_configs, origins, escapes, outcomes = [], [], [], []
@@ -106,12 +106,15 @@ class mazecohortprocessor:
                                                                              round(left_escapes/num_trials, 2),
                                                                              round(central_escapes/num_trials, 2)))
 
-
+        if not num_samples: num_samples = num_trials
         if num_samples > num_trials: raise Warning('Too many samples')
 
         probs = {name:[] for name in sides}
         for iter in tqdm(range(num_iters)):
-            sel_trials = random.sample(escapes, num_samples)
+            if not replacement:
+                sel_trials = random.sample(escapes, num_samples)
+            else:
+                sel_trials = random.choices(escapes, k=num_samples)
             p = 0
             for side in sides:
                 probs[side].append(len([b for b in sel_trials if side in b])/num_samples)
@@ -767,7 +770,6 @@ class mazecohortprocessor:
 
         f.tight_layout()
         #plt.show()
-
 
     def coin_power(self, n=100, n_rescapes=0):
         from scipy.stats import binom
