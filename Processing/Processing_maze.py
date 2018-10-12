@@ -18,13 +18,11 @@ plt.rcParams.update(params)
 
 import math
 
-
-
 arms_colors = dict(left=(255, 0, 0), central=(0, 255, 0), right=(0, 0, 255), shelter=(200, 180, 0),
                         threat=(0, 180, 200))
 
+exp_specifics = {'FlipFlop': flipflop}
 
-exp_specifics = {'FlipFlop':flipflop}
 
 class mazeprocessor:
     # TODO session processor
@@ -303,6 +301,8 @@ class mazeprocessor:
 
     # TRIAL PROCESSOR ##################################################################################################
     def trial_processor(self):
+        rois_for_hesitations = ['Threat', 'Left_med', 'Right_med']
+
         # Loop over each trial
         tracking_items = self.session.Tracking.keys()
         if tracking_items:
@@ -322,10 +322,8 @@ class mazeprocessor:
                         self.get_trial_outcome(data, maze_configuration)
                         self.get_status_at_timepoint(data)  # get status at stim
 
-                        """ functions to write
-                        get hesitations at T platform --> quantify head ang acc 
-                        get status at relevant timepoints
-                        """
+                        vtes = {r: self.get_vte_in_roi(data, roi=r) for r in rois_for_hesitations}
+                        self.session.Tracking[trial_name].processing['vtes'] = vtes
 
     @staticmethod
     def get_trial_length(trial):
@@ -491,4 +489,36 @@ class mazeprocessor:
             - shortest and longest bodylength
         
         """
+
+    @staticmethod
+    def get_vte_in_roi(data, roi='Threat', threshold=False):
+        """  during an escape, look at the integral of the head's angular
+        velocity and compare it to a threshold value """
+
+        stim_time = data.processing['Trial outcome']['stim_time']
+        escape_rois_trajectory = data.processing['Trial outcome']['trial_rois_trajectory'][stim_time:]
+
+        roi_indexes = [i for i,r in enumerate(escape_rois_trajectory) if roi in r]
+        df = np.diff(roi_indexes)
+        if np.any(df > 1):   # only loook at the first time it enters the roi
+            stop = np.where(df > 1)[0]
+            roi_indexes = roi_indexes[:stop]
+
+        ang_vel = data.tracking['Posture']['body']['Head ang vel'].loc[roi_indexes[0]:roi_indexes[-1]]
+        dPhi = np.trapz(ang_vel)
+
+        if threshold:
+            if dPhi > threshold: outcome = True
+            else: outcome = False
+        else: outcome = True
+
+        return dPhi, outcome
+
+
+
+
+
+
+
+
 
