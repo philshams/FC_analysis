@@ -1,17 +1,7 @@
-import matplotlib.pyplot as plt   # Used to test stuff while writing new functions
-from multiprocessing.dummy import Pool as ThreadPool
-import warnings
-from termcolor import colored
+from Utils.imports import *
 
-from Utils.loadsave_funcs import load_yaml
-from Utils.maths import calc_acceleration, calc_angle_2d, calc_ang_velocity, calc_ang_acc
-from Utils.decorators import clock, register
-from Processing.Processing_reconstruc_pose import PoseReconstructor
-from Processing.Processing_exp_maze import ProcessingTrialsMaze, ProcessingSessionMaze
-from Processing.Processing_utils import *
-from Utils.Messaging import slack_chat_messenger
 
-from Config import processing_options, exp_type, cohort_options
+from Config import processing_options, exp_type
 
 
 class Processing:
@@ -29,38 +19,38 @@ class Processing:
         self.database = database
 
         # Process tracking data
-        for data_name, tracking_data in sorted(list(self.session.Tracking.items())):
-            try:
-                if data_name == 'Exploration' or data_name == 'Whole Session':
-                    print(colored('          processing currently only supports processing of trial data, not {}'.format(
-                        data_name), 'yellow'))
-                    continue
+        if self.settings['apply standard processing']:
+            for data_name, tracking_data in sorted(list(self.session.Tracking.items())):
+                try:
+                    if data_name == 'Exploration' or data_name == 'Whole Session':
+                        print(colored('          processing currently only supports processing of trial data, not {}'.format(
+                            data_name), 'yellow'))
+                        continue
 
-                print(colored('        Trial {}'.format(data_name), 'green'))
-                self.tracking_data = tracking_data
+                    print(colored('        Trial {}'.format(data_name), 'green'))
+                    self.tracking_data = tracking_data
 
-                # Save info about processing options in the metadata
-                self.define_processing_metadata()
-                # Apply processes in parallel
-                # TODO use decorator to make sure that functions are automatically added to the list, avoid bugs
-                funcs = [self.extract_bodylength, self.extract_velocity, self.extract_location_relative_shelter,
-                          self.extract_orientation]
-                pool = ThreadPool(len(funcs))
-                [pool.apply(func) for func in funcs]
+                    # Save info about processing options in the metadata
+                    self.define_processing_metadata()
+                    # Apply processes in parallel
+                    # TODO use decorator to make sure that functions are automatically added to the list, avoid bugs
+                    funcs = [self.extract_bodylength, self.extract_velocity,
+                             self.extract_location_relative_shelter,   self.extract_orientation]
+                    pool = ThreadPool(len(funcs))
+                    [pool.apply(func) for func in funcs]
 
-                # Other processing steps will not be done in parallel
-                self.extract_ang_velocity()
-                # PoseReconstructor(self.tracking_data.dlc_tracking['Posture'])  # WORK IN PROGRESS, buggy
+                    # Other processing steps will not be done in parallel
+                    self.extract_ang_velocity()
 
-            except:
-                warnings.warn('Could not analyse this trial!!!')  # but avoid crashing the whole analysis
-                print(colored('          trial {} could not be processed!'.format(data_name), 'yellow'))
-                slack_chat_messenger('Could not process trial {}'.format(data_name))
+
+                except:
+                    warnings.warn('Could not analyse this trial!!!')  # but avoid crashing the whole analysis
+                    print(colored('          trial {} could not be processed!'.format(data_name), 'yellow'))
+                    # slack_chat_messenger('Could not process trial {}'.format(data_name))
 
         # Call experiment specific processing tools [only implemented for maze experiments]
         if self.settings['apply exp-specific']:
-            ProcessingTrialsMaze(self.session, debugging=self.settings['debug exp-specific'])
-            ProcessingSessionMaze(self.session)
+            mazeprocessor(self.session, settings=self.settings, debugging=self.settings['debug exp-specific'])
 
         else:
             from warnings import warn
@@ -136,16 +126,16 @@ class Processing:
 
         # Get the position of the two bodyparts
         head, _ = from_dlc_to_single_bp(data, self.settings['head'])
+        neck, _ = from_dlc_to_single_bp(data, self.settings['neck'])
         body, _ = from_dlc_to_single_bp(data, self.settings['body'])
         tail, _ = from_dlc_to_single_bp(data, self.settings['tail'])
 
         # Get angle relative to frame
-        absolute_angle = calc_angle_2d(body, tail, vectors=True)
+        absolute_angle = calc_angle_2d(neck, tail, vectors=True)
         data.dlc_tracking['Posture']['body']['Orientation'] = [x+360 for x in absolute_angle]
 
-
-        # Get head angle relative to body angle
-        absolute_angle_head = calc_angle_2d(head, body, vectors=True)
+        # Get head angle
+        absolute_angle_head = calc_angle_2d(head, neck, vectors=True)
         data.dlc_tracking['Posture']['body']['Head angle'] = [x+360 for x in absolute_angle_head]
 
     @clock
@@ -239,6 +229,26 @@ class Processing:
                                                                                              bodylength=bodylength)
                         bp_data['Acceleration_{}'.format(un)] = calc_acceleration(distance, unit=un, fps=fps,
                                                                                             bodylength=bodylength)
+
+            # Check if movement is in the direction the mouse if facing or not (for "body" velocity)
+            if not self.settings['dlc single bp']:
+                body_data = data.dlc_tracking['Posture'][self.settings['body']]
+                head_data = data.dlc_tracking['Posture'][self.settings['head']]
+                distances, result = [], []
+                for i in range(len(body_data.values)):
+                    body_pos = (body_data.loc[i]['x'], body_data.loc[i]['y'])
+                    head_pos = (head_data.loc[i]['x'], head_data.loc[i]['y'])
+                    if i > 0:
+                        now_d = calc_distance_2d((body_pos[i], head_pos[i-1]), vectors=False)
+                        prev_d = calc_distance_2d((body_pos[i-1], head_pos[i-1]), vectors=False)
+                        if now_d <= prev_d: result.append(1)
+                        else: result.append(-1)
+                    else:
+                        result.append(1)
+                data.dlc_tracking['Posture'][self.settings['body']]['Velocity Direction Multiplier'] = result
+
+
+
 
     @clock
     def extract_ang_velocity(self):

@@ -1,9 +1,7 @@
-import matplotlib.pyplot as plt
-import numpy as np
-import math
-import time
-
+from Utils.imports import *
 from Utils.maths import calc_distance_2d, calc_angle_2d
+
+
 
 
 def from_dlc_to_single_bp(data, bp_tag:str):

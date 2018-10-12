@@ -1,7 +1,4 @@
-from scipy.spatial import distance
-import numpy as np
-from math import factorial, atan2, degrees
-import pandas as pd
+from Utils.imports import *
 
 from Utils.decorators import clock_noself
 
@@ -126,7 +123,7 @@ def calc_ang_acc(velocity):
     return np.insert(np.diff(velocity), 0, 0)
 
 
-def line_smoother(y, window_size=31, order=3, deriv=0, rate=1):
+def line_smoother(y, window_size=31, order=5, deriv=0, rate=1):
     # Apply a Savitzy-Golay filter to smooth traces
     order_range = range(order + 1)
     half_window = (window_size - 1) // 2
@@ -140,6 +137,7 @@ def line_smoother(y, window_size=31, order=3, deriv=0, rate=1):
         y = np.concatenate((firstvals, y, lastvals))
         return np.convolve(m[::-1], y, mode='valid')
     except:
+        print('ops smoothing')
         y = np.array(y)
         firstvals = y[0] - np.abs(y[1:half_window + 1][::-1] - y[0])
         lastvals = y[-1] + np.abs(y[-half_window - 1:-1][::-1] - y[-1])

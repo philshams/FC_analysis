@@ -81,6 +81,8 @@ def dlc_retreive_data(datafolder, database, clips_l):
     """
 
     # Organise the data generated from DLC
+    database_session_ids = [int(s.split('_')[0]) for s in list(database.index)]
+
     sessions_data = {}  # Dict holding the pandas DF for each trial in each processed session
     clips_l = [item for sublist in clips_l for item in sublist]
     sessions_to_analyse = set([int(x.split('-')[0]) for x in clips_l])
@@ -89,38 +91,42 @@ def dlc_retreive_data(datafolder, database, clips_l):
             if fname.split('.')[1] == 'h5':
                 # Check if the .h5 file belongs to one of the sessions we are analysing
                 sessid = fname.split('-')[0]
-                if not int(sessid) in sessions_to_analyse:
+                if not int(sessid) in sessions_to_analyse or int(sessid) not in database_session_ids:
                     continue
-
-                print('            ... found Pandas dataframe: {}'.format(fname))
-                trial_name = fname.split('_')[0] + "_" + fname.split('_')[1]
-                trial_name = trial_name.split('D')[0]
-                stim_type = fname.split('-')[:-2]
-
-                if not sessid in sessions_data.keys():
-                    sessions_data[sessid] = {}  # For each session create a dict to hold the DF for each trial
 
                 # read pandas dataframe (DLC output) and rearrange them for easier access
                 Dataframe = pd.read_hdf(os.path.join(datafolder, fname))
                 dlc_data = arrange_dlc_data(Dataframe)
 
-                # create trial object
-                trial = Trial()
-                trial_metadata = create_trial_metadata(trial_name, None, None, None, None)
-                trial.metadata = trial_metadata
-                trial.dlc_tracking['Posture'] = dlc_data
-                sessions_data[sessid][trial_name] = trial
+                # Find the correct session in the database
+                for sname in database.index:
+                    if sname.split('_')[0] == sessid:
+                        session = database.loc[sname]
 
-    # Return the list of trials for each session
-    for session_name in database.index:
-        sess_num = session_name.split('_')[0]
-        if sess_num in sessions_data.keys():
-            session = database.loc[session_name]
-            dlc_trials = sessions_data[sess_num]
+                # Find the correct trial in the session
+                found_trial, trial = False, None
+                print('            ... found Pandas dataframe: {}'.format(fname))
+                trial_name = fname.split('_')[0] + "_" + fname.split('_')[1]
+                trial_name = trial_name.split('D')[0]
+                for tname, trial in session.Tracking.items():
+                    if tname == trial_name:
+                        found_trial = True
+                        print('Found trial {} in the database'.format(trial.name))
+                        break  # we have found our trial
 
-            for trial_name, trial in dlc_trials.items():
-                old_trial = session['Tracking'][trial_name]
-                session['Tracking'][trial_name] = merge_std_dlc_trials(old_trial, trial)
+                if not sessid in sessions_data.keys():
+                    sessions_data[sessid] = {}  # For each session create a dict to hold the DF for each trial
+
+                if not found_trial:
+                    # create trial object
+                    trial = Trial()
+                    trial_metadata = create_trial_metadata(trial_name, None, None, None, None)
+                    trial.metadata = trial_metadata
+                    trial.dlc_tracking['Posture'] = dlc_data
+                    sessions_data[sessid][trial_name] = trial
+                else:
+                    # merge with existing trial
+                    trial.dlc_tracking['Posture'] = dlc_data
 
     return database
 

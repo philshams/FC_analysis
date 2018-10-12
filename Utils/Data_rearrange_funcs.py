@@ -1,10 +1,9 @@
-import pandas as pd
-import datetime
-from termcolor import colored
-
-from Utils.utils_classes import Trial, Cohort
+from Utils.imports import *
 
 from Config import cohort_options
+
+def flatten_list(list):
+    return [item for sublist in list for item in sublist]
 
 
 def check_session_selected(metadata, selector_type: str, selector: list) -> bool:
@@ -88,7 +87,7 @@ def create_cohort(db):
                     print('         ... getting tracking data')
                     try:
                         for k, val in session['Tracking'].items():
-                            if k == 'Exploration':
+                            if 'exploration' in k.lower():
                                 ch_tracking_data['explorations'].append(val)
                             elif k == 'Whole Session':
                                 ch_tracking_data['wholesessions'].append(val)

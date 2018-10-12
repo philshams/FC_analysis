@@ -1,16 +1,19 @@
+apply standard processing: true   # Apply general processing functions or not
+
 # Setting for POSE reconstruction
 # Names of the DLC bodyparts tags for the different bodyparts
 'body': 'body'              # BODY and TAIL are also used for ORIENTATION extraction
+'neck': 'neck'
 'head': 'snout'
 'tail': 'tail'
 
 
 # Settings for VELOCITY extraction
-'velocity unit': 'pxperframe'       # How the velocity is computed: pixel per frame [pxperframe], pixel per second [pxpersec]
-                             # or bodylength per second [blpersec]
+'velocity unit': 'pxperframe'    # How the velocity is computed: pixel per frame [pxperframe], pixel per second [pxpersec]
+                                 # or bodylength per second [blpersec]
 ang vel unit: 'degperframe'      # Unit of meausre of angulare velocity, Either 'degperframe' or 'degpersec'
 
-'std': true                  # Extract velocity from STD tracking data - STD and DLC are also used for extraction of position relative to shelter
+'std': false                 # Extract velocity from STD tracking data - STD and DLC are also used for extraction of position relative to shelter
 'dlc': true                  # Extract velocity from DLC tracking data
 'dlc single bp': 'body'      # Extract velocity from DLC for just one body part or for all bodyparts
                              # can either be false [calc velocity for ALL body parts] or the name of the body part to be used
@@ -24,3 +27,4 @@ ang vel unit: 'degperframe'      # Unit of meausre of angulare velocity, Either 
 # Experiment-specific settings:
 apply exp-specific: true     # apply some experiment specific analysis steps or not
 debug exp-specific: false     # debug mode ON
+templates folder: 'D:\Dropbox (UCL - SWC)\Dropbox (UCL - SWC)\Rotation_vte\analysis\Maze_templates'
