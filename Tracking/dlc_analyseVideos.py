@@ -49,7 +49,7 @@ def getpose(sess, inputs, image, cfg, outputs, outall=False):
         return pose
 
 
-def analyse(tf_setting, videofolder:str, clips_l:list):
+def analyse(tf_setting, videofolder:str):
     """  analyse the videos in videofolder that are also listed in clips_l"""
     # Load TENSORFLOW settings
     cfg = tf_setting['cfg']
@@ -65,11 +65,11 @@ def analyse(tf_setting, videofolder:str, clips_l:list):
 
     os.chdir(videofolder)
     videos = np.sort([fn for fn in os.listdir(os.curdir) if (videotype in fn)])
-    clips_l = [item for sublist in clips_l for item in sublist]
+    # clips_l = [item for sublist in clips_l for item in sublist]
     for video in videos:
         try:
-            if video.split('.')[0] not in clips_l:
-                continue
+            # if video.split('.')[0] not in clips_l:
+            #     continue
 
             dataname = video.split('.')[0] + scorer + '.h5'
             try:

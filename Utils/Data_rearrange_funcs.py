@@ -22,6 +22,8 @@ def check_session_selected(metadata, selector_type: str, selector: list) -> bool
         return False
     elif selector_type == 'session' and metadata.session_id not in selector:
         return False
+    elif selector_type == 'mouse' and metadata.mouse_id not in selector:
+        return False
     else:
         return True
 

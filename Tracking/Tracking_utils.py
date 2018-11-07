@@ -7,8 +7,6 @@ import shutil
 import pandas as pd
 import datetime
 
-from Tracking.dlc_loadconfig import load_config
-from nnet import predict
 from Utils.utils_classes import Trial
 from Utils.loadsave_funcs import load_yaml
 from Utils.Data_rearrange_funcs import arrange_dlc_data
@@ -62,6 +60,8 @@ def save_trial_clips(clips, dlc_videos_folder):
 
 
 def dlc_setupTF(options):
+    from Tracking.dlc_loadconfig import load_config
+    from nnet import predict
     dlc_config_settings = load_yaml(options['cfg_dlc'])
     cfg = load_config(dlc_config_settings['dlc_network_posecfg'])
     cfg['init_weights'] = dlc_config_settings['dlc_network_snapshot']

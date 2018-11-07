@@ -31,7 +31,7 @@ def create_database(datalogpath, database=None):
         for sessname, metadata in sorted(session_dict.items()):
             database['Metadata'][sessname] = metadata
 
-        print('\nDatabase initialised succesfully\n==========================\n')
+        print(colored('Database initialized.','yellow'))
         return database
 
     def get_session_videodata(videos):
@@ -39,15 +39,11 @@ def create_database(datalogpath, database=None):
         Get relevant variables for video files
         """
         # Get first frame of first video for future processing and number of frames in each video
-        videos_data = {'Background': None, 'Frame rate': [], 'Number frames': []}
+        videos_data = {'Background': [], 'Frame rate': [], 'Number frames': [], 'Clips Directory': [],'Arena Transformation': []}
         for idx, videofile in enumerate(videos):
             cap = cv2.VideoCapture(videofile)
             videos_data['Frame rate'].append(cap.get(cv2.CAP_PROP_FPS))
             videos_data['Number frames'].append(int(cap.get(cv2.CAP_PROP_FRAME_COUNT)))
-
-            if idx == 0:  # The background is the first frame of the first video
-                _, bg = cap.read()
-                videos_data['Background'] = cv2.cvtColor(bg, cv2.COLOR_RGB2GRAY)
         videos_data['Cumu. Num Frames'] = np.cumsum(videos_data['Number frames'])
         return videos_data
 
@@ -64,12 +60,12 @@ def create_database(datalogpath, database=None):
         for line in sessions:
             session_id = line['Sess.ID']
             if session_id:  # we loaded a line with session info
-                session_name = 'Session_{}_Date_{}_Mouse_{}'.format(line['Sess.ID'], line['Date'], line['MouseID'])
+                session_name = '{}_{}'.format(line['Experiment'], line['Sess.ID'])
 
                 # Check if session is already in database
-                print('Opening {}'.format(session_name))
+                print(colored('Opening {}'.format(session_name),'yellow'))
                 if database is not None and session_name in database.index:
-                        print('Session is already in database')
+                        # print(colored('Session is already in database','yellow'))
                         continue
 
                 # Create the metadata
@@ -106,7 +102,7 @@ def create_database(datalogpath, database=None):
                     """
                     try:
                         # Try to load a .tdms
-                        print('Loading {}: {}'.format(session_name,os.path.basename(tdmspath)))
+                        print(colored('Loading {}: {}'.format(session_name,os.path.basename(tdmspath)),'yellow'))
                         tdms = TdmsFile(tdmspath)
                         if session_metadata.software == 'behaviour':
                             visual_rec_stims, audio_rec_stims, digital_rec_stims = [], [], []
@@ -115,10 +111,12 @@ def create_database(datalogpath, database=None):
                                 for obj in tdms.group_channels(group):
                                     if 'stimulis' in str(obj).lower():
                                         for idx in obj.as_dataframe().loc[0].index:
-                                            if '  ' in idx:
-                                                framen = int(idx.split('  ')[1].split('-')[0])
+                                            if "/'  " in idx:
+                                                framen = int(idx.split("/'  ")[1].split('-')[0])
+                                            elif "/' " in idx:
+                                                framen = int(idx.split("/' ")[1].split('-')[0])
                                             else:
-                                                framen = int(idx.split(' ')[2].split('-')[0])
+                                                framen = int(idx.split("/'")[2].split('-')[0])
                                             if 'visual' in str(obj).lower():
                                                 visual_rec_stims.append(framen)
                                             elif 'audio' in str(obj).lower():
@@ -126,7 +124,7 @@ def create_database(datalogpath, database=None):
                                             elif 'digital' in str(obj).lower():
                                                 digital_rec_stims.append(framen)
                                             else:
-                                                print('Couldnt load stim correctly')
+                                                print(colored('Couldnt load stim correctly','yellow'))
 
                             session_metadata.stimuli['visual'].append(visual_rec_stims)
                             session_metadata.stimuli['audio'].append(audio_rec_stims)
@@ -135,7 +133,7 @@ def create_database(datalogpath, database=None):
                         else:
                             # TODO add mantis tdms reading stuff
                             """
-                            HERE IS WERE THE CODE TO GET THE STIM TIMES IN MANTIS WILL HAVE TO BE ADDEDD
+                            HERE IS WHERE THE CODE TO GET THE STIM TIMES IN MANTIS WILL HAVE TO BE ADDEDD
                             """
                             pass
 
@@ -152,25 +150,12 @@ def create_database(datalogpath, database=None):
 
     # Load excel spreadsheet
     if database is None:
-        print('========================\nCreating database from experiments.csv')
+        print(colored('Creating database from experiments.csv\n','yellow'))
     else:
-        print('========================\nUpdating database from experiments.csv')
+        print(colored('Updating database from experiments.csv\n','yellow'))
 
-    try:
-        loaded_excel = pyexcel.get_records(file_name=datalogpath)
-    except:
-        print('Could not load datalog, these are the excel files in the folder:')
-        counter = 0
-        files = []
-        directory, _ = os.path.split(datalogpath)  # path.split returns [path, filename.abc]
-        for f in os.listdir(directory):
-            if 'csv' in f or 'xls' in f:
-                print('({})  -  {}'.format(counter, f))
-                counter += 1
-                files.append(f)
-        selected = input('Enter number of the file to be loaded:  ')
-        selected = files[int(selected)]
-        loaded_excel = pyexcel.get_records(file_name=os.path.join(directory, selected))
+    loaded_excel = pyexcel.get_records(file_name=datalogpath)
+
 
     # Create a dictionary with each session's name as key and its metadata as value
     sessions_dict, all_metadata = {}, []
@@ -193,7 +178,7 @@ def create_database(datalogpath, database=None):
             path = os.path.join(line['Base fld'], line['Exp fld'], recording)
             if not os.path.exists(path):
                 raise ValueError('Folder not found\n{}'.format(path))
-    print('Excel spreadsheet loaded correctly. Now loading metadata.')
+    print(colored('Excel spreadsheet loaded correctly. Now loading metadata.','yellow'))
 
     # Use loaded metadata to create the database. Threadpooled for faster execution
     num_parallel_processes = 3

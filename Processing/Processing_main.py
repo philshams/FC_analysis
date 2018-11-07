@@ -1,7 +1,7 @@
 from Utils.imports import *
 
 
-from Config import processing_options, exp_type
+from Config import processing_options
 
 
 class Processing:
@@ -49,12 +49,12 @@ class Processing:
                     # slack_chat_messenger('Could not process trial {}'.format(data_name))
 
         # Call experiment specific processing tools [only implemented for maze experiments]
-        if self.settings['apply exp-specific']:
-            mazeprocessor(self.session, settings=self.settings, debugging=self.settings['debug exp-specific'])
-
-        else:
-            from warnings import warn
-            warn('Experiment type {} is not supported yet'.format(exp_type))
+        # if self.settings['apply exp-specific']:
+        #     mazeprocessor(self.session, settings=self.settings, debugging=self.settings['debug exp-specific'])
+        #
+        # else:
+        #     from warnings import warn
+        #     warn('Experiment type {} is not supported yet'.format(exp_type))
 
     def define_processing_metadata(self):
         self.tracking_data.metadata['Processing info'] = self.settings
