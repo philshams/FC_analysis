@@ -94,17 +94,36 @@ class Tracking():
             print(colored('Tracking individual trials.', 'green'))
         if track_options['save stimulus clips']:
             print(colored('Extracting clips.', 'green'))
+
+        # GET BACKGROUND - #####################################
+        if (not np.array(self.session['Metadata'].videodata[0]['Background']).size):
+            # not self.session['Metadata'].videodata[0]['Background']
+            print(colored('Fetching background', 'green'))
+            self.session['Metadata'].videodata[0]['Background'] = get_background(
+                self.session['Metadata'].video_file_paths[0][0],start_frame=1000, avg_over=100)
+
+        # REGISTER ARENA - #####################################
+        if track_options['register arena']:
+            if not self.session['Metadata'].videodata[0]['Arena Transformation']:
+                print(colored('Registering arena', 'green'))
+                self.session['Metadata'].videodata[0]['Arena Transformation'] = register_arena(
+                    self.session['Metadata'].videodata[0]['Background'])
+            registration = self.session['Metadata'].videodata[0]['Arena Transformation'][0]
+        else:
+            registration = False
+
+        # LOOP OVER STIMULI - #######################################
         for stim_type, stims in self.session['Metadata'].stimuli.items():
             # For each stim type get the list of stim frames
             if not stims:
                 continue
 
             for vid_num, stims_video in enumerate(stims):  # Loop over each video in the session
-                for idx, stim in enumerate(stims_video):  # Loop over each stim for each video
+                for idx, stim_frame in enumerate(stims_video):  # Loop over each stim for each video
                     # try:
                         # SET UP - ######################################
-                        start_frame = int(stim-(video_analysis_settings['fast track wndw pre']*self.fps))
-                        stop_frame = int(stim+(video_analysis_settings['fast track wndw post']*self.fps))
+                        start_frame = int(stim_frame-(video_analysis_settings['fast track wndw pre']*self.fps))
+                        stop_frame = int(stim_frame+(video_analysis_settings['fast track wndw post']*self.fps))
 
                         self.videoname = '{}_{}_{}-{} ({}\')'.format(self.session['Metadata'].experiment,
                                                              self.session['Metadata'].mouse_id,
@@ -117,31 +136,16 @@ class Tracking():
                         empty_trial.name = trial_metadata['Name']
                         self.session['Tracking'][empty_trial.metadata['Name']] = empty_trial
 
-                        # REGISTER ARENA
-                        if track_options['register arena']:
-                            # try:
-                            #     not self.session.Metadata.videodata[0]['Arena Transformation']
-                            # except:
-                            #     self.session.Metadata.videodata[0]['Arena Transformation'] = []
-
-                            if not self.session['Metadata'].videodata[0]['Background'] or True:
-                                print(colored('Fetching background', 'green'))
-                                self.session['Metadata'].videodata[0]['Background'] = get_background(self.session['Metadata'].video_file_paths[vid_num][0],
-                                                                                                     start_frame = 1000, avg_over = 100)
-
-                            if not self.session['Metadata'].videodata[0]['Arena Transformation']:
-                                self.session['Metadata'].videodata[0]['Arena Transformation'] = register_arena()
-
                         # SAVE CLIPS - ######################################
                         if track_options['save stimulus clips']:
-                            if self.session.Metadata.videodata[0]['Clips Directory'] and False:
-                                print(colored('Video clips already saved', 'green'))
+                            if self.session.Metadata.videodata[0]['Clips Directory'] and not track_options['do not overwrite']:
+                                if not idx:
+                                    print(colored('Video clips already saved', 'green'))
                             else:
-                                trial_clip = cut_crop_video(self.session['Metadata'].video_file_paths[vid_num][0], self.videoname,
-                                                    self.dlc_config_settings['clips_folder'], start_frame=start_frame, end_frame=stop_frame,
-                                                    stim_frame = stim, save_movie = False, counter=True, display_clip = False, make_flight_image = True)
-
-                                self.dlc_config_settings['clips'][stim_type][self.videoname] = trial_clip
+                                cut_crop_video(self.session['Metadata'].video_file_paths[vid_num][0], self.videoname,
+                                    self.dlc_config_settings['clips_folder'], start_frame, stop_frame, stim_frame, registration,
+                                    save_clip = False, display_clip = False, counter = True, make_flight_image = True)
+                                # self.dlc_config_settings['clips'][stim_type][self.videoname] = trial_clip
 
                         # STD TRACKING - ######################################
                         if track_options['track stimulus responses'] and track_options['use standard tracking']:

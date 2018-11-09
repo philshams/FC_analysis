@@ -11,14 +11,15 @@ DLC_folder = 'C:\Drive\DLC\DeepLabCut'
 # scratch from the datalog.csv file
 load_database = True  # This is False only if you are creating a new database
 update_database = True # add recently added sessions to database
-load_name = '181030'  # name of file to load
-save_name = '181030' # name to save the results of the analysis
+
+load_name = '181107'  # name of file to load
+save_name = '181107' # name to save the results of the analysis
 
 # selects which sessions to analyze ('all', 'experiment', 'session', 'date' or COHORT)
 # selector_type = 'all'
 # selector = ['Barnes US wall down']
 selector_type = 'all'
-selector = ['Barnes US wall (loom)']
+selector = ['Barnes US wall (20kHz)']
 
 
 
@@ -33,10 +34,13 @@ startf = 100  # Skip the first n frames of the first video when tracking
 track_mouse = True             # Run tracking
 track_options = {
     'register arena': True, # Register arena to model arena for tracking
+    'save stimulus clips': True, # Save videos of the peri-stimulus period
+
     'track whole session': False,  # Track the mouse for the entire session using the standard tracking
     'track stimulus responses': False, # Track the mouse during stimulus responses using DLC
     'use standard tracking': True, # Use standard tracking of center of mass instead of DLC
-    'save stimulus clips': False, # Save videos of the peri-stimulus period
+
+    'do not overwrite': True,
     'cfg_std': 'C:\\Drive\\DLC\\PNS_analysis\\Tracking\\Configs\\cfg_std_Barnes.yml',
     'cfg_dlc': 'C:\\Drive\\DLC\\PNS_analysis\\Tracking\\Configs\\cfg_dlc_Barnes.yml'
     }
@@ -92,18 +96,6 @@ plotting_options = {
 For each session being processed save an .avi video of each peri-stimulus period
 """
 
-
-
-#######################
-#  MESSAGING          #
-#######################
-"""
-Options to send slack message, slack channel messages or emails with progress of the analysis and results
-"""
-verbose= True   # Display details of on-going processes (e.g. execution times..)
-send_messages = False
-slack_username = 'U9ES1UXSM'
-slack_env_var_token = 'SLACK_BRANCO_TOKEN'
 
 
 ###more CONFIGURATION

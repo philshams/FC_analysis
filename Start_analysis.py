@@ -11,11 +11,10 @@ from Utils import video_funcs
 from Utils.loadsave_funcs import save_data, load_data, load_paths, load_yaml
 from Utils.Setup_funcs import create_database
 from Utils.Data_rearrange_funcs import create_cohort, check_session_selected
-from Utils.Messaging import slack_chat_messenger
 
-from Processing import Processing_main
+# from Processing import Processing_main
 
-from Plotting import Single_trial_summary
+# from Plotting import Single_trial_summary
 
 from Config import load_database, update_database, load_name, save_name, \
     selector_type, selector, plotting_options, \
@@ -50,6 +49,8 @@ class Analysis():
 
         # Load the database
         self.load_database()
+        # to see all entries: self.db
+        # to drop an entry: self.db = self.db.drop(['desired_entry_to_drop'])
 
         # Call the main func that orchestrates the application of the processes
         self.main()
@@ -68,7 +69,7 @@ class Analysis():
 
         # Loop over all the sessions - Tracking
         if track_mouse:
-            for session_name in sorted(self.db.index):
+            for session_name in self.db.index: #sorted(self.db.index)
                 session = self.db.loc[session_name]
 
                 # Check if this is one of the sessions we should be processing
@@ -105,8 +106,7 @@ class Analysis():
                         Single_trial_summary.Plotter(session)
 
             self.save_results(obj=self.db, mod='')
-            if send_messages:
-                slack_chat_messenger('Finished processing')
+
 
         if debug:
             from Debug.Visualise_tracking import App

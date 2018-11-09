@@ -17,13 +17,11 @@ from multiprocessing.dummy import Pool as ThreadPool
 from termcolor import colored
 
 from Utils.maths import line_smoother
-from Utils.Messaging import send_email_attachments
 from Utils.loadsave_funcs import load_yaml
-from Utils.decorators import clock
 from Plotting.Plotting_utils import *
 from Processing.Processing_utils import parallelizer
 
-from Config import send_messages, plotting_options
+from Config import plotting_options
 
 
 class Plotter():

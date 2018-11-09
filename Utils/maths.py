@@ -1,7 +1,5 @@
 from Utils.imports import *
 
-from Utils.decorators import clock_noself
-
 def calc_distance_2d(data, vectors = True):
     """
     Calculates the euclidean distance between point, or each pair of points in vectors

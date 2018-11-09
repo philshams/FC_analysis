@@ -61,7 +61,6 @@ class Processing:
         if 'processing' not in self.tracking_data.__dict__.keys():
             setattr(self.tracking_data, 'processing', {})
 
-    @clock  # times the execution of a function
     def extract_location_relative_shelter(self):
         """ Extracts the mouse position relative to the shelter """
         data = self.tracking_data
@@ -96,7 +95,6 @@ class Processing:
                                                              bp_data['y'].values), shelter_location)
                 bp_data['adjusted x'], bp_data['adjusted y'] = adjusted_pos[0], adjusted_pos[1]
 
-    @clock
     def extract_orientation(self):
         """
         This function extracts the mouse' orientation from the angle of two body parts [DLC tracking] and the
@@ -138,7 +136,6 @@ class Processing:
         absolute_angle_head = calc_angle_2d(head, neck, vectors=True)
         data.dlc_tracking['Posture']['body']['Head angle'] = [x+360 for x in absolute_angle_head]
 
-    @clock
     def extract_bodylength(self):
         """ gets the length of the mouse body at all frames and the avg length """
         try:
@@ -156,7 +153,6 @@ class Processing:
             bp_data, bodypart = from_dlc_to_single_bp(self.tracking_data, bp)
             bp_data['Body length'] = bodylength
 
-    @clock
     def extract_velocity(self):
         data = self.tracking_data
 
@@ -248,9 +244,6 @@ class Processing:
                 data.dlc_tracking['Posture'][self.settings['body']]['Velocity Direction Multiplier'] = result
 
 
-
-
-    @clock
     def extract_ang_velocity(self):
         """
         Get orientation [calculated previously] and compute the velocity in it
