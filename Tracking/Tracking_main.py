@@ -15,7 +15,7 @@ from Utils import Data_rearrange_funcs
 from Utils.utils_classes import Trial
 from Utils.loadsave_funcs import load_yaml
 
-from Config import startf, track_options, dlc_config_settings, video_analysis_settings
+from Config import startf, track_options, dlc_config_settings, video_analysis_settings, fisheye_map_location
 from termcolor import colored
 
 
@@ -104,10 +104,12 @@ class Tracking():
 
         # REGISTER ARENA - #####################################
         if track_options['register arena']:
+            self.session['Metadata'].videodata[0]['Arena Transformation'] = register_arena(
+                self.session['Metadata'].videodata[0]['Background'], fisheye_map_location)
             if not self.session['Metadata'].videodata[0]['Arena Transformation']:
                 print(colored('Registering arena', 'green'))
                 self.session['Metadata'].videodata[0]['Arena Transformation'] = register_arena(
-                    self.session['Metadata'].videodata[0]['Background'])
+                    self.session['Metadata'].videodata[0]['Background'], fisheye_map_location)
             registration = self.session['Metadata'].videodata[0]['Arena Transformation'][0]
         else:
             registration = False
@@ -143,8 +145,8 @@ class Tracking():
                                     print(colored('Video clips already saved', 'green'))
                             else:
                                 cut_crop_video(self.session['Metadata'].video_file_paths[vid_num][0], self.videoname,
-                                    self.dlc_config_settings['clips_folder'], start_frame, stop_frame, stim_frame, registration,
-                                    save_clip = False, display_clip = False, counter = True, make_flight_image = True)
+                                    self.dlc_config_settings['clips_folder'], start_frame, stop_frame, stim_frame, fisheye_map_location, registration,
+                                    save_clip = True, display_clip = True, counter = True, make_flight_image = True)
                                 # self.dlc_config_settings['clips'][stim_type][self.videoname] = trial_clip
 
                         # STD TRACKING - ######################################
