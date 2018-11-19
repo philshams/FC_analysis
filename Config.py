@@ -6,22 +6,19 @@ the different functionalities of the analysis scripts
 datalog = 'C:\Drive\DLC\data\experiments.xlsx'
 save_folder = 'C:\Drive\DLC\data'
 DLC_folder = 'C:\Drive\DLC\DeepLabCut'
-fisheye_map_location = 'C:\Drive\DLC\data\\fisheye_maps.npy'
 
 # If loading a pre-existing database, specify name of the file it was saved to. otherwise db is generated from
 # scratch from the datalog.csv file
 load_database = True  # This is False only if you are creating a new database
 update_database = True # add recently added sessions to database
 
-load_name = '181107'  # name of file to load
-save_name = '181107' # name to save the results of the analysis
+load_name = '181115'  # name of file to load
+save_name = '181115' # name to save the results of the analysis
 
 # selects which sessions to analyze ('all', 'experiment', 'session', 'date', 'mouse' or COHORT)
-# selector_type = 'all'
-# selector = ['Barnes US wall down']
-selector_type = 'mouse'
-selector = ['CA3481']
-
+selector_type = 'all'
+selector = ['Barnes US wall up (20kHz)', 'Barnes US wall up (2)']
+# selector = ['Barnes US wall down', 'Barnes US wall up', 'Barnes US wall up (2)', 'Barnes US wall up (20kHz)']
 
 
 """
@@ -35,6 +32,7 @@ startf = 100  # Skip the first n frames of the first video when tracking
 track_mouse = True             # Run tracking
 track_options = {
     'register arena': True, # Register arena to model arena for tracking
+    'analyze wall': False,
     'save stimulus clips': True, # Save videos of the peri-stimulus period
 
     'track whole session': False,  # Track the mouse for the entire session using the standard tracking
@@ -45,6 +43,10 @@ track_options = {
     'cfg_std': 'C:\\Drive\\DLC\\PNS_analysis\\Tracking\\Configs\\cfg_std_Barnes.yml',
     'cfg_dlc': 'C:\\Drive\\DLC\\PNS_analysis\\Tracking\\Configs\\cfg_dlc_Barnes.yml'
     }
+
+fisheye_map_location = 'C:\Drive\DLC\data\\fisheye_maps.npy'
+x_offset = 120
+y_offset = 300
 
 
 #######################
@@ -110,7 +112,7 @@ dlc_config_settings = {
 }
 
 video_analysis_settings = {
-    'fast track wndw pre': 5,
+    'fast track wndw pre': 20,
     'fast track wndw post': 10
 }
 

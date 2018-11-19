@@ -69,8 +69,15 @@ class Analysis():
 
         # Loop over all the sessions - Tracking
         if track_mouse:
+            # other_db = load_data(self.save_fld, '181107')
+
             for session_name in self.db.index: #sorted(self.db.index)
                 session = self.db.loc[session_name]
+
+                # add info from other database to this database
+                # other_session = other_db.loc[session_name]
+                # session['Metadata'].videodata[0]['Arena Transformation'] = other_session['Metadata'].videodata[0]['Arena Transformation']
+                # session['Metadata'].videodata[0]['Background'] = other_session['Metadata'].videodata[0]['Background']
 
                 # Check if this is one of the sessions we should be processing
                 selected = check_session_selected(session.Metadata, selector_type, selector)

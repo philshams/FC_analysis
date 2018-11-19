@@ -100,46 +100,58 @@ def create_database(datalogpath, database=None):
                     or from mantis. 
                     TODO: allow the possibility of extracting stimuli in TIME instead of FRAME
                     """
-                    try:
-                        # Try to load a .tdms
-                        print(colored('Loading {}: {}'.format(session_name,os.path.basename(tdmspath)),'yellow'))
-                        tdms = TdmsFile(tdmspath)
-                        if session_metadata.software == 'behaviour':
-                            visual_rec_stims, audio_rec_stims, digital_rec_stims = [], [], []
-                            # TODO extract stim metadata
-                            for group in tdms.groups():
-                                for obj in tdms.group_channels(group):
-                                    if 'stimulis' in str(obj).lower():
-                                        for idx in obj.as_dataframe().loc[0].index:
-                                            if "/'  " in idx:
-                                                framen = int(idx.split("/'  ")[1].split('-')[0])
-                                            elif "/' " in idx:
-                                                framen = int(idx.split("/' ")[1].split('-')[0])
-                                            else:
-                                                framen = int(idx.split("/'")[2].split('-')[0])
-                                            if 'visual' in str(obj).lower():
-                                                visual_rec_stims.append(framen)
-                                            elif 'audio' in str(obj).lower():
-                                                audio_rec_stims.append(framen)
-                                            elif 'digital' in str(obj).lower():
-                                                digital_rec_stims.append(framen)
-                                            else:
-                                                print(colored('Couldnt load stim correctly','yellow'))
 
-                            session_metadata.stimuli['visual'].append(visual_rec_stims)
-                            session_metadata.stimuli['audio'].append(audio_rec_stims)
-                            session_metadata.stimuli['digital'].append(digital_rec_stims)
+                    # Try to load a .tdms
+                    print(colored('Loading {}: {}'.format(session_name,os.path.basename(tdmspath)),'yellow'))
+                    tdms = TdmsFile(tdmspath)
+                    if session_metadata.software == 'behaviour':
+                        visual_rec_stims, audio_rec_stims, digital_rec_stims = [], [], []
+                        # TODO extract stim metadata
+                        for group in tdms.groups():
+                            for obj in tdms.group_channels(group):
+                                if 'stimulis' in str(obj).lower():
+                                    for idx in obj.as_dataframe().loc[0].index:
+                                        if "/'  " in idx:
+                                            framen = int(idx.split("/'  ")[1].split('-')[0])
+                                        elif "/' " in idx:
+                                            framen = int(idx.split("/' ")[1].split('-')[0])
+                                        else:
+                                            framen = int(idx.split("/'")[2].split('-')[0])
+                                        if 'visual' in str(obj).lower():
+                                            visual_rec_stims.append(framen)
+                                        elif 'audio' in str(obj).lower():
+                                            audio_rec_stims.append(framen)
+                                        elif 'digital' in str(obj).lower():
+                                            digital_rec_stims.append(framen)
+                                        else:
+                                            print(colored('Couldnt load stim correctly','yellow'))
+                        # Now use the AI channels to find the *real* stimulus onset times and replace them
+                        # TO DO: get fraction of frame during which stimulus started, use to centre reaction
+                        if audio_rec_stims:
+                            stimulus_on_idx = np.where(tdms.group_channels('AI')[1].data > 3)[0]
+                            idx_since_last_stimulus_on = np.diff(stimulus_on_idx)
+                            stimulus_start_idx = stimulus_on_idx[np.append(np.ones(1).astype(bool),idx_since_last_stimulus_on>4*10000)]
+                            stimulus_start_frame = np.ceil(stimulus_start_idx / 10000 / (33+1/3) * 1000).astype(int)
+                            if len(stimulus_start_frame) != len(audio_rec_stims):
+                                print('audio AI channel does not match number of timestamps')
+                            else:
+                                discrepancy = stimulus_start_frame - audio_rec_stims
+                                if sum(discrepancy>8):
+                                    print('audio AI channel does not match values of timestamps')
+                                else:
+                                    print(discrepancy)
+                                    audio_rec_stims = list(stimulus_start_frame)
 
-                        else:
-                            # TODO add mantis tdms reading stuff
-                            """
-                            HERE IS WHERE THE CODE TO GET THE STIM TIMES IN MANTIS WILL HAVE TO BE ADDEDD
-                            """
-                            pass
+                        session_metadata.stimuli['visual'].append(visual_rec_stims)
+                        session_metadata.stimuli['audio'].append(audio_rec_stims)
+                        session_metadata.stimuli['digital'].append(digital_rec_stims)
 
-                    except:
-                        import warnings
-                        warnings.warn('Could not load .tdms ')
+                    else:
+                        # TODO add mantis tdms reading stuff
+                        """
+                        HERE IS WHERE THE CODE TO GET THE STIM TIMES IN MANTIS WILL HAVE TO BE ADDEDD
+                        """
+                        pass
 
                 # Add to dictionary (or update entry)
                 sessions_dict[session_name] = session_metadata
