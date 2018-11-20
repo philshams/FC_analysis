@@ -3,9 +3,9 @@ Script to set up the analysis of behavioural data: defines relevant parameters a
 the different functionalities of the analysis scripts
 """
 
-datalog = 'C:\Drive\DLC\data\experiments.xlsx'
-save_folder = 'C:\Drive\DLC\data'
-DLC_folder = 'C:\Drive\DLC\DeepLabCut'
+datalog = 'C:\\Drive\\Behaviour\\data\\experiments.xlsx'
+save_folder = 'C:\\Drive\\Behaviour\\data'
+DLC_folder = 'C:\\Drive\\Behaviour\\DeepLabCut'
 
 # If loading a pre-existing database, specify name of the file it was saved to. otherwise db is generated from
 # scratch from the datalog.csv file
@@ -32,7 +32,7 @@ startf = 100  # Skip the first n frames of the first video when tracking
 track_mouse = True             # Run tracking
 track_options = {
     'register arena': True, # Register arena to model arena for tracking
-    'analyze wall': False,
+    'analyze wall': True,
     'save stimulus clips': True, # Save videos of the peri-stimulus period
 
     'track whole session': False,  # Track the mouse for the entire session using the standard tracking
@@ -44,7 +44,7 @@ track_options = {
     'cfg_dlc': 'C:\\Drive\\DLC\\PNS_analysis\\Tracking\\Configs\\cfg_dlc_Barnes.yml'
     }
 
-fisheye_map_location = 'C:\Drive\DLC\data\\fisheye_maps.npy'
+fisheye_map_location = 'C:\\Drive\\Behaviour\\data\\fisheye_maps.npy'
 x_offset = 120
 y_offset = 300
 
@@ -104,7 +104,7 @@ For each session being processed save an .avi video of each peri-stimulus period
 ###more CONFIGURATION
 dlc_config_settings = {
     'clips': '',
-    'clips_folder': 'C:\Drive\DLC\data\wall_data',
+    'clips_folder': 'C:\\Drive\\DLC\\data\\Analysis_Videos',
     'dlc_network_posecfg': 'C:\\Drive\\DLC\\data\\videos_train_dlc\\Barnes_USSep25_2018-trainset95shuffle1\\test',
     'dlc_network_snapshot': 'C:\\Drive\\DLC\\data\\videos_train_dlc\\Barnes_USSep25_2018-trainset95shuffle1\\train\\snapshot-50000',
     'scorer': 'DeepCut_resnet50_Philip_50000',
@@ -112,7 +112,7 @@ dlc_config_settings = {
 }
 
 video_analysis_settings = {
-    'fast track wndw pre': 20,
+    'fast track wndw pre': 5,
     'fast track wndw post': 10
 }
 

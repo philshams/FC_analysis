@@ -547,14 +547,17 @@ def peri_stimulus_video_clip_with_wall(vidpath = '', videoname = '', savepath = 
     else:
         print('Uh-oh -- not sure what kind of trial!')
     # print(wall_darkness)
-    if not trial_type:
-        analyze = False
-    else:
-        analyze = True
+    # if not trial_type:
+    #     analyze = False
+    # else:
+    #     analyze = True
 
     # RUN SAVING AND ANALYSIS OVER EACH FRAME - ######################################
     vid.set(cv2.CAP_PROP_POS_FRAMES, start_frame)
-    while True and analyze: #and not file_already_exists:
+    if display_clip:
+        cv2.namedWindow('Trial Clip')
+        cv2.moveWindow('Trial Clip',100,100)
+    while True: # and analyze: #and not file_already_exists:
         ret, frame = vid.read()  # get the frame
         if ret:
             frame_num = vid.get(cv2.CAP_PROP_POS_FRAMES)
@@ -674,6 +677,7 @@ def peri_stimulus_video_clip_with_wall(vidpath = '', videoname = '', savepath = 
         flight_image_by_distance = cv2.copyMakeBorder(flight_image_by_distance, border_size, border_size, border_size, border_size, cv2.BORDER_CONSTANT, value=0)
         cv2.putText(flight_image_by_distance, videoname, (border_size, border_size-5), 0, .55, (180, 180, 180), thickness=1)
         cv2.imshow('Flight image', flight_image_by_distance)
+        cv2.moveWindow('Flight image',1000,100)
         cv2.waitKey(10)
         scipy.misc.imsave(os.path.join(savepath, videoname + '.tif'), flight_image_by_distance)
     if save_clip:

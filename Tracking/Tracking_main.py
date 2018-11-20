@@ -96,6 +96,7 @@ class Tracking():
                 print(colored('Registering arena', 'green'))
                 self.session['Metadata'].videodata[0]['Arena Transformation'] = register_arena(
                     self.session['Metadata'].videodata[0]['Background'], fisheye_map_location)
+            self.session['Metadata'].videodata[0]['Arena Transformation'][3] = fisheye_map_location
             registration = self.session['Metadata'].videodata[0]['Arena Transformation']
         else:
             registration = False
@@ -137,7 +138,7 @@ class Tracking():
                                 if track_options['analyze wall']:
                                     peri_stimulus_video_clip_with_wall(self.session['Metadata'].video_file_paths[vid_num][0], self.videoname,
                                     self.dlc_config_settings['clips_folder'], start_frame, stop_frame, stim_frame, registration, self.fps,
-                                    save_clip = True, display_clip = True, counter = True, make_flight_image = True)
+                                    save_clip = False, display_clip = True, counter = True, make_flight_image = True)
                                 else:
                                     peri_stimulus_video_clip(self.session['Metadata'].video_file_paths[vid_num][0], self.videoname,
                                     self.dlc_config_settings['clips_folder'], start_frame, stop_frame, stim_frame, registration, self.fps,

@@ -31,15 +31,9 @@ def save_data(savelogpath, load_name, save_name, loaded_db_size, object=None, na
 def load_data(savelogpath, load_name, loadas='.pkl'):
     """ load data into a pandas datafrrame"""
     print(colored('Loading database: {}'.format(load_name),color='yellow'))
-    try:
-        db = pd.read_pickle(os.path.join(savelogpath, load_name))
-        return db
-    except:
-        from warnings import warn
-        path = os.path.join(savelogpath, load_name)
-        warn('Failed to load data')
-        print('filename "{}" - size {}'.format(load_name, os.path.getsize(path)))
-        raise Warning('Damn')
+    db = pd.read_pickle(os.path.join(savelogpath, load_name))
+    return db
+
 
 
 def load_yaml(fpath):
