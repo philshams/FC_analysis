@@ -128,19 +128,19 @@ def create_database(datalogpath, database=None):
                         # Now use the AI channels to find the *real* stimulus onset times and replace them
                         # TO DO: get fraction of frame during which stimulus started, use to centre reaction
                         if audio_rec_stims:
-                            stimulus_on_idx = np.where(tdms.group_channels('AI')[1].data > 3)[0]
+                            stimulus_on_idx = np.where(tdms.group_channels('AI')[2].data > 3)[0] #in first data sets this is AI 1
                             idx_since_last_stimulus_on = np.diff(stimulus_on_idx)
-                            stimulus_start_idx = stimulus_on_idx[np.append(np.ones(1).astype(bool),idx_since_last_stimulus_on>4*10000)]
+                            stimulus_start_idx = stimulus_on_idx[np.append(np.ones(1).astype(bool),idx_since_last_stimulus_on>30*10000)]
                             stimulus_start_frame = np.ceil(stimulus_start_idx / 10000 / (33+1/3) * 1000).astype(int)
                             if len(stimulus_start_frame) != len(audio_rec_stims):
-                                print('audio AI channel does not match number of timestamps')
+                                print('audio AI channel does not match number of timestamps by ' + str(len(audio_rec_stims)-len(stimulus_start_frame)) )
                             else:
                                 discrepancy = stimulus_start_frame - audio_rec_stims
                                 if sum(discrepancy>8):
                                     print('audio AI channel does not match values of timestamps')
                                 else:
                                     print(discrepancy)
-                                    audio_rec_stims = list(stimulus_start_frame)
+                            audio_rec_stims = list(stimulus_start_frame)
 
                         session_metadata.stimuli['visual'].append(visual_rec_stims)
                         session_metadata.stimuli['audio'].append(audio_rec_stims)

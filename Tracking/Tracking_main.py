@@ -1,24 +1,30 @@
 # Import packages
+from Config import startf, track_options, dlc_config_settings, video_analysis_settings, fisheye_map_location, y_offset, x_offset
+
+from Utils.video_funcs import peri_stimulus_video_clip, peri_stimulus_video_clip, peri_stimulus_analysis, register_arena, get_background, \
+    invert_fisheye_map, extract_coordinates_with_dlc
 
 import imageio
 imageio.plugins.ffmpeg.download()
 from collections import namedtuple
 from warnings import warn
+
 # Import functions and params from other scripts
 # from Tracking.std_tracking_functions import get_body_orientation, get_mvmt_direction, get_velocity
-
-# from Tracking import dlc_analyseVideos
 from Tracking.Tracking_utils import *
 
-from Utils.video_funcs import peri_stimulus_video_clip, peri_stimulus_video_clip_with_wall, register_arena, get_background
+
 from Utils import Data_rearrange_funcs
 from Utils.utils_classes import Trial
 from Utils.loadsave_funcs import load_yaml
+import h5py
+import glob
 
-from Config import startf, track_options, dlc_config_settings, video_analysis_settings, fisheye_map_location
+from scipy import interpolate
+
 from termcolor import colored
-
-
+import yaml
+import platform
 
 class Tracking():
     """"
@@ -61,45 +67,67 @@ class Tracking():
         if not isinstance(self.session['Tracking'], dict):
             self.session['Tracking'] = {}
 
-        # Track whole session - not currently in use (PNS)
+        # Register arena
+        if track_options['register arena']:
+            self.register_arena()
+        else:
+            self.registration = False
+
+        # Track whole session - DLC
         if track_options['track whole session']:
             self.track_wholesession()
 
-        # Track single trials and/or save video clips
-        if (track_options['track stimulus responses'] and track_options['use standard tracking']) \
-                or track_options['save stimulus clips'] or track_options['register arena']:
+        # Track single trials - DLC
+        if track_options['track stimulus responses'] and not track_options['track whole session']:
             self.track_trials()
 
-    # ========================================================
-    #          EXTRACT FLIGHT FOR EACH TRIAL
-    # ========================================================
-    def track_trials(self):
-        if track_options['track stimulus responses'] and track_options['use standard tracking']:
-            print(colored('Tracking individual trials.', 'green'))
+        # Save clips
         if track_options['save stimulus clips']:
-            print(colored('Extracting clips.', 'green'))
+            self.save_trials()
 
-        # ========================================================
-        #           GET BACKGROUND
-        # ========================================================
+
+    # ========================================================
+    #           REGISTER ARENA
+    # ========================================================
+    def register_arena(self):
+        # GET BACKGROUND
         if (not np.array(self.session['Metadata'].videodata[0]['Background']).size):
             # not self.session['Metadata'].videodata[0]['Background']
             print(colored('Fetching background', 'green'))
             self.session['Metadata'].videodata[0]['Background'] = get_background(
                 self.session['Metadata'].video_file_paths[0][0],start_frame=1000, avg_over=100)
 
-        # ========================================================
-        #           REGISTER ARENA
-        # ========================================================
-        if track_options['register arena']:
-            if not self.session['Metadata'].videodata[0]['Arena Transformation']:
-                print(colored('Registering arena', 'green'))
-                self.session['Metadata'].videodata[0]['Arena Transformation'] = register_arena(
-                    self.session['Metadata'].videodata[0]['Background'], fisheye_map_location)
-            self.session['Metadata'].videodata[0]['Arena Transformation'][3] = fisheye_map_location
-            registration = self.session['Metadata'].videodata[0]['Arena Transformation']
+        # REGISTER ARENA
+        if not self.session['Metadata'].videodata[0]['Arena Transformation']:
+            print(colored('Registering arena', 'green'))
+            self.session['Metadata'].videodata[0]['Arena Transformation'] = register_arena(
+                self.session['Metadata'].videodata[0]['Background'], fisheye_map_location)
+        # self.session['Metadata'].videodata[0]['Arena Transformation'][3] = fisheye_map_location
+        self.registration = self.session['Metadata'].videodata[0]['Arena Transformation']
+
+    # ========================================================
+    #           TRACK SESSION USING DLC
+    # ========================================================
+    def track_wholesession(self):
+
+        if hasattr(self.session,'Coordinates'):
+            print(colored('Coordinates have already been extracted', 'green'))
         else:
-            registration = False
+            # get the original behaviour video
+            video = self.session.Metadata.video_file_paths[0]
+            print(colored('Tracking the whole session from ' + video[0], 'green'))
+
+            # extract the coordinates for the video
+            self.session['Coordinates'], self.registration = extract_coordinates_with_dlc(dlc_config_settings, video, self.registration)
+
+    # ========================================================
+    #          EXTRACT FLIGHT FOR EACH TRIAL
+    # ========================================================
+    def save_trials(self):
+        if track_options['track stimulus responses'] and track_options['use standard tracking']:
+            print(colored('Tracking individual trials.', 'green'))
+        if track_options['save stimulus clips']:
+            print(colored('Extracting clips.', 'green'))
 
         # ========================================================
         #           LOOP OVER EACH STIMULUS
@@ -131,143 +159,25 @@ class Tracking():
                         #           SAVE CLIPS AND FLIGHT IMAGES
                         # ========================================================
                         if track_options['save stimulus clips']:
-                            if self.session.Metadata.videodata[0]['Clips Directory'] and not track_options['do not overwrite']:
+                            if self.session.Metadata.videodata[0]['Clips Directory'] and track_options['do not overwrite']:
                                 if not idx:
                                     print(colored('Video clips already saved', 'green'))
                             else:
-                                if track_options['analyze wall']:
-                                    peri_stimulus_video_clip_with_wall(self.session['Metadata'].video_file_paths[vid_num][0], self.videoname,
-                                    self.dlc_config_settings['clips_folder'], start_frame, stop_frame, stim_frame, registration, self.fps,
-                                    save_clip = False, display_clip = True, counter = True, make_flight_image = True)
+                                if hasattr(self.session, 'Coordinates'):
+                                    peri_stimulus_analysis(self.session.Coordinates, self.session['Metadata'].video_file_paths[vid_num][0], self.videoname,
+                                                           os.path.join(self.dlc_config_settings['clips_folder'],self.session['Metadata'].experiment),
+                                                           start_frame, stop_frame, stim_frame, self.registration, self.fps,
+                                                           analyze_wall=track_options['analyze wall'], save_clip=True, display_clip=True, counter=True, make_flight_image=True)
+
                                 else:
                                     peri_stimulus_video_clip(self.session['Metadata'].video_file_paths[vid_num][0], self.videoname,
-                                    self.dlc_config_settings['clips_folder'], start_frame, stop_frame, stim_frame, registration, self.fps,
-                                    save_clip = True, display_clip = False, counter = False, make_flight_image = False)
+                                                            os.path.join(self.dlc_config_settings['clips_folder'],self.session['Metadata'].experiment),
+                                                            start_frame, stop_frame, stim_frame, self.registration, self.fps,
+                                                            analyze_wall=track_options['analyze wall'],save_clip=True, display_clip=True, counter=True, make_flight_image=True)
 
-                        # ========================================================
-                        #       DO STANDARD TRACKING - not currently in use (PNS)
-                        # ========================================================
-                        # if track_options['track stimulus responses'] and track_options['use standard tracking']:
-                        #     print(colored('processing trial {} - standard tracking'.format(self.videoname),'green'))
-                        #
-                        #     trial = self.tracking(self.background, self.session['Metadata'].video_file_paths[vid_num][0],
-                        #                           start_frame=start_frame, stop_frame=stop_frame, video_fps=self.fps, justCoM=track_options['stdtracking_justCoM'])
-                        #
-                        #     trial = Data_rearrange_funcs.restructure_trial_data(trial, stim_type, idx, vid_num)
-                        #     trial.metadata = trial_metadata
-                        #
-                        #     # Merge into database
-                        #     old_trial = self.session['Tracking'][trial.metadata['Name']]
-                        #     self.session['Tracking'][trial.metadata['Name']] = merge_std_dlc_trials(old_trial, trial)
+
+
+
 
             # Record location of clips
             self.session.Metadata.videodata[0]['Clips Directory'] = self.dlc_config_settings['clips_folder']
-
-    # TRACK ENTIRE SESSION - not currrently in use (PNS)
-    # def track_wholesession(self):
-    #     # Check if tracking the whole session
-    #     print(colored('Tracking the whole session.', 'green'))
-    #     self.session['Tracking']['Whole Session'] = {}
-    #     video_tracking_data = namedtuple('coordinates', 'x y ori')
-    #
-    #     for idx, vid in enumerate(self.session['Metadata'].video_file_paths):
-    #         if idx == 0:
-    #             start_frame = startf
-    #         else:
-    #             start_frame = 0
-    #         tracked = self.tracking(self.background, vid[0],
-    #                                 start_frame=start_frame, stop_frame=-1, video_fps=self.fps)
-    #         tracking_data = video_tracking_data(tracked.data.x, tracked.data.y, tracked.data.orientation)
-    #         self.session['Tracking']['Whole Session']['Video_{}'.format(idx)] = tracking_data
-
-
-
-########################################################################################################################
-#           TRACKING FUNCTIONS - not currently in use (PNS)
-########################################################################################################################
-    # def tracking(self, bg, video_path, start_frame=1, stop_frame=-1, video_fps=30, justCoM=True):
-    #     # Create video capture
-    #     cap = cv2.VideoCapture(video_path)
-    #     ret, firstframe = cap.read()
-    #     cap.set(cv2.CAP_PROP_POS_FRAMES, start_frame)
-    #
-    #     if not ret:
-    #         print("Something went wrong, couldn't read video file")
-    #         return
-    #
-    #     # Initialise empty arrays to store tracking data and other variables
-    #     video_duration_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-    #
-    #     indexes = ['x', 'y', 'orientation']
-    #     if stop_frame == -1:
-    #         array = np.full((video_duration_frames, len(indexes)), np.nan)
-    #         stop_frame = video_duration_frames
-    #     else:
-    #         array = np.full((stop_frame-start_frame, len(indexes)), np.nan)
-    #
-    #     self.data = pd.DataFrame(array, columns=indexes)
-    #
-    #     # Display background
-    #     if video_analysis_settings['preview']:
-    #         cv2.namedWindow('bg')
-    #         cv2.imshow('bg', bg)
-    #         cv2.moveWindow('bg', 1200, 0)
-    #         cv2.waitKey(1)
-    #
-    #     # Start tracking
-    #     for f in range(start_frame, stop_frame):
-    #         if not stop_frame == -1 and f > stop_frame:
-    #             return self
-    #
-    #         ret, frame = cap.read()
-    #         if not ret:
-    #             return self
-    #
-    #         # get contours from frame
-    #         display, cnt = get_contours(bg, frame, self.video_analysis_settings['th_scaling'])
-    #
-    #         # extract info from contour
-    #         if cnt:
-    #             (x, y), radius = cv2.minEnclosingCircle(cnt[0])
-    #             centeroid = (int(x), int(y))
-    #             self.coord_l.append(centeroid)
-    #             self.data.loc[f-start_frame]['x'] = centeroid[0]
-    #             self.data.loc[f-start_frame]['y'] = centeroid[1]
-    #
-    #             # draw contours and trace and ROI
-    #             if video_analysis_settings['preview']:
-    #                 cv2.drawContours(frame, cnt, -1, (0, 255, 0), 1)
-    #                 drawtrace(frame, self.coord_l, (255, 0, 0), self.trace_length)
-    #
-    #             if not justCoM:
-    #                 # get mouse orientation
-    #                 self.data.loc[f-start_frame]['orientation']  = get_body_orientation(
-    #                                                     f, cnt[0], bg, display, frame, start_frame,
-    #                                                     self.data['orientation'].values,
-    #                                                     self.arena_floor, self.video_analysis_settings['tail_th_scaling'])
-    #
-    #         if video_analysis_settings['preview']:
-    #             display_results(f, frame, display, self.magnif_factor, self)
-    #             #  Control framerate and exit
-    #             # need to adjust this so that it waits for the correct amount to match fps
-    #             key = cv2.waitKey(10) & 0xFF
-    #     return self
-    #
-    # @staticmethod
-    # def tracking_use_dlc(database):
-    #     print('====================================\nExtracting Pose using DeepLabCut')
-    #
-    #     # dlc_config_settings = load_yaml(track_options['cfg_dlc'])
-    #
-    #     print('        ... extracting pose from clips')
-    #     TF_settings = dlc_setupTF(track_options)
-    #     dlc_analyseVideos.analyse(TF_settings, dlc_config_settings['clips_folder'])
-    #
-    #     print('        ... integrating results in database')
-    #     database = dlc_retreive_data(dlc_config_settings['clips_folder'], database)
-    #
-    #     print('        ... cleaning up')
-    #     if not dlc_config_settings['store trial videos']:
-    #         dlc_clear_folder(dlc_config_settings['clips_folder'], dlc_config_settings['store trial videos'])
-    #
-    #     return database

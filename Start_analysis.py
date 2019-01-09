@@ -1,5 +1,5 @@
-import time
-start = time.time()
+from Config import load_database, update_database, load_name, save_name, selector_type, selector, plotting_options, \
+    track_mouse, track_options, plotting, cohort, processing, debug, datalog, save_folder
 
 from tqdm import tqdm
 import sys
@@ -16,11 +16,6 @@ from Utils.Data_rearrange_funcs import create_cohort, check_session_selected
 
 # from Plotting import Single_trial_summary
 
-from Config import load_database, update_database, load_name, save_name, \
-    selector_type, selector, plotting_options, \
-    track_mouse, track_options, \
-    plotting, cohort, processing, debug, \
-    datalog, save_folder
 
 ########################################################################################################################
 ########################################################################################################################

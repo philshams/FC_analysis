@@ -4,13 +4,13 @@ import platform
 import random
 import sys
 import platform
-
+print('importing DLC...')
 import deeplabcut
 import yaml
 
 
 
-class DLCManager:
+class DLC_manager:
     """
     Collection of useful functions for deeplabcut:
 
@@ -36,10 +36,6 @@ class DLCManager:
     """
 
     def __init__(self):
-        # Get paths and settings
-        # with open('paths.yml', 'r') as f:
-        #     self.paths = yaml.load(f)
-
         with open('dlcproject_config.yml', 'r') as f:
             self.settings = yaml.load(f)
 
@@ -61,11 +57,8 @@ class DLCManager:
     
     ### UTILS
 
-    def sel_videos_in_folder(self, all=False, min_n=None):
-        print('Getting videos')
+    def sel_videos_in_folder(self, all=False):
         dr = self.dlc_paths['dr']
-        if min_n is None:
-            min_n = self.settings['min_num_vids']
 
         all_videos = [os.path.join(dr, f) for f in os.listdir(
             dr) if self.settings['video_format'] in f]
@@ -79,13 +72,11 @@ class DLCManager:
 
     ### DLC functions
 
-    def create_project(self):
-        # TODO add check if file existsts already
+    def create_project(self, date):
         training_videos = self.sel_videos_in_folder()
-        print('Creating project with {} videos'.format(len(training_videos)))
 
-        deeplabcut.create_new_project(self.settings['experiment'], self.settings['experimenter'], 
-                                      training_videos, working_directory=self.dlc_paths['project_path'], copy_videos=True)
+        self.dlc_paths['cfg_path'] = deeplabcut.create_new_project(self.settings['experiment'], self.settings['experimenter'],
+                                      training_videos, date, working_directory=self.dlc_paths['project_path'], copy_videos=True)
 
     def add_videos_to_project(self):
         vids_to_add = self.sel_videos_in_folder()
@@ -96,7 +87,7 @@ class DLCManager:
 
     def label_frames(self):
         print('Getting ready to label frames')
-        deeplabcut.label_frames(self.dlc_paths['cfg_path'], Screens=2)
+        deeplabcut.label_frames(self.dlc_paths['cfg_path']) #, Screens=2)
 
     def check_labels(self):
         deeplabcut.check_labels(self.dlc_paths['cfg_path'])
@@ -105,7 +96,7 @@ class DLCManager:
         deeplabcut.create_training_dataset(self.dlc_paths['cfg_path'])
 
     def train_network(self):
-        deeplabcut.train_network(self.dlc_paths['cfg_path'], shuffle=1)
+        deeplabcut.train_network(self.dlc_paths['cfg_path'], shuffle=1, gputouse = 0)
 
     def evaluate_network(self):
         deeplabcut.evaluate_network(self.dlc_paths['cfg_path'], plotting=True)
@@ -126,27 +117,120 @@ class DLCManager:
                 videos = [videos]
         deeplabcut.create_labeled_video(self.dlc_paths['cfg_path'],  videos)
 
-    def extract_outliers(self, videos=None):
+    def extract_outliers(self, videos=None, outlier_algorithm = 'uncertain'):
         if videos is None: videos = self.sel_videos_in_folder()
-        deeplabcut.extract_outlier_frames(self.dlc_paths['cfg_path'], videos, outlieralgorithm='uncertain', p_bound=.01)
+        deeplabcut.extract_outlier_frames(self.dlc_paths['cfg_path'], videos, outlieralgorithm = outlier_algorithm, p_bound=.01)
 
     def refine_labels(self):
         deeplabcut.refine_labels(self.dlc_paths['cfg_path'])
 
+    def merge_labels(self):
+        deeplabcut.merge_datasets(self.dlc_paths['cfg_path'])
+
+    def add_new_videos(self):
+        deeplabcut.add_new_videos(self.dlc_paths['cfg_path'],vid, copy_videos=True)
+
+    def update_training_video_list(self):
+        '''
+        Updates the config.yaml file to include all videos in your labeled-data folder
+        '''
+        # load config file
+        with open(self.dlc_paths['cfg_path']) as f:
+            config_file = yaml.load(f)
+
+        # create dict of labelled data folders
+        updated_video_list = {}
+        crop_dict_to_use = config_file['video_sets'][list(config_file['video_sets'].keys())[0]]
+        training_images_folder = os.path.join(os.path.dirname(self.dlc_paths['cfg_path']), 'labeled-data')
+        for i, folder in enumerate(os.listdir(training_images_folder)):
+            if folder.find('labeled') < 0:
+                updated_video_list[os.path.join(self.dlc_paths['dr'], folder+'.'+self.settings['video_format'])] = crop_dict_to_use
+
+        # replace video list in config file with new list
+        config_file['video_sets'] = updated_video_list
+        with open(self.dlc_paths['cfg_path'], "w") as f:
+            yaml.dump(config_file, f)
+
+    def delete_labeled_outlier_frames(self):
+        '''
+        Deletes the img.png files that are called 'labeled'
+        '''
+        # go through folders containing training images
+        training_images_folder = os.path.join(os.path.dirname(self.dlc_paths['cfg_path']),'labeled-data')
+        for i, folder in enumerate(os.listdir(training_images_folder)):
+            if folder.find('labeled') < 0:
+                # for the unlabeled folders, delete the png images that are labeled
+                trial_images_folder = os.path.join(training_images_folder, folder)
+                for image in os.listdir(trial_images_folder):
+                    if image.find('labeled.png')>=0:
+                        os.remove(os.path.join(trial_images_folder, image))
+
+
 
 if __name__ == "__main__":
-    manager = DLCManager()
+    '''
+    Step 0: create project -> configure the config.yaml file in the project folder 
+    '''
+    dlc_master = DLC_manager()
+    date = '2018-11-22'
+    dlc_master.create_project(date)
 
-    manager.create_project()
-    manager.extract_frames()
-    manager.label_frames()
-    # manager.label_frames()
-    # vids = manager.sel_videos_in_folder(all=True, min_n=2)
-    # manager.extract_outliers(videos=vids)
-    # manager.refine_labels()
+    '''
+    Step 1: extract and label frames from example videos
+    '''
+    # dlc_master.extract_frames()
+    # dlc_master.label_frames()
 
-    # manager.analyze_videos(videos=vids)
-    # manager.create_labeled_videos(videos=vids)
+    '''
+    Step 2: check whether the frames were correctly labelled and create training set
+    '''
+    # dlc_master.check_labels()
+    # dlc_master.refine_labels()
+    # dlc_master.merge_labels()
+    # dlc_master.create_training_dataset()
+
+    '''
+    Step 3: update \\dlc-models\\iteration-x\\network_name\\train\\pose_cfg.yaml -> train the network
+    '''
+    # dlc_master.train_network()
+
+    '''
+    Step 4: evaluate the network
+    '''
+    dlc_master.evaluate_network()
+    vids = dlc_master.sel_videos_in_folder(all=True)
+    vids = vids[0::5]
+    # dlc_master.analyze_videos(videos=vids)
+    dlc_master.create_labeled_videos(videos=vids)
+    'TO DO: save analysis results in separate folder'
+    'TO DO: concatenate machine labels and collected data so can refine the already labeled video'
+
+
+    '''
+    Step 5: refine the network
+    '''
+    # outlier_algorithm can be 'fitting', 'jump', or 'uncertain' (or all 3 in series)
+    # dlc_master.extract_outliers(videos=vids, outlier_algorithm = 'jump')
+
+    # dlc_master.delete_labeled_outlier_frames()
+    # dlc_master.label_frames()
+    # dlc_master.update_training_video_list()
+
+    # dlc_master.refine_labels()
+
+    # dlc_master.check_labels()
+
+
+    '''
+    Step 6: start next iteration
+    '''
+    # dlc_master.merge_labels() # increase iteration by 1
+    # dlc_master.create_training_dataset()
+    # now, repeat steps 3-5 until satisfied
+
+
+
+
     
 
 

@@ -3,8 +3,11 @@ Script to set up the analysis of behavioural data: defines relevant parameters a
 the different functionalities of the analysis scripts
 """
 
-datalog = 'C:\\Drive\\Behaviour\\data\\experiments.xlsx'
-save_folder = 'C:\\Drive\\Behaviour\\data'
+#######################
+#  SETUP              #
+#######################
+datalog = 'D:\\data\\experiments.xlsx'
+save_folder = 'D:\\data'
 DLC_folder = 'C:\\Drive\\Behaviour\\DeepLabCut'
 
 # If loading a pre-existing database, specify name of the file it was saved to. otherwise db is generated from
@@ -16,14 +19,12 @@ load_name = '181115'  # name of file to load
 save_name = '181115' # name to save the results of the analysis
 
 # selects which sessions to analyze ('all', 'experiment', 'session', 'date', 'mouse' or COHORT)
-selector_type = 'all'
-selector = ['Barnes US wall up (20kHz)', 'Barnes US wall up (2)']
+selector_type = 'mouse'
+selector = ['CA3740']
 # selector = ['Barnes US wall down', 'Barnes US wall up', 'Barnes US wall up (2)', 'Barnes US wall up (20kHz)']
 
 
-"""
-Flags and params that control the execution of the different parts of the code
-"""
+
 #######################
 #  TRACKING           #
 #######################
@@ -35,18 +36,57 @@ track_options = {
     'analyze wall': True,
     'save stimulus clips': True, # Save videos of the peri-stimulus period
 
-    'track whole session': False,  # Track the mouse for the entire session using the standard tracking
-    'track stimulus responses': False, # Track the mouse during stimulus responses using DLC
-    'use standard tracking': True, # Use standard tracking of center of mass instead of DLC
+    'track whole session': True,  # Track the mouse for the entire session using DLC
+    'track stimulus responses': False, # Track the mouse during just stimulus responses using DLC
 
-    'do not overwrite': True,
-    'cfg_std': 'C:\\Drive\\DLC\\PNS_analysis\\Tracking\\Configs\\cfg_std_Barnes.yml',
-    'cfg_dlc': 'C:\\Drive\\DLC\\PNS_analysis\\Tracking\\Configs\\cfg_dlc_Barnes.yml'
+    'do not overwrite': False,
     }
 
-fisheye_map_location = 'C:\\Drive\\Behaviour\\data\\fisheye_maps.npy'
-x_offset = 120
-y_offset = 300
+fisheye_map_location = 'C:\\Drive\\DLC\\transforms\\fisheye_maps.npy'
+x_offset = 300
+y_offset = 120
+
+
+video_analysis_settings = {
+    'fast track wndw pre': 5,
+    'fast track wndw post': 10
+}
+
+#######################
+#  DLC                #
+#######################
+dlc_config_settings = {
+    'clips_folder': 'D:\\data\\Analysis_Videos',
+    'dlc_network_posecfg': 'D:\\data\\DLC_nets\\Barnes-Philip-2018-11-22\\dlc-models\\iteration-6\\Barnes2018-11-22-trainset95shuffle1\\test',
+    'dlc_network_snapshot': 'D:\\data\\DLC_nets\\Barnes-Philip-2018-11-22\\dlc-models\\iteration-6\\Barnes2018-11-22-trainset95shuffle1\\train\\snapshot-950000',
+    'scorer': 'DeepCut_resnet50_Philip_50000',
+    'config_file': 'D:\\data\\DLC_nets\\Barnes-Philip-2018-11-22\\config.yaml',
+    'body parts': ['nose','L eye','R eye','L ear','neck','R ear','L shoulder','upper back','R shoulder','L hind limb','Lower back','R hind limb','derriere'],
+    'inverse_fisheye_map_location': 'C:\\Drive\\DLC\\transforms\\inverse_fisheye_maps.npy'
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 #######################
@@ -95,26 +135,9 @@ plotting_options = {
 #######################
 #  MISC.              #
 #######################
-"""
-For each session being processed save an .avi video of each peri-stimulus period
-"""
-
-
 
 ###more CONFIGURATION
-dlc_config_settings = {
-    'clips': '',
-    'clips_folder': 'C:\\Drive\\DLC\\data\\Analysis_Videos',
-    'dlc_network_posecfg': 'C:\\Drive\\DLC\\data\\videos_train_dlc\\Barnes_USSep25_2018-trainset95shuffle1\\test',
-    'dlc_network_snapshot': 'C:\\Drive\\DLC\\data\\videos_train_dlc\\Barnes_USSep25_2018-trainset95shuffle1\\train\\snapshot-50000',
-    'scorer': 'DeepCut_resnet50_Philip_50000',
-    'store trial videos': True
-}
 
-video_analysis_settings = {
-    'fast track wndw pre': 5,
-    'fast track wndw post': 10
-}
 
 
 

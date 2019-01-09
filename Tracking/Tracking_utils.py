@@ -27,8 +27,6 @@ def create_trial_metadata(trial_name, stim_type, start_frame, stop_frame, video_
         'Video path': video_path,
         'Created': datetime.datetime.now().strftime("%y-%m-%d-%H-%M"),
         'Last modified': datetime.datetime.now().strftime("%y-%m-%d-%H-%M"),
-        'std tracking settings': load_yaml(track_options['cfg_std']),
-        'dlc tracking settings': load_yaml(track_options['cfg_dlc'])
     }
     return tr_metadata
 

@@ -1,11 +1,17 @@
 from Utils.imports import *
+from Config import track_options
+
+if track_options['track whole session']:
+    from deeplabcut.pose_estimation_tensorflow import analyze_videos
+    # from deeplabcut.utils import create_labeled_video
+
 import cv2
 import numpy as np
 import scipy.misc
 from termcolor import colored
 from tqdm import tqdm
 import glob
-from Config import x_offset, y_offset
+from Config import y_offset, x_offset
 
 
 def get_background(vidpath, start_frame = 1000, avg_over = 100):
@@ -66,7 +72,7 @@ def model_arena(size):
     for circle_num in range(number_of_circles):
         x_center = int(500+385*np.sin(2*np.pi/number_of_circles*circle_num))
         y_center = int(500-385*np.cos(2*np.pi/number_of_circles*circle_num))
-        cv2.circle(model_arena,(x_center,y_center),25,0,-1)
+        cv2.circle(model_arena,(x_center,y_center),25,150,-1)
 
     model_arena = cv2.resize(model_arena,size)
 
@@ -91,12 +97,12 @@ def register_arena(background, fisheye_map_location):
         map1 = maps[:, :, 0:2]
         map2 = maps[:, :, 2]*0
 
-        background_copy = cv2.copyMakeBorder(background, x_offset, int((map1.shape[0] - background.shape[0]) - x_offset),
-                                             y_offset, int((map1.shape[1] - background.shape[1]) - y_offset),cv2.BORDER_CONSTANT, value=0)
+        background_copy = cv2.copyMakeBorder(background, y_offset, int((map1.shape[0] - background.shape[0]) - y_offset),
+                                             x_offset, int((map1.shape[1] - background.shape[1]) - x_offset), cv2.BORDER_CONSTANT, value=0)
 
         background_copy = cv2.remap(background_copy, map1, map2, interpolation=cv2.INTER_LINEAR,borderMode=cv2.BORDER_CONSTANT, borderValue=0)
-        background_copy = background_copy[x_offset:-int((map1.shape[0] - background.shape[0])- x_offset),
-                                          y_offset:-int((map1.shape[1] - background.shape[1]) - y_offset)]
+        background_copy = background_copy[y_offset:-int((map1.shape[0] - background.shape[0]) - y_offset),
+                          x_offset:-int((map1.shape[1] - background.shape[1]) - x_offset)]
     except:
         background_copy = background.copy()
         fisheye_map_location = ''
@@ -116,7 +122,7 @@ def register_arena(background, fisheye_map_location):
 
     # LOOP OVER TRANSFORM FILES
     file_num = -1;
-    transform_files = glob.glob('*transform.npy')
+    transform_files = glob.glob('.\\transforms\\*transform.npy')
     for file_num, transform_file in enumerate(transform_files[::-1]):
 
         # USE LOADED TRANSFORM AND SEE IF IT'S GOOD
@@ -297,7 +303,7 @@ def register_arena(background, fisheye_map_location):
                 overlaid_arenas = cv2.addWeighted(registered_background_color, alpha, arena_color, 1 - alpha, 0)
                 update_transform_data[0] = overlaid_arenas
 
-        np.save(str(file_num+1)+'_transform',[M, update_transform_data[1], update_transform_data[2], fisheye_map_location])
+        np.save('.\\transforms\\str(file_num+1)' + '_transform',[M, update_transform_data[1], update_transform_data[2], fisheye_map_location])
 
     cv2.destroyAllWindows()
     return [M, update_transform_data[1], update_transform_data[2], fisheye_map_location]
@@ -349,126 +355,128 @@ def make_color_array(colors, image_size):
 
 
 
-# =================================================================================
-#              GENERATE PERI-STIMULUS VIDEO CLIPS and FLIGHT IMAGE
-# =================================================================================
-def peri_stimulus_video_clip(vidpath = '', videoname = '', savepath = '', start_frame=0., end_frame=100., stim_frame = 0,
-                   registration = 0, fps=False, save_clip = False, display_clip = False, counter = True, make_flight_image = True):
-    # GET BEAHVIOUR VIDEO - ######################################
-    vid = cv2.VideoCapture(vidpath)
-    if not fps: fps = vid.get(cv2.CAP_PROP_FPS)
-    width = int(vid.get(cv2.CAP_PROP_FRAME_WIDTH))
-    height = int(vid.get(cv2.CAP_PROP_FRAME_HEIGHT))
-
-    # SETUP VIDEO CLIP SAVING - ######################################
-    # file_already_exists = os.path.isfile(os.path.join(savepath,videoname+'.avi'))
-    fourcc = cv2.VideoWriter_fourcc(*"XVID")  # LJPG for lossless, XVID for compressed
-    border_size = 20
-    if save_clip:
-        video_clip = cv2.VideoWriter(os.path.join(savepath,videoname+'.avi'), fourcc, fps, (width+2*border_size*counter, height+2*border_size*counter), counter)
-    vid.set(cv2.CAP_PROP_POS_FRAMES, start_frame)
-
-    pre_stim_color = [255, 120, 120]
-    post_stim_color = [120, 120, 255]
-
-    if registration[3]: # setup fisheye correction
-        maps = np.load(registration[3])
-        map1 = maps[:, :, 0:2]
-        map2 = maps[:, :, 2] * 0
-    else:
-        print(colored('Fisheye correction unavailable', 'green'))
-    # RUN SAVING AND ANALYSIS OVER EACH FRAME - ######################################
-    while True: #and not file_already_exists:
-        ret, frame = vid.read()  # get the frame
-        if ret:
-            frame_num = vid.get(cv2.CAP_PROP_POS_FRAMES)
-            if [registration]:
-                # load the fisheye correction
-                frame_register = frame[:, :, 0]
-                if registration[3]:
-                    frame_register = cv2.copyMakeBorder(frame_register, x_offset, int((map1.shape[0] - frame.shape[0]) - x_offset),
-                                                         y_offset, int((map1.shape[1] - frame.shape[1]) - y_offset), cv2.BORDER_CONSTANT, value=0)
-                    frame_register = cv2.remap(frame_register, map1, map2, interpolation=cv2.INTER_LINEAR,
-                                                borderMode=cv2.BORDER_CONSTANT, borderValue=0)
-                    frame_register = frame_register[x_offset:-int((map1.shape[0] - frame.shape[0]) - x_offset),
-                                      y_offset:-int((map1.shape[1] - frame.shape[1]) - y_offset)]
-                frame = cv2.cvtColor(cv2.warpAffine(frame_register, registration[0], frame.shape[0:2]),cv2.COLOR_GRAY2RGB)
-
-            # MAKE ESCAPE TRAJECTORY IMAGE - #######################################
-            if make_flight_image:
-                # at stimulus onset, take this frame to lay all the superimposed mice on top of
-                if frame_num == stim_frame:
-                    flight_image_by_distance = frame[:,:,0].copy()
-
-                # in subsequent frames, see if frame is different enough from previous image to merit joining the image
-                elif frame_num > stim_frame and (frame_num - stim_frame) < 30*10:
-                    # get the number of pixels that are darker than the flight image
-                    difference_from_previous_image = ((frame[:,:,0]+.001) / (flight_image_by_distance+.001))<.55 #.5 original parameter
-                    number_of_darker_pixels = np.sum(difference_from_previous_image)
-
-                    # if that number is high enough, add mouse to image
-                    if number_of_darker_pixels > 1050: # 850 original parameter
-                        # add mouse where pixels are darker
-                        flight_image_by_distance[difference_from_previous_image] = frame[difference_from_previous_image,0]
-
-            # SHOW BOUNDARY AND TIME COUNTER - #######################################
-            if counter and (display_clip or save_clip):
-                # cv2.rectangle(frame, (0, height), (150, height - 60), (150,150,150), -1)
-                if frame_num < stim_frame:
-                    cur_color = tuple([x * ((frame_num - start_frame) / (stim_frame - start_frame)) for x in pre_stim_color])
-                    sign = ''
-                else:
-                    cur_color = tuple([x * (1 - (frame_num - stim_frame) / (end_frame-stim_frame))  for x in post_stim_color])
-                    sign = '+'
-
-                # border and colored rectangle around frame
-                frame = cv2.copyMakeBorder(frame, border_size, border_size, border_size, border_size,cv2.BORDER_CONSTANT, value=cur_color)
-
-                # report video details
-                cv2.putText(frame, videoname, (20, 40), 0, .55, (180, 180, 180), thickness=1)
-
-                # report time relative to stimulus onset
-                frame_time = (frame_num - stim_frame) / fps
-                frame_time = str(round(.1*round(frame_time/.1), 1))+ '0'*(abs(frame_time)<10)
-                cv2.putText(frame, sign + str(frame_time) + 's', (width-110, height+10), 0, 1,(180,180,180), thickness=2)
-
-            else:
-                frame = frame[:,:,0] # or use 2D grayscale image instead
-
-            # SHOW AND SAVE FRAME - #######################################
-            if display_clip:
-                cv2.imshow('Trial Clip', frame)
-            if save_clip:
-                video_clip.write(frame)
-            if display_clip:
-                if cv2.waitKey(1) & 0xFF == ord('q'):
-                    break
-            if frame_num >= end_frame:
-                break
-        else:
-            print('Problem with movie playback')
-            cv2.waitKey(1000)
-            break
-
-    # wrap up
-    vid.release()
-    if make_flight_image:
-        flight_image_by_distance = cv2.copyMakeBorder(flight_image_by_distance, border_size, border_size, border_size, border_size, cv2.BORDER_CONSTANT, value=0)
-        cv2.putText(flight_image_by_distance, videoname, (border_size, border_size-5), 0, .55, (180, 180, 180), thickness=1)
-        cv2.imshow('Flight image', flight_image_by_distance)
-        cv2.waitKey(10)
-        scipy.misc.imsave(os.path.join(savepath, videoname + '.tif'), flight_image_by_distance)
-    if save_clip:
-        video_clip.release()
-    # cv2.destroyAllWindows()
-
+# # =================================================================================
+# #              GENERATE PERI-STIMULUS VIDEO CLIPS and FLIGHT IMAGE
+# # =================================================================================
+# def peri_stimulus_video_clip(vidpath = '', videoname = '', savepath = '', start_frame=0., end_frame=100., stim_frame = 0,
+#                    registration = 0, fps=False, save_clip = False, display_clip = False, counter = True, make_flight_image = True):
+#     # GET BEAHVIOUR VIDEO - ######################################
+#     vid = cv2.VideoCapture(vidpath)
+#     if not fps: fps = vid.get(cv2.CAP_PROP_FPS)
+#     width = int(vid.get(cv2.CAP_PROP_FRAME_WIDTH))
+#     height = int(vid.get(cv2.CAP_PROP_FRAME_HEIGHT))
+#
+#     # SETUP VIDEO CLIP SAVING - ######################################
+#     # file_already_exists = os.path.isfile(os.path.join(savepath,videoname+'.avi'))
+#     fourcc = cv2.VideoWriter_fourcc(*"XVID")  # LJPG for lossless, XVID for compressed
+#     border_size = 20
+#     if save_clip:
+#         if not os.path.isdir(savepath):
+#             os.makedirs(savepath)
+#         video_clip = cv2.VideoWriter(os.path.join(savepath,videoname+'.avi'), fourcc, fps, (width+2*border_size*counter, height+2*border_size*counter), counter)
+#     vid.set(cv2.CAP_PROP_POS_FRAMES, start_frame)
+#
+#     pre_stim_color = [255, 120, 120]
+#     post_stim_color = [120, 120, 255]
+#
+#     if registration[3]: # setup fisheye correction
+#         maps = np.load(registration[3])
+#         map1 = maps[:, :, 0:2]
+#         map2 = maps[:, :, 2] * 0
+#     else:
+#         print(colored('Fisheye correction unavailable', 'green'))
+#     # RUN SAVING AND ANALYSIS OVER EACH FRAME - ######################################
+#     while True: #and not file_already_exists:
+#         ret, frame = vid.read()  # get the frame
+#         if ret:
+#             frame_num = vid.get(cv2.CAP_PROP_POS_FRAMES)
+#             if [registration]:
+#                 # load the fisheye correction
+#                 frame_register = frame[:, :, 0]
+#                 if registration[3]:
+#                     frame_register = cv2.copyMakeBorder(frame_register, y_offset, int((map1.shape[0] - frame.shape[0]) - y_offset),
+#                                                         x_offset, int((map1.shape[1] - frame.shape[1]) - x_offset), cv2.BORDER_CONSTANT, value=0)
+#                     frame_register = cv2.remap(frame_register, map1, map2, interpolation=cv2.INTER_LINEAR,
+#                                                 borderMode=cv2.BORDER_CONSTANT, borderValue=0)
+#                     frame_register = frame_register[y_offset:-int((map1.shape[0] - frame.shape[0]) - y_offset),
+#                                      x_offset:-int((map1.shape[1] - frame.shape[1]) - x_offset)]
+#                 frame = cv2.cvtColor(cv2.warpAffine(frame_register, registration[0], frame.shape[0:2]),cv2.COLOR_GRAY2RGB)
+#
+#             # MAKE ESCAPE TRAJECTORY IMAGE - #######################################
+#             if make_flight_image:
+#                 # at stimulus onset, take this frame to lay all the superimposed mice on top of
+#                 if frame_num == stim_frame:
+#                     flight_image_by_distance = frame[:,:,0].copy()
+#
+#                 # in subsequent frames, see if frame is different enough from previous image to merit joining the image
+#                 elif frame_num > stim_frame and (frame_num - stim_frame) < 30*10:
+#                     # get the number of pixels that are darker than the flight image
+#                     difference_from_previous_image = ((frame[:,:,0]+.001) / (flight_image_by_distance+.001))<.55 #.5 original parameter
+#                     number_of_darker_pixels = np.sum(difference_from_previous_image)
+#
+#                     # if that number is high enough, add mouse to image
+#                     if number_of_darker_pixels > 1050: # 850 original parameter
+#                         # add mouse where pixels are darker
+#                         flight_image_by_distance[difference_from_previous_image] = frame[difference_from_previous_image,0]
+#
+#             # SHOW BOUNDARY AND TIME COUNTER - #######################################
+#             if counter and (display_clip or save_clip):
+#                 # cv2.rectangle(frame, (0, height), (150, height - 60), (150,150,150), -1)
+#                 if frame_num < stim_frame:
+#                     cur_color = tuple([x * ((frame_num - start_frame) / (stim_frame - start_frame)) for x in pre_stim_color])
+#                     sign = ''
+#                 else:
+#                     cur_color = tuple([x * (1 - (frame_num - stim_frame) / (end_frame-stim_frame))  for x in post_stim_color])
+#                     sign = '+'
+#
+#                 # border and colored rectangle around frame
+#                 frame = cv2.copyMakeBorder(frame, border_size, border_size, border_size, border_size,cv2.BORDER_CONSTANT, value=cur_color)
+#
+#                 # report video details
+#                 cv2.putText(frame, videoname, (20, 40), 0, .55, (180, 180, 180), thickness=1)
+#
+#                 # report time relative to stimulus onset
+#                 frame_time = (frame_num - stim_frame) / fps
+#                 frame_time = str(round(.1*round(frame_time/.1), 1))+ '0'*(abs(frame_time)<10)
+#                 cv2.putText(frame, sign + str(frame_time) + 's', (width-110, height+10), 0, 1,(180,180,180), thickness=2)
+#
+#             else:
+#                 frame = frame[:,:,0] # or use 2D grayscale image instead
+#
+#             # SHOW AND SAVE FRAME - #######################################
+#             if display_clip:
+#                 cv2.imshow('Trial Clip', frame)
+#             if save_clip:
+#                 video_clip.write(frame)
+#             if display_clip:
+#                 if cv2.waitKey(1) & 0xFF == ord('q'):
+#                     break
+#             if frame_num >= end_frame:
+#                 break
+#         else:
+#             print('Problem with movie playback')
+#             cv2.waitKey(1000)
+#             break
+#
+#     # wrap up
+#     vid.release()
+#     if make_flight_image:
+#         flight_image_by_distance = cv2.copyMakeBorder(flight_image_by_distance, border_size, border_size, border_size, border_size, cv2.BORDER_CONSTANT, value=0)
+#         cv2.putText(flight_image_by_distance, videoname, (border_size, border_size-5), 0, .55, (180, 180, 180), thickness=1)
+#         cv2.imshow('Flight image', flight_image_by_distance)
+#         cv2.waitKey(10)
+#         scipy.misc.imsave(os.path.join(savepath, videoname + '.tif'), flight_image_by_distance)
+#     if save_clip:
+#         video_clip.release()
+#     # cv2.destroyAllWindows()
+#
 
 
 # =================================================================================
 #        GENERATE PERI-STIMULUS VIDEO CLIPS and FLIGHT IMAGE ***with wall***
 # =================================================================================
-def peri_stimulus_video_clip_with_wall(vidpath = '', videoname = '', savepath = '', start_frame=0., end_frame=100., stim_frame = 0,
-                   registration = 0, fps=False, save_clip = False, display_clip = False, counter = True, make_flight_image = True):
+def peri_stimulus_video_clip(vidpath = '', videoname = '', savepath = '', start_frame=0., end_frame=100., stim_frame = 0,
+                   registration = 0, fps=False, analyze_wall = True, save_clip = False, display_clip = False, counter = True, make_flight_image = True):
     # GET BEAHVIOUR VIDEO - ######################################
     vid = cv2.VideoCapture(vidpath)
     if not fps: fps = vid.get(cv2.CAP_PROP_FPS)
@@ -480,13 +488,16 @@ def peri_stimulus_video_clip_with_wall(vidpath = '', videoname = '', savepath = 
     fourcc = cv2.VideoWriter_fourcc(*"XVID")  # LJPG for lossless, XVID for compressed
     border_size = 20
     if save_clip:
+        if not os.path.isdir(savepath):
+            os.makedirs(savepath)
         video_clip = cv2.VideoWriter(os.path.join(savepath,videoname+'.avi'), fourcc, fps, (width+2*border_size*counter, height+2*border_size*counter), counter)
 
-
+    # set of border colors
     pre_stim_color = [255, 120, 120]
     post_stim_color = [120, 120, 255]
 
-    if registration[3]: # setup fisheye correction
+    # setup fisheye correction
+    if registration[3]:
         maps = np.load(registration[3])
         map1 = maps[:, :, 0:2]
         map2 = maps[:, :, 2] * 0
@@ -494,58 +505,61 @@ def peri_stimulus_video_clip_with_wall(vidpath = '', videoname = '', savepath = 
         print(colored('Fisheye correction unavailable', 'green'))
 
     # generate model arena and wall ROIs
-    # arena = model_arena((width,height))
-    x_wall_up_ROI_left = [int(x*width/1000) for x in [223-10,249+10]]
-    x_wall_up_ROI_right = [int(x*width/1000) for x in [752-10,777+10]]
-    y_wall_up_ROI = [int(x*height/1000) for x in [494 - 10,504 + 10]]
+    if analyze_wall:
+        # arena = model_arena((width,height))
+        x_wall_up_ROI_left = [int(x*width/1000) for x in [223-10,249+10]]
+        x_wall_up_ROI_right = [int(x*width/1000) for x in [752-10,777+10]]
+        y_wall_up_ROI = [int(x*height/1000) for x in [494 - 10,504 + 10]]
 
-    #check state of wall on various frames
-    frames_to_check = [start_frame, stim_frame-1, stim_frame + 13, end_frame]
-    wall_darkness = np.zeros((len(frames_to_check), 2))
-    for i, frame_to_check in enumerate(frames_to_check):
-        vid.set(cv2.CAP_PROP_POS_FRAMES, frame_to_check)
-        ret, frame = vid.read()
-        frame_register = frame[:, :, 0]
-        if registration[3]:
-            frame_register = cv2.copyMakeBorder(frame_register, x_offset,
-                                                int((map1.shape[0] - frame.shape[0]) - x_offset),
-                                                y_offset, int((map1.shape[1] - frame.shape[1]) - y_offset),
-                                                cv2.BORDER_CONSTANT, value=0)
-            frame_register = cv2.remap(frame_register, map1, map2, interpolation=cv2.INTER_LINEAR,
-                                       borderMode=cv2.BORDER_CONSTANT, borderValue=0)
-            frame_register = frame_register[x_offset:-int((map1.shape[0] - frame.shape[0]) - x_offset),
-                             y_offset:-int((map1.shape[1] - frame.shape[1]) - y_offset)]
-        frame = cv2.cvtColor(cv2.warpAffine(frame_register, registration[0], frame.shape[0:2]), cv2.COLOR_GRAY2RGB)
-        wall_darkness[i, 0] = sum(
-            sum(frame[y_wall_up_ROI[0]:y_wall_up_ROI[1], x_wall_up_ROI_left[0]:x_wall_up_ROI_left[1], 0] < 200))
-        wall_darkness[i, 1] = sum(
-            sum(frame[y_wall_up_ROI[0]:y_wall_up_ROI[1], x_wall_up_ROI_right[0]:x_wall_up_ROI_right[1], 0] < 200))
+        #check state of wall on various frames
+        frames_to_check = [start_frame, stim_frame-1, stim_frame + 13, end_frame]
+        wall_darkness = np.zeros((len(frames_to_check), 2))
+        for i, frame_to_check in enumerate(frames_to_check):
+            vid.set(cv2.CAP_PROP_POS_FRAMES, frame_to_check)
+            ret, frame = vid.read()
+            frame_register = frame[:, :, 0]
+            if registration[3]:
+                frame_register = cv2.copyMakeBorder(frame_register, y_offset,
+                                                    int((map1.shape[0] - frame.shape[0]) - y_offset),
+                                                    x_offset, int((map1.shape[1] - frame.shape[1]) - x_offset),
+                                                    cv2.BORDER_CONSTANT, value=0)
+                frame_register = cv2.remap(frame_register, map1, map2, interpolation=cv2.INTER_LINEAR,
+                                           borderMode=cv2.BORDER_CONSTANT, borderValue=0)
+                frame_register = frame_register[y_offset:-int((map1.shape[0] - frame.shape[0]) - y_offset),
+                                 x_offset:-int((map1.shape[1] - frame.shape[1]) - x_offset)]
+            frame = cv2.cvtColor(cv2.warpAffine(frame_register, registration[0], frame.shape[0:2]), cv2.COLOR_GRAY2RGB)
+            wall_darkness[i, 0] = sum(
+                sum(frame[y_wall_up_ROI[0]:y_wall_up_ROI[1], x_wall_up_ROI_left[0]:x_wall_up_ROI_left[1], 0] < 200))
+            wall_darkness[i, 1] = sum(
+                sum(frame[y_wall_up_ROI[0]:y_wall_up_ROI[1], x_wall_up_ROI_right[0]:x_wall_up_ROI_right[1], 0] < 200))
 
-    wall_darkness_pre = np.min(wall_darkness[0:int(len(frames_to_check)/2),0:2])
-    wall_darkness_post = np.min(wall_darkness[int(len(frames_to_check)/2):len(frames_to_check),0:2])
+        wall_darkness_pre = np.min(wall_darkness[0:int(len(frames_to_check)/2),0:2])
+        wall_darkness_post = np.min(wall_darkness[int(len(frames_to_check)/2):len(frames_to_check),0:2])
 
-    # use these darkness levels to detect whether wall is up, down, rising, or falling:
-    wall_mouse_already_shown = False
-    wall_mouse_show = False
-    finished_clip = False
-    if (wall_darkness_pre - wall_darkness_post) < -30:
-        print(colored('Wall rising trial detected!', 'green'))
-        wall_height_timecourse = [0]
-        trial_type = 1
-    elif (wall_darkness_pre - wall_darkness_post) > 30:
-        print(colored('Wall falling trial detected!', 'green'))
-        wall_height_timecourse = [1]
-        trial_type = -1
-    elif (wall_darkness_pre > 85) and (wall_darkness_post > 85):
-        print(colored('Wall trial detected', 'green'))
-        trial_type = 0
-        wall_height_timecourse = 1 #[1 for x in list(range(int(fps * .5)))]
-    elif (wall_darkness_pre < 85) and (wall_darkness_post < 85):
-        print(colored('No Wall trial detected', 'green'))
-        trial_type = 0
-        wall_height_timecourse = 0 # [0 for x in list(range(int(fps * .5)))]
+        # use these darkness levels to detect whether wall is up, down, rising, or falling:
+        wall_mouse_already_shown = False
+        wall_mouse_show = False
+        finished_clip = False
+        if (wall_darkness_pre - wall_darkness_post) < -30:
+            print(colored('Wall rising trial detected!', 'green'))
+            wall_height_timecourse = [0]
+            trial_type = 1
+        elif (wall_darkness_pre - wall_darkness_post) > 30:
+            print(colored('Wall falling trial detected!', 'green'))
+            wall_height_timecourse = [1]
+            trial_type = -1
+        elif (wall_darkness_pre > 85) and (wall_darkness_post > 85):
+            print(colored('Wall trial detected', 'green'))
+            trial_type = 0
+            wall_height_timecourse = 1 #[1 for x in list(range(int(fps * .5)))]
+        elif (wall_darkness_pre < 85) and (wall_darkness_post < 85):
+            print(colored('No Wall trial detected', 'green'))
+            trial_type = 0
+            wall_height_timecourse = 0 # [0 for x in list(range(int(fps * .5)))]
+        else:
+            print('Uh-oh -- not sure what kind of trial!')
     else:
-        print('Uh-oh -- not sure what kind of trial!')
+        trial_type = 0
     # print(wall_darkness)
     # if not trial_type:
     #     analyze = False
@@ -565,12 +579,12 @@ def peri_stimulus_video_clip_with_wall(vidpath = '', videoname = '', savepath = 
                 # load the fisheye correction
                 frame_register = frame[:, :, 0]
                 if registration[3]:
-                    frame_register = cv2.copyMakeBorder(frame_register, x_offset, int((map1.shape[0] - frame.shape[0]) - x_offset),
-                                                         y_offset, int((map1.shape[1] - frame.shape[1]) - y_offset), cv2.BORDER_CONSTANT, value=0)
+                    frame_register = cv2.copyMakeBorder(frame_register, y_offset, int((map1.shape[0] - frame.shape[0]) - y_offset),
+                                                        x_offset, int((map1.shape[1] - frame.shape[1]) - x_offset), cv2.BORDER_CONSTANT, value=0)
                     frame_register = cv2.remap(frame_register, map1, map2, interpolation=cv2.INTER_LINEAR,
                                                 borderMode=cv2.BORDER_CONSTANT, borderValue=0)
-                    frame_register = frame_register[x_offset:-int((map1.shape[0] - frame.shape[0]) - x_offset),
-                                      y_offset:-int((map1.shape[1] - frame.shape[1]) - y_offset)]
+                    frame_register = frame_register[y_offset:-int((map1.shape[0] - frame.shape[0]) - y_offset),
+                                     x_offset:-int((map1.shape[1] - frame.shape[1]) - x_offset)]
                 frame = cv2.cvtColor(cv2.warpAffine(frame_register, registration[0], frame.shape[0:2]),cv2.COLOR_GRAY2RGB)
 
             # MAKE ESCAPE TRAJECTORY IMAGE - #######################################
@@ -684,6 +698,391 @@ def peri_stimulus_video_clip_with_wall(vidpath = '', videoname = '', savepath = 
         video_clip.release()
     # cv2.destroyAllWindows()
 
+
+
+
+# =========================================================================================
+#        GENERATE PERI-STIMULUS VIDEO CLIPS and FLIGHT IMAGE ***with wall, using DLC***
+# =========================================================================================
+def peri_stimulus_analysis(coordinates, vidpath = '', videoname = '', savepath = '', start_frame=0., end_frame=100., stim_frame = 0,
+                   registration = 0, fps=False, save_clip = False, analyze_wall=True, display_clip = False, counter = True, make_flight_image = True):
+
+    # GET BEHAVIOUR VIDEO - ######################################
+    vid = cv2.VideoCapture(vidpath)
+    if not fps: fps = vid.get(cv2.CAP_PROP_FPS)
+    width = int(vid.get(cv2.CAP_PROP_FRAME_WIDTH))
+    height = int(vid.get(cv2.CAP_PROP_FRAME_HEIGHT))
+
+    # SET UP VIDEO CLIP SAVING - ####################################
+    fourcc = cv2.VideoWriter_fourcc(*"XVID")  # LJPG for lossless, XVID for compressed
+    border_size = 20
+    if save_clip:
+        if not os.path.isdir(savepath):
+            os.makedirs(savepath)
+        video_clip = cv2.VideoWriter(os.path.join(savepath, videoname + '.avi'), fourcc,
+                                     fps,(width + 2 * border_size * counter, height + 2 * border_size * counter),counter)
+
+    # setup fisheye correction
+    if registration[3]:
+        maps = np.load(registration[3])
+        map1 = maps[:, :, 0:2]
+        map2 = maps[:, :, 2] * 0
+    else:
+        print(colored('Fisheye correction unavailable', 'green'))
+
+    # set up border colors
+    pre_stim_color = [255, 120, 120]
+    post_stim_color = [120, 120, 255]
+
+    # generate model arena and wall ROIs
+    if analyze_wall:
+        wall_height_timecourse, trial_type = initialize_wall_analysis(analyze_wall, stim_frame,  start_frame, end_frame, registration, x_offset, y_offset, map1, map2, vid, width, height)
+    wall_mouse_show = False
+
+    # RUN SAVING AND ANALYSIS OVER EACH FRAME - ######################################
+    vid.set(cv2.CAP_PROP_POS_FRAMES, start_frame)
+    if display_clip:
+        cv2.namedWindow('Trial Clip')
+        cv2.moveWindow('Trial Clip', 100, 100)
+    while True:  # and analyze: #and not file_already_exists:
+        ret, frame = vid.read()  # get the frame
+        if ret:
+            frame_num = int(vid.get(cv2.CAP_PROP_POS_FRAMES))
+            if [registration]:
+                # load the fisheye correction
+                frame = register_frame(frame, x_offset, y_offset, registration, map1, map2)
+
+            # MAKE ESCAPE TRAJECTORY IMAGE - #######################################
+            if make_flight_image:
+                # at stimulus onset, take this frame to lay all the superimposed mice on top of
+                if frame_num == stim_frame:
+                    flight_image_by_distance = frame[:, :, 0].copy()
+                    arena, _ = model_arena(flight_image_by_distance.shape)
+
+                # in subsequent frames, see if frame is different enough from previous image to merit joining the image
+                if frame_num >= stim_frame and (frame_num - stim_frame) < fps * 10:
+
+                    # get the number of pixels that are darker than the flight image
+                    difference_from_previous_image = ((frame[:, :, 0] + .001) / (flight_image_by_distance + .001)) < .55  # .5 original parameter
+                    number_of_darker_pixels = np.sum(difference_from_previous_image)
+
+                    # check on wall progress for .5 sec
+                    if anaylze_wall:
+                        wall_mouse_show, wall_height_timecourse = do_wall_analysis(trial_type, frame_num, stim_frame, fps, x_wall_up_ROI_left,
+                                         x_wall_up_ROI_right, y_wall_up_ROI, wall_darkness, wall_height_timecourse, wall_mouse_already_shown)
+
+                    # if that number is high enough, add mouse to image
+                    if number_of_darker_pixels > 950:  # 850 original parameter
+                        # add mouse where pixels are darker
+                        flight_image_by_distance[difference_from_previous_image] = frame[
+                            difference_from_previous_image, 0]
+
+            # SHOW BOUNDARY AND TIME COUNTER - #######################################
+            if counter and (display_clip or save_clip or wall_mouse_show):
+                # cv2.rectangle(frame, (0, height), (150, height - 60), (150,150,150), -1)
+                if frame_num < stim_frame:
+                    cur_color = tuple(
+                        [x * ((frame_num - start_frame) / (stim_frame - start_frame)) for x in pre_stim_color])
+                    sign = ''
+                else:
+                    cur_color = tuple(
+                        [x * (1 - (frame_num - stim_frame) / (end_frame - stim_frame)) for x in post_stim_color])
+                    sign = '+'
+
+                # border and colored rectangle around frame
+                frame = cv2.copyMakeBorder(frame, border_size, border_size, border_size, border_size,
+                                           cv2.BORDER_CONSTANT, value=cur_color)
+
+                # report video details
+                cv2.putText(frame, videoname, (20, 40), 0, .55, (180, 180, 180), thickness=1)
+
+                # report time relative to stimulus onset
+                frame_time = (frame_num - stim_frame) / fps
+                frame_time = str(round(.1 * round(frame_time / .1), 1)) + '0' * (abs(float(frame_time)) < 10)
+                cv2.putText(frame, sign + str(frame_time) + 's', (width - 110, height + 10), 0, 1, (180, 180, 180),
+                            thickness=2)
+
+            else:
+                frame = frame[:, :, 0]  # or use 2D grayscale image instead
+
+            # SHOW AND SAVE FRAME - #######################################
+            if display_clip:
+                cv2.imshow('Trial Clip', frame)
+                if cv2.waitKey(1) & 0xFF == ord('q'):
+                    break
+            if wall_mouse_show:
+                cv2.imshow('Probe moment', frame)
+                cv2.waitKey(10)
+                scipy.misc.imsave(os.path.join(savepath, videoname + '-probe trial.tif'), frame[:, :, ::-1])
+                wall_mouse_already_shown = True
+            if save_clip:
+                video_clip.write(frame)
+            if frame_num >= end_frame:
+                finished_clip = True
+                break
+        else:
+            print('Problem with movie playback')
+            cv2.waitKey(1000)
+            break
+
+    # wrap up
+    print(wall_height_timecourse)
+    vid.release()
+    if make_flight_image and finished_clip:
+        flight_image_by_distance = cv2.copyMakeBorder(flight_image_by_distance, border_size, border_size,
+                                                      border_size, border_size, cv2.BORDER_CONSTANT, value=0)
+        cv2.putText(flight_image_by_distance, videoname, (border_size, border_size - 5), 0, .55, (180, 180, 180),
+                    thickness=1)
+        cv2.imshow('Flight image', flight_image_by_distance)
+        cv2.moveWindow('Flight image', 1000, 100)
+        cv2.waitKey(10)
+        scipy.misc.imsave(os.path.join(savepath, videoname + '.tif'), flight_image_by_distance)
+    if save_clip:
+        video_clip.release()
+
+def register_frame(frame, x_offset, y_offset, registration, map1, map2):
+    '''Go from raw frame to registered frame'''
+    frame_register = frame[:, :, 0]
+
+    frame_register = cv2.copyMakeBorder(frame_register, y_offset,
+                                        int((map1.shape[0] - frame.shape[0]) - y_offset),
+                                        x_offset, int((map1.shape[1] - frame.shape[1]) - x_offset),
+                                        cv2.BORDER_CONSTANT, value=0)
+    frame_register = cv2.remap(frame_register, map1, map2, interpolation=cv2.INTER_LINEAR,
+                               borderMode=cv2.BORDER_CONSTANT, borderValue=0)
+    frame_register = frame_register[y_offset:-int((map1.shape[0] - frame.shape[0]) - y_offset),
+                     x_offset:-int((map1.shape[1] - frame.shape[1]) - x_offset)]
+
+
+
+    frame = cv2.cvtColor(cv2.warpAffine(frame_register, registration[0], frame.shape[0:2]),cv2.COLOR_GRAY2RGB)
+
+    return frame
+
+
+def initialize_wall_analysis(analyze_wall, stim_frame, start_frame, end_frame, registration, x_offset, y_offset, map1, map2, vid, width, height):
+    '''determine whether this is a wall up, wall down, wall, or no wall trial'''
+    if analyze_wall:
+        # arena = model_arena((width,height))
+        x_wall_up_ROI_left = [int(x * width / 1000) for x in [223 - 10, 249 + 10]]
+        x_wall_up_ROI_right = [int(x * width / 1000) for x in [752 - 10, 777 + 10]]
+        y_wall_up_ROI = [int(x * height / 1000) for x in [494 - 10, 504 + 10]]
+
+        # check state of wall on various frames
+        frames_to_check = [start_frame, stim_frame - 1, stim_frame + 13, end_frame]
+        wall_darkness = np.zeros((len(frames_to_check), 2))
+        for i, frame_to_check in enumerate(frames_to_check):
+            vid.set(cv2.CAP_PROP_POS_FRAMES, frame_to_check)
+            ret, frame = vid.read()
+            frame_register = frame[:, :, 0]
+            if registration[3]:
+                frame_register = cv2.copyMakeBorder(frame_register, y_offset,
+                                                    int((map1.shape[0] - frame.shape[0]) - y_offset),
+                                                    x_offset, int((map1.shape[1] - frame.shape[1]) - x_offset),
+                                                    cv2.BORDER_CONSTANT, value=0)
+                frame_register = cv2.remap(frame_register, map1, map2, interpolation=cv2.INTER_LINEAR,
+                                           borderMode=cv2.BORDER_CONSTANT, borderValue=0)
+                frame_register = frame_register[y_offset:-int((map1.shape[0] - frame.shape[0]) - y_offset),
+                                 x_offset:-int((map1.shape[1] - frame.shape[1]) - x_offset)]
+            frame = cv2.cvtColor(cv2.warpAffine(frame_register, registration[0], frame.shape[0:2]),
+                                 cv2.COLOR_GRAY2RGB)
+            wall_darkness[i, 0] = sum(
+                sum(frame[y_wall_up_ROI[0]:y_wall_up_ROI[1], x_wall_up_ROI_left[0]:x_wall_up_ROI_left[1], 0] < 200))
+            wall_darkness[i, 1] = sum(
+                sum(frame[y_wall_up_ROI[0]:y_wall_up_ROI[1], x_wall_up_ROI_right[0]:x_wall_up_ROI_right[1],
+                    0] < 200))
+
+        wall_darkness_pre = np.min(wall_darkness[0:int(len(frames_to_check) / 2), 0:2])
+        wall_darkness_post = np.min(wall_darkness[int(len(frames_to_check) / 2):len(frames_to_check), 0:2])
+
+        # use these darkness levels to detect whether wall is up, down, rising, or falling:
+        wall_mouse_already_shown = False
+        wall_mouse_show = False
+        finished_clip = False
+        if (wall_darkness_pre - wall_darkness_post) < -30:
+            print(colored('Wall rising trial detected!', 'green'))
+            wall_height_timecourse = [0]
+            trial_type = 1
+        elif (wall_darkness_pre - wall_darkness_post) > 30:
+            print(colored('Wall falling trial detected!', 'green'))
+            wall_height_timecourse = [1]
+            trial_type = -1
+        elif (wall_darkness_pre > 85) and (wall_darkness_post > 85):
+            print(colored('Wall trial detected', 'green'))
+            trial_type = 0
+            wall_height_timecourse = 1  # [1 for x in list(range(int(fps * .5)))]
+        elif (wall_darkness_pre < 85) and (wall_darkness_post < 85):
+            print(colored('No Wall trial detected', 'green'))
+            trial_type = 0
+            wall_height_timecourse = 0  # [0 for x in list(range(int(fps * .5)))]
+        else:
+            print('Uh-oh -- not sure what kind of trial!')
+    else:
+        trial_type = 0
+        wall_height_timecourse = None
+
+# print(wall_darkness)
+# if not trial_type:
+#     analyze = False
+# else:
+#     analyze = True
+
+    return wall_height_timecourse, trial_type
+
+
+def do_wall_analysis(trial_type, frame_num, stim_frame, fps, x_wall_up_ROI_left, x_wall_up_ROI_right, y_wall_up_ROI, wall_darkness, wall_height_timecourse, wall_mouse_already_shown):
+
+    if trial_type and (frame_num - stim_frame) < fps * .5:
+        left_wall_darkness = sum(sum(frame[y_wall_up_ROI[0]:y_wall_up_ROI[1],
+                                     x_wall_up_ROI_left[0]:x_wall_up_ROI_left[1], 0] < 200))
+        right_wall_darkness = sum(sum(frame[y_wall_up_ROI[0]:y_wall_up_ROI[1],
+                                      x_wall_up_ROI_right[0]:x_wall_up_ROI_right[1], 0] < 200))
+
+        # calculate overall change
+        left_wall_darkness_change_overall = left_wall_darkness - wall_darkness[1, 0]
+        right_wall_darkness_change_overall = right_wall_darkness - wall_darkness[1, 1]
+
+        # show wall up timecourse
+        wall_mouse_show = False
+        if trial_type == -1:
+            wall_height = round(1 - np.mean(
+                [left_wall_darkness_change_overall / (wall_darkness[2, 0] - wall_darkness[1, 0]),
+                 right_wall_darkness_change_overall / (wall_darkness[2, 1] - wall_darkness[1, 1])]),
+                                1)
+            wall_height_timecourse.append(wall_height)
+
+            # show mouse when wall is down
+            if wall_height <= .1 and not wall_mouse_already_shown:
+                wall_mouse_show = True
+
+        if trial_type == 1:
+            wall_height = round(np.mean(
+                [left_wall_darkness_change_overall / (wall_darkness[2, 0] - wall_darkness[1, 0]),
+                 right_wall_darkness_change_overall / (wall_darkness[2, 1] - wall_darkness[1, 1])]),1)
+            wall_height_timecourse.append(wall_height)
+
+            # show mouse when wall is up
+            if wall_height >= .6 and not wall_mouse_already_shown:
+                wall_mouse_show = True
+
+    return wall_mouse_show, wall_height_timecourse
+
+def invert_fisheye_map(registration, inverse_fisheye_map_location):
+    '''Go from a normal opencv fisheye map to an inverted one, so coordinates can be transform'''
+
+    if len(registration) == 5:
+        pass
+    elif os.path.isfile(inverse_fisheye_map_location):
+        registration.append(inverse_fisheye_map_location)
+    elif len(registration) == 4:  # setup fisheye correction
+        print('creating inverse fisheye map')
+        inverse_maps = np.load(registration[3])
+        # invert maps
+        inverse_maps[inverse_maps < 0] = 0
+
+        maps_x_orig = inverse_maps[:, :, 0]
+        maps_x_orig[maps_x_orig > 1279] = 1279
+        maps_y_orig = inverse_maps[:, :, 1]
+        maps_y_orig[maps_y_orig > 1023] = 1023
+
+        map_x = np.ones(inverse_maps.shape[0:2]) * np.nan
+        map_y = np.ones(inverse_maps.shape[0:2]) * np.nan
+        for x in range(inverse_maps.shape[1]):
+            for y in range(inverse_maps.shape[0]):
+                map_x[maps_y_orig[y, x], maps_x_orig[y, x]] = x
+                map_y[maps_y_orig[y, x], maps_x_orig[y, x]] = y
+
+        grid_x, grid_y = np.mgrid[0:inverse_maps.shape[0], 0:inverse_maps.shape[1]]
+        valid_values_x = np.ma.masked_invalid(map_x)
+        valid_values_y = np.ma.masked_invalid(map_y)
+
+        valid_idx_x_map_x = grid_x[~valid_values_x.mask]
+        valid_idx_y_map_x = grid_y[~valid_values_x.mask]
+
+        valid_idx_x_map_y = grid_x[~valid_values_y.mask]
+        valid_idx_y_map_y = grid_y[~valid_values_y.mask]
+
+        map_x_interp = interpolate.griddata((valid_idx_x_map_x, valid_idx_y_map_x), map_x[~valid_values_x.mask],
+                                            (grid_x, grid_y), method='linear').astype(np.uint16)
+        map_y_interp = interpolate.griddata((valid_idx_x_map_y, valid_idx_y_map_y), map_y[~valid_values_y.mask],
+                                            (grid_x, grid_y), method='linear').astype(np.uint16)
+
+        fisheye_maps_interp = np.zeros((map_x_interp.shape[0], map_x_interp.shape[1], 2)).astype(np.uint16)
+        fisheye_maps_interp[:, :, 0] = map_x_interp
+        fisheye_maps_interp[:, :, 1] = map_y_interp
+
+        np.save('C:\\Drive\\DLC\\transforms\\inverse_fisheye_maps.npy', fisheye_maps_interp)
+
+    return registration
+
+
+def extract_coordinates_with_dlc(dlc_config_settings, video, registration):
+    '''extract coordinates for each frame, given a video and DLC network'''
+
+    analyze_videos(dlc_config_settings['config_file'], video)
+    # create_labeled_video(dlc_config_settings['config_file'], video)
+
+    # read the freshly saved coordinates file
+    coordinates_file = glob.glob(os.path.dirname(video[0]) + '\\*.h5')[0]
+    DLC_network = os.path.basename(coordinates_file)
+    DLC_network = DLC_network[DLC_network.find('Deep'):-3]
+    body_parts = dlc_config_settings['body parts']
+
+    DLC_dataframe = pd.read_hdf(coordinates_file)
+
+    # plot body part positions over time
+    import matplotlib.pyplot as plt
+    position_figure = plt.figure('position over time')
+    ax = position_figure.add_subplot(111)
+    plt.title('DLC positions')
+    plt.xlabel('frame number')
+    plt.ylabel('position (pixels)')
+    coordinates = {}
+    for body_part in body_parts:
+        # initialize coordinates
+        coordinates[body_part] = np.zeros((2, len(DLC_dataframe[DLC_network][body_part]['x'].values)))
+
+        # extract coordinates
+        for i, axis in enumerate(['x', 'y']):
+            coordinates[body_part][i] = DLC_dataframe[DLC_network][body_part][axis].values
+            coordinates[body_part][i] = DLC_dataframe[DLC_network][body_part][axis].values
+
+            likelihood = DLC_dataframe[DLC_network][body_part]['likelihood'].values
+
+        # remove coordinates with low confidence
+        coordinates[body_part][0][likelihood < .999999] = np.nan
+        coordinates[body_part][1][likelihood < .999999] = np.nan
+
+        # lineraly interporlate the low-confidence time points
+        coordinates[body_part][0] = np.array(pd.Series(coordinates[body_part][0]).interpolate())
+        coordinates[body_part][0][0:np.argmin(np.isnan(coordinates[body_part][0]))] = coordinates[body_part][0][
+            np.argmin(np.isnan(coordinates[body_part][0]))]
+
+        coordinates[body_part][1] = np.array(pd.Series(coordinates[body_part][1]).interpolate())
+        coordinates[body_part][1][0:np.argmin(np.isnan(coordinates[body_part][1]))] = coordinates[body_part][1][
+            np.argmin(np.isnan(coordinates[body_part][1]))]
+
+        # fisheye correct the coordinates
+        registration = invert_fisheye_map(registration, dlc_config_settings['inverse_fisheye_map_location'])
+        inverse_fisheye_maps = np.load(registration[4])
+
+        # convert original coordinates to registered coordinates
+        coordinates[body_part][0] = inverse_fisheye_maps[
+                                        coordinates[body_part][1].astype(np.uint16) + y_offset, coordinates[body_part][
+                                            0].astype(np.uint16) + x_offset, 0] - x_offset
+        coordinates[body_part][1] = inverse_fisheye_maps[
+                                        coordinates[body_part][1].astype(np.uint16) + y_offset, coordinates[body_part][
+                                            0].astype(np.uint16) + x_offset, 1] - y_offset
+
+        # affine transform to match model arena
+        transformed_points = np.matmul(np.append(registration[0], np.zeros((1, 3)), 0),
+                                       np.concatenate((coordinates[body_part][0:1], coordinates[body_part][1:2],
+                                                       np.ones((1, len(coordinates[body_part][0])))), 0))
+
+        # plot the coordinates
+        ax.plot(np.sqrt((transformed_points[0] - 500 * 720 / 1000) ** 2 + (transformed_points[1] - 885 * 720 / 1000) ** 2))
+
+    return coordinates, registration
 
 ########################################################################################################################
 if __name__ == "__main__":

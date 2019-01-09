@@ -1,5 +1,5 @@
 # Plotting
-import matplotlib.pyplot as plt  # used for debugging
+# import matplotlib.pyplot as plt  # used for debugging
 import pyqtgraph as pg
 from pyqtgraph.Qt import QtCore, QtGui
 
@@ -15,8 +15,8 @@ from collections import namedtuple
 
 # Image and video processing
 import cv2
-from moviepy.editor import VideoFileClip
-from moviepy.video.fx import crop
+# from moviepy.editor import VideoFileClip
+# from moviepy.video.fx import crop
 
 # SYS
 import os
