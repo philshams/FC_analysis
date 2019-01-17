@@ -63,7 +63,7 @@ def create_database(datalogpath, database=None):
                 session_name = '{}_{}'.format(line['Experiment'], line['Sess.ID'])
 
                 # Check if session is already in database
-                print(colored('Opening {}'.format(session_name),'yellow'))
+                # print(colored('Opening {}'.format(session_name),'yellow'))
                 if database is not None and session_name in database.index:
                         # print(colored('Session is already in database','yellow'))
                         continue

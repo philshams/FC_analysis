@@ -11,6 +11,8 @@ from Utils import video_funcs
 from Utils.loadsave_funcs import save_data, load_data, load_paths, load_yaml
 from Utils.Setup_funcs import create_database
 from Utils.Data_rearrange_funcs import create_cohort, check_session_selected
+import warnings
+warnings.filterwarnings('ignore')
 
 # from Processing import Processing_main
 
@@ -66,7 +68,7 @@ class Analysis():
         if track_mouse:
             # other_db = load_data(self.save_fld, '181107')
 
-            for session_name in self.db.index: #sorted(self.db.index)
+            for session_name in self.db.index[::-1]:
                 session = self.db.loc[session_name]
 
                 # add info from other database to this database
@@ -79,15 +81,9 @@ class Analysis():
                 if selected:
                     print(colored('Tracking session: {}'.format(session_name), 'green'))
                     from Tracking.Tracking_main import Tracking
-                    tracked = Tracking(session, self.TF_setup, self.TF_settings)
-                    self.TF_setup = tracked.TF_setup
-                    self.TF_settings = tracked.TF_settings
+                    Tracking(session, self.TF_setup, self.TF_settings).session
+                    self.db.loc[session_name]['Tracking'] = session['Tracking']
                     self.save_results(obj=self.db, mod='')
-
-            if track_options['track stimulus responses']:
-                # Finish DLC tracking [extract pose on saved clips]
-                from Tracking.Tracking_main import Tracking
-                self.db = Tracking.tracking_use_dlc(self.db)
 
             self.save_results(obj=self.db, mod='')
 
@@ -178,15 +174,15 @@ class Analysis():
             print(colored('\nLoading database: {}\n'.format(load_name),'blue'))
         else:
             print(colored('\nCreating new database: {}\n'.format(load_name), 'blue'))
-        if update_database and load_database:
-            print(colored('Updating database'.format(load_name), 'blue'))
+        # if update_database and load_database:
+        #     print(colored('Updating database'.format(load_name), 'blue'))
         if selector_type == 'all':
             print(colored('Analyzing all sessions', 'blue'))
         else:
             print(colored('Selector type: {}\nSelector: {}'.format(selector_type, selector), 'blue'))
 
-        print(colored('Processing: {}\nPlotting: {}\nTracking: {}\n{}'
-            .format(processing, plotting,track_mouse,json.dumps(track_options, indent=3)),'blue'))
+        # print(colored('Processing: {}\nPlotting: {}\nTracking: {}\n{}'
+        #     .format(processing, plotting,track_mouse,json.dumps(track_options, indent=3)),'blue'))
 
 
 #  START

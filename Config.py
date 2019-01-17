@@ -19,8 +19,8 @@ load_name = '181115'  # name of file to load
 save_name = '181115' # name to save the results of the analysis
 
 # selects which sessions to analyze ('all', 'experiment', 'session', 'date', 'mouse' or COHORT)
-selector_type = 'mouse'
-selector = ['CA3740']
+selector_type = 'experiment'
+selector = ['Barnes US wall up']
 # selector = ['Barnes US wall down', 'Barnes US wall up', 'Barnes US wall up (2)', 'Barnes US wall up (20kHz)']
 
 
@@ -48,8 +48,8 @@ y_offset = 120
 
 
 video_analysis_settings = {
-    'fast track wndw pre': 5,
-    'fast track wndw post': 10
+    'fast track wndw pre': 2,
+    'fast track wndw post': 7
 }
 
 #######################
