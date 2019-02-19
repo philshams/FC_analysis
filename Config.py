@@ -19,17 +19,23 @@ load_name = '181115'  # name of file to load
 save_name = '181115' # name to save the results of the analysis
 
 # selects which sessions to analyze ('all', 'experiment', 'session', 'date', 'mouse' or COHORT)
-selector_type = 'experiment'
-selector = ['Barnes US wall up']
+# selector_type = 'experiment'
+# selector = ['Barnes bang wall down (dark)','Barnes US wall up (20kHz)','Barnes US wall down','Barnes US wall up (2)', 'Barnes US wall (loom)',
+#             'Barnes US wall (20kHz)', 'Barnes US wall up', 'Barnes bang wall down (trial 1)', 'Barnes loom wall down', 'Barnes bang wall (DLS)']
+#
+# selector_type = 'experiment'
+# selector = ['The Room bang', 'Anti Room bang'] # 'Peace palace bang'
+    # ,'Barnes bang wall down (dark)','Barnes US wall up(20kHz)','Barnes US wall down','Barnes US wall (loom)','Barnes US wall (DLS)','Barnes US wall (20kHz)']
 # selector = ['Barnes US wall down', 'Barnes US wall up', 'Barnes US wall up (2)', 'Barnes US wall up (20kHz)']
+selector_type = 'mouse'
+selector = ['CA4030'] #3380 is broken
 
+# selector_type = 'all'
 
 
 #######################
 #  TRACKING           #
 #######################
-startf = 100  # Skip the first n frames of the first video when tracking
-
 track_mouse = True             # Run tracking
 track_options = {
     'register arena': True, # Register arena to model arena for tracking
@@ -37,19 +43,19 @@ track_options = {
     'save stimulus clips': True, # Save videos of the peri-stimulus period
 
     'track whole session': True,  # Track the mouse for the entire session using DLC
-    'track stimulus responses': False, # Track the mouse during just stimulus responses using DLC
+
+    'run DLC': False, # Use DLC to analyze the raw videos
 
     'do not overwrite': False,
     }
 
 fisheye_map_location = 'C:\\Drive\\DLC\\transforms\\fisheye_maps.npy'
-x_offset = 300
-y_offset = 120
+
 
 
 video_analysis_settings = {
     'fast track wndw pre': 2,
-    'fast track wndw post': 7
+    'fast track wndw post': 9
 }
 
 #######################

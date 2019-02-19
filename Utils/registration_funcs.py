@@ -8,36 +8,110 @@ import scipy.misc
 from termcolor import colored
 from tqdm import tqdm
 import glob
-from Config import y_offset, x_offset
 
 
-def model_arena(size, trial_type, holes, registration):
+def model_arena(size, trial_type, holes, registration, obstacle_type = 'wall'):
+    """ generate model arena """
 
     # initialize model arena
     model_arena = np.zeros((1000,1000)).astype(np.uint8)
-    cv2.circle(model_arena, (500,500), 460, 255, -1)
 
-    if trial_type:
-        # add wall - up
-        cv2.rectangle(model_arena, (int(500 - 554 / 2), int(500 - 6 / 2)), (int(500 + 554 / 2), int(500 + 6 / 2)), 120, thickness=-1)
+    # generate arena topography, depending on arena
+    if obstacle_type == 'wall':
+        # arena outline
+        cv2.circle(model_arena, (500, 500), 460, 255, -1)
+        if trial_type:
+            # add wall - up
+            cv2.rectangle(model_arena, (int(500 - 554 / 2), int(500 - 6 / 2)), (int(500 + 554 / 2), int(500 + 6 / 2)), 90, thickness=-1)
 
-    elif registration:
-        # add wall - up
-        cv2.rectangle(model_arena, (int(500 - 554 / 2), int(500 - 6 / 2)), (int(500 + 554 / 2), int(500 + 6 / 2)), 60, thickness=-1)
-        # add wall - down
-        cv2.rectangle(model_arena, (int(500 - 504 / 2), int(500 - 8 / 2)), (int(500 + 504 / 2), int(500 + 8 / 2)), 0, thickness=-1)
-    # else:
-        # add wall - down
-        # cv2.rectangle(model_arena, (int(500 - 504 / 2), int(500 - 8 / 2)), (int(500 + 504 / 2), int(500 + 8 / 2)), 200, thickness=-1)
+        elif registration:
+            # add wall - up
+            cv2.rectangle(model_arena, (int(500 - 554 / 2), int(500 - 6 / 2)), (int(500 + 554 / 2), int(500 + 6 / 2)), 60, thickness=-1)
+            # add wall - down
+            cv2.rectangle(model_arena, (int(500 - 504 / 2), int(500 - 8 / 2)), (int(500 + 504 / 2), int(500 + 8 / 2)), 0, thickness=-1)
+
+    elif obstacle_type == 'void':
+        # arena outline
+        cv2.circle(model_arena, (500, 500), 460, 255, -1)
+        # add void
+        cv2.rectangle(model_arena, (int(500 - 750/2*92/100), int(500 - 188/2*92/100)), (int(500 + 750/2*92/100), int(500 + 188/2*92/100)), 200, thickness=-1)
+
+    elif obstacle_type == 'triangle':
+        # arena outline
+        triangle_contours = [np.array([(500, int((1000-750)/2)), (int((1000-866)/2), int((1000-750)/2 + 750)), (int((1000-866)/2 + 866), int((1000-750)/2 + 750))])]
+        cv2.drawContours(model_arena, triangle_contours, 0, 255, -1)
+
+        # add walls
+        wall_contours_1 = [np.array([(int(500), int((1000 - 750) / 2 + 160)), (int(500), int((1000 - 750) / 2 + 160 + 340))])]
+        cv2.drawContours(model_arena, wall_contours_1, 0, 90, thickness=5)
+
+        wall_contours_2 = [np.array([(int((1000-866)/2 + 138.55), int((1000 - 750) / 2 + 670)), (int(500), int((1000 - 750) / 2 + 160 + 340))])]
+        cv2.drawContours(model_arena, wall_contours_2, 0, 90, thickness=5)
+
+        wall_contours_3 = [np.array([(int((1000-866)/2 + 866 - 138.55), int((1000 - 750) / 2 + 670)), (int(500), int((1000 - 750) / 2 + 160 + 340))])]
+        cv2.drawContours(model_arena, wall_contours_3, 0, 90, thickness=5)
+
+    elif obstacle_type == 'room':
+        # arena outline
+        cv2.rectangle(model_arena, (int(250/2), int(250/2)), (int(1000-250/2), int(1000-250/2)), 255, thickness=-1)
+
+        # add walls
+        wall_contours_1 = [np.array([(int(250/2 + 152.5), int(250/2 + 155)), (int(250/2 + 152.5 + 250), int(250/2 + 155))])]
+        cv2.drawContours(model_arena, wall_contours_1, 0, 90, thickness=5)
+
+        wall_contours_2 = [np.array([(int(250/2 + 152.5), int(250/2 + 155)), (int(250/2 + 152.5), int(250/2 + 155 + 340))])]
+        cv2.drawContours(model_arena, wall_contours_2, 0, 90, thickness=5)
+
+        wall_contours_3 = [np.array([(int(250/2 + 152.5), int(250/2 + 155 + 340)), (int(250/2 + 152.5 + 355), int(250/2 + 155 + 340))])]
+        cv2.drawContours(model_arena, wall_contours_3, 0, 90, thickness=5)
+
+        wall_contours_4 = [np.array([(int(250/2 + 152.5 + 355), int(250/2 + 155 + 340)), (int(250/2 + 152.5 + 355), int(250/2 + 155))])]
+        cv2.drawContours(model_arena, wall_contours_4, 0, 90, thickness=5)
+
+    elif obstacle_type == 'anti-room':
+        # arena outline
+        cv2.rectangle(model_arena, (int(250/2), int(250/2)), (int(1000-250/2), int(1000-250/2)), 255, thickness=-1)
+
+        # add void
+        anti_room_contours = [np.array([(int(250/2 + 152.5 + 250), int(250/2 + 155)), (int(250/2 + 152.5), int(250/2 + 155)),
+                                        (int(250 / 2 + 152.5), int(250 / 2 + 155 + 340)), (int(250/2 + 152.5 + 355), int(250/2 + 155 + 340)),
+                                        (int(250 / 2 + 152.5 + 355), int(250 / 2 + 155)), (int(250/2 + 152.5 + 355 - 120), int(250/2 + 155 + 120)),
+                                        (int(250 / 2 + 152.5 + 355 - 120), int(250 / 2 + 155 + 120 + 110)), (int(250 / 2 + 152.5 + 355 - 240), int(250 / 2 + 155 + 120 + 110)),
+                                        (int(250 / 2 + 152.5 + 355 - 240), int(250 / 2 + 155 + 120)), (int(250/2 + 152.5 + 250), int(250/2 + 155))])]
+        cv2.drawContours(model_arena, anti_room_contours, 0, 90, thickness=-1)
 
     # add shelter
-    model_arena_shelter = model_arena.copy()
-    cv2.rectangle(model_arena_shelter, (int(500 - 54), int(500 + 385 + 25 - 54)), (int(500 + 54), int(500 + 385 + 25 + 54)), (0, 0, 255),thickness=-1)
     alpha = .5
-    cv2.addWeighted(model_arena, alpha, model_arena_shelter, 1 - alpha, 0, model_arena)
-
+    model_arena_shelter = model_arena.copy()
     shelter_roi = np.zeros(model_arena.shape).astype(np.uint8)
-    cv2.rectangle(shelter_roi, (int(500 - 50), int(500 + 385 + 25 - 50)),(int(500 + 50), int(500 + 385 + 25 + 50)), 1, thickness=-1)
+
+    if obstacle_type == 'wall' or obstacle_type == 'void':
+        cv2.rectangle(model_arena_shelter, (int(500 - 54), int(500 + 385 + 25 - 54)), (int(500 + 54), int(500 + 385 + 25 + 54)), (0, 0, 255),thickness=-1)
+        cv2.addWeighted(model_arena, alpha, model_arena_shelter, 1 - alpha, 0, model_arena)
+
+        cv2.rectangle(shelter_roi, (int(500 - 50), int(500 + 385 + 25 - 50)),(int(500 + 50), int(500 + 385 + 25 + 50)), 1, thickness=-1)
+
+    elif obstacle_type == 'triangle':
+        shelter_contours = [np.array([(500 , int((1000 - 750) / 2 + 160 + 340 - 60.6)), ( int((1000 - 866) / 2+ 485.5 ),int((1000-750)/2 + 750 - 220) ),
+                                      (int((1000 - 866) / 2 + 576.4), int((1000 - 750) / 2 + 477.8)), (int((1000 - 866) / 2+ 523.9 ), int((1000-750)/2 + 386.9))])]
+
+        cv2.drawContours(model_arena, shelter_contours, 0, (0, 0, 255), thickness=-1)
+        cv2.addWeighted(model_arena, alpha, model_arena_shelter, 1 - alpha, 0, model_arena)
+        cv2.drawContours(shelter_roi, shelter_contours, 0, (0, 0, 255), thickness=-1)
+
+    elif obstacle_type == 'room':
+        cv2.rectangle(model_arena_shelter, (int(250/2 + 152.5 + 355/2 - 50), int(250/2 + 155 + 340 - 2.5)), (int(250/2 + 152.5 + 355/2 +50), int(250/2 + 155 + 340 - 2.5 - 100)), (0, 0, 255),thickness=-1)
+        cv2.addWeighted(model_arena, alpha, model_arena_shelter, 1 - alpha, 0, model_arena)
+
+        cv2.rectangle(shelter_roi, (int(250/2 + 152.5 + 355/2 - 50), int(250/2 + 155 + 340 - 2.5)), (int(250/2 + 152.5 + 355/2 + 50), int(250/2 + 155 + 340 - 2.5 - 100)), 1, thickness=-1)
+    elif obstacle_type == 'anti-room':
+        cv2.rectangle(model_arena_shelter, (int(250 / 2 + 152.5 + 355 / 2 - 50 - 2.5), int(250 / 2 + 155 + 340 - 2.5 - 115)),
+                      (int(250 / 2 + 152.5 + 355 / 2 + 50 - 2.5), int(250 / 2 + 155 + 340 - 2.5 - 100 - 115)), (0, 0, 255), thickness=-1)
+        cv2.addWeighted(model_arena, alpha, model_arena_shelter, 1 - alpha, 0, model_arena)
+
+        cv2.rectangle(shelter_roi, (int(250 / 2 + 152.5 + 355 / 2 - 50 - 2.5), int(250 / 2 + 155 + 340 - 2.5 - 115)),
+                      (int(250 / 2 + 152.5 + 355 / 2 + 50 - 2.5), int(250 / 2 + 155 + 340 - 2.5 - 100 - 115)), 1, thickness=-1)
+
 
     # add circular wells along edge
     if holes:
@@ -50,8 +124,26 @@ def model_arena(size, trial_type, holes, registration):
     model_arena = cv2.resize(model_arena,size)
     shelter_roi = cv2.resize(shelter_roi, size)
 
-    points = np.array(([500,500+460-75],[500-460+75,500],[500,500-460+75],[500+460-75,500]))* [size[0]/1000,size[1]/1000]
-                      # , [500 - 504 / 2,500],[500 + 504 / 2,500]))
+
+    if obstacle_type == 'wall':
+        if trial_type or registration:
+            points = np.array(([500, 500 + 460 - 75], [500 - 460 + 75, 500], [500, 500 - 460 + 75], [500 + 460 - 75, 500])) * [size[0] / 1000, size[1] / 1000]
+        else:
+            dist_from_center = int(500 * 92 / 100)
+            points = np.array(([500, 500 + dist_from_center], [500 - dist_from_center, 500], [500, 500 - dist_from_center], [500 + dist_from_center, 500])) * [
+                size[0] / 1000, size[1] / 1000]
+
+    elif obstacle_type == 'void':
+        points = np.array(([int(500 - 750 / 2 * 92 / 100), int(500 - 188 / 2 * 92 / 100)], [int(500 - 750 / 2 * 92 / 100), int(500 + 188 / 2 * 92 / 100)],
+                           [int(500 + 750 / 2 * 92 / 100), int(500 - 188 / 2 * 92 / 100)], [int(500 + 750 / 2 * 92 / 100), int(500 - 188 / 2 * 92 / 100)])) * [size[0] / 1000, size[1] / 1000]
+
+    elif obstacle_type == 'triangle':
+        points = np.array(( [500, int((1000-750)/2)], [int((1000-866)/2), int((1000-750)/2 + 750)], [int((1000-866)/2 + 866), int((1000-750)/2 + 750)] )) * [size[0] / 1000, size[1] / 1000]
+
+    elif obstacle_type == 'room' or obstacle_type == 'anti-room':
+        points = np.array(( [int(250 / 2), int(250 / 2)], [int(250 / 2), int(1000 - 250 / 2)],
+                            [int(1000 - 250 / 2), int(1000 - 250 / 2)], [int(1000 - 250 / 2), int(250 / 2)] )) * [size[0] / 1000, size[1] / 1000]
+
 
     return model_arena, points, shelter_roi
 
@@ -94,12 +186,12 @@ def get_background(vidpath, start_frame = 1000, avg_over = 100):
 # =================================================================================
 #              IMAGE REGISTRATION GUI
 # =================================================================================
-def register_arena(background, fisheye_map_location):
+def register_arena(background, fisheye_map_location, x_offset, y_offset, obstacle_type = 'wall'):
     """ extract background: first frame of first video of a session
     Allow user to specify ROIs on the background image """
 
     # create model arena and background
-    arena, arena_points, _ = model_arena(background.shape, 0)
+    arena, arena_points, _ = model_arena(background.shape, False, False, True, obstacle_type) # ending 0 for void, 1 for wall
 
     # load the fisheye correction
     try:

@@ -68,7 +68,7 @@ class Analysis():
         if track_mouse:
             # other_db = load_data(self.save_fld, '181107')
 
-            for session_name in self.db.index[::-1]:
+            for session_name in self.db.index: #[::-1]:
                 session = self.db.loc[session_name]
 
                 # add info from other database to this database

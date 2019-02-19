@@ -161,10 +161,10 @@ def create_database(datalogpath, database=None):
     ####################################################################################################################
 
     # Load excel spreadsheet
-    if database is None:
-        print(colored('Creating database from experiments.csv\n','yellow'))
-    else:
-        print(colored('Updating database from experiments.csv\n','yellow'))
+    # if database is None:
+    #     print(colored('Creating database from experiments.csv\n','yellow'))
+    # else:
+    #     print(colored('Updating database from experiments.csv\n','yellow'))
 
     loaded_excel = pyexcel.get_records(file_name=datalogpath)
 

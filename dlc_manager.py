@@ -119,7 +119,7 @@ class DLC_manager:
 
     def extract_outliers(self, videos=None, outlier_algorithm = 'uncertain'):
         if videos is None: videos = self.sel_videos_in_folder()
-        deeplabcut.extract_outlier_frames(self.dlc_paths['cfg_path'], videos, outlieralgorithm = outlier_algorithm, p_bound=.01)
+        deeplabcut.extract_outlier_frames(self.dlc_paths['cfg_path'], videos, outlieralgorithm = outlier_algorithm, epsilon=10, comparisonbodyparts=['nose'], p_bound=.000000001, automatic = True)
 
     def refine_labels(self):
         deeplabcut.refine_labels(self.dlc_paths['cfg_path'])
@@ -192,16 +192,22 @@ if __name__ == "__main__":
     '''
     Step 3: update \\dlc-models\\iteration-x\\network_name\\train\\pose_cfg.yaml -> train the network
     '''
-    # dlc_master.train_network()
+    dlc_master.train_network()
 
     '''
     Step 4: evaluate the network
     '''
-    dlc_master.evaluate_network()
+    # dlc_master.evaluate_network()
     vids = dlc_master.sel_videos_in_folder(all=True)
-    vids = vids[0::5]
+    vids = ['D:\\Dropbox (UCL - SWC)\\DAQ\\upstairs_rig\\19JAN27_peacepalace\\CA4060\\cam1.avi']
+    #
+    # vids = [vids[x] for x in [7]]
+    # vids = vids[4:]
+    # print(vids)
     # dlc_master.analyze_videos(videos=vids)
-    dlc_master.create_labeled_videos(videos=vids)
+    # dlc_master.create_labeled_videos(videos=vids)
+
+    # vids = ['D:\\Dropbox (UCL - SWC)\\DAQ\\upstairs_rig\\19JAN27_peacepalace\\CA4060\\cam1.avi']
     'TO DO: save analysis results in separate folder'
     'TO DO: concatenate machine labels and collected data so can refine the already labeled video'
 
@@ -214,9 +220,9 @@ if __name__ == "__main__":
 
     # dlc_master.delete_labeled_outlier_frames()
     # dlc_master.label_frames()
-    # dlc_master.update_training_video_list()
+    dlc_master.update_training_video_list()
 
-    # dlc_master.refine_labels()
+    # dlc_master.refine_labels() # adjust original labels
 
     # dlc_master.check_labels()
 
@@ -231,6 +237,19 @@ if __name__ == "__main__":
 
 
 
-    
+    '''
+    If needed: delete labeled frames from databse
+    '''
+    # import pandas as pd
+    # videofolder = 'D:\data\DLC_nets\Barnes-Philip-2018-11-22\labeled-data\\3740_room'
+    # dataname = 'CollectedData_Philip'
+    # Dataframe = pd.read_hdf(os.path.join(videofolder, dataname + '.h5'))
+    # Dataframe = Dataframe.drop('D:\data\DLC_nets\Barnes-Philip-2018-11-22\labeled-data\\3740_room\img001924.png')
+    # Dataframe = Dataframe.drop('D:\data\DLC_nets\Barnes-Philip-2018-11-22\labeled-data\\3740_room\img101735.png')
+    # Dataframe.to_csv(os.path.join(videofolder, dataname + '.csv'))
+    # Dataframe.to_hdf(os.path.join(videofolder, dataname + '.h5'),'df_with_missing',format='table', mode='w')
+
+    #
+    #
 
 
