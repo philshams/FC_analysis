@@ -192,12 +192,12 @@ if __name__ == "__main__":
     '''
     Step 3: update \\dlc-models\\iteration-x\\network_name\\train\\pose_cfg.yaml -> train the network
     '''
-    dlc_master.train_network()
+    # dlc_master.train_network()
 
     '''
     Step 4: evaluate the network
     '''
-    # dlc_master.evaluate_network()
+    dlc_master.evaluate_network()
     vids = dlc_master.sel_videos_in_folder(all=True)
     vids = ['D:\\Dropbox (UCL - SWC)\\DAQ\\upstairs_rig\\19JAN27_peacepalace\\CA4060\\cam1.avi']
     #

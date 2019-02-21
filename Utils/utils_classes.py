@@ -8,6 +8,7 @@ class Session_metadata():
         self.experiment = None
         self.date = None
         self.mouse_id = None
+        self.experiment_number = None
         self.stimuli = {'visual': [], 'audio': [], 'digital': []}
         self.video_file_paths = []
         self.tdms_file_paths = []

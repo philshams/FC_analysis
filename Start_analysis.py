@@ -68,7 +68,7 @@ class Analysis():
         if track_mouse:
             # other_db = load_data(self.save_fld, '181107')
 
-            for session_name in self.db.index: #[::-1]:
+            for session_name in self.db.index[::-1]:
                 session = self.db.loc[session_name]
 
                 # add info from other database to this database
@@ -119,22 +119,6 @@ class Analysis():
 
         return
 
-########################################################################################################################
-    # ANALYSIS
-    # def video_analysis(self, session):
-    #     """ EXTRACT useful information from the videos for one session"""
-    #     # Process background: get maze edges and user selected ROIs
-    #     # maze_edges, user_rois = video_funcs.process_background(session['Metadata'].videodata[0]['Background'],
-    #     #                                                             track_options)
-    #     # session.Metadata.videodata[0]['Maze Edges'] = maze_edges
-    #     # session.Metadata.videodata[0]['User ROIs'] = user_rois
-    #
-    #     # Tracking
-    #     if track_mouse:
-
-    # def processing_session(self, session):
-
-    # def plotting_session(self, session):
 
 
 
@@ -174,15 +158,11 @@ class Analysis():
             print(colored('\nLoading database: {}\n'.format(load_name),'blue'))
         else:
             print(colored('\nCreating new database: {}\n'.format(load_name), 'blue'))
-        # if update_database and load_database:
-        #     print(colored('Updating database'.format(load_name), 'blue'))
+
         if selector_type == 'all':
             print(colored('Analyzing all sessions', 'blue'))
         else:
             print(colored('Selector type: {}\nSelector: {}'.format(selector_type, selector), 'blue'))
-
-        # print(colored('Processing: {}\nPlotting: {}\nTracking: {}\n{}'
-        #     .format(processing, plotting,track_mouse,json.dumps(track_options, indent=3)),'blue'))
 
 
 #  START

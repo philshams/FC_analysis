@@ -62,20 +62,20 @@ def create_database(datalogpath, database=None):
             if session_id:  # we loaded a line with session info
                 session_name = '{}_{}'.format(line['Experiment'], line['Sess.ID'])
 
-                # Check if session is already in database
-                # print(colored('Opening {}'.format(session_name),'yellow'))
-                if database is not None and session_name in database.index:
-                        # print(colored('Session is already in database','yellow'))
-                        continue
-
                 # Create the metadata
                 session_metadata = Session_metadata()
                 session_metadata.session_id = session_id
                 session_metadata.experiment = line['Experiment']
                 session_metadata.date = line['Date']
                 session_metadata.mouse_id = line['MouseID']
+                session_metadata.experiment_number = line['Number']
                 session_metadata.created = datetime.datetime.now().strftime("%y-%m-%d-%H-%M")
                 session_metadata.software = line['Software']
+
+                # Check if session is already in database
+                if database is not None and session_name in database.index:
+                    sessions_dict[session_name] = session_metadata
+                    continue
 
                 # load data from .tdms and .avi fils
                 for recording in line['Recordings']:
@@ -180,7 +180,8 @@ def create_database(datalogpath, database=None):
             'Software':    line['Software'],
             'Base fld':    line['Base fld'],
             'Exp fld':     line['Exp fld'],
-            'Recordings':  line['Sub Folders'].split('; ')
+            'Recordings':  line['Sub Folders'].split('; '),
+            'Number':      line['Number']
         }
         all_metadata.append(temp)
 
@@ -202,6 +203,12 @@ def create_database(datalogpath, database=None):
         return generate_database_from_metadatas(sessions_dict)
     else:
         new_database = generate_database_from_metadatas(sessions_dict)
+
+        # put the databases together
+        # for index, row in new_database.iterrows():
+        #     print(index)
+        #     new_database.loc[index].Tracking = database.loc[index].Tracking
+
         frames = [database, new_database]
         return pd.concat(frames, sort=True)
 

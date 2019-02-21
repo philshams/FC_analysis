@@ -12,23 +12,15 @@ DLC_folder = 'C:\\Drive\\Behaviour\\DeepLabCut'
 
 # If loading a pre-existing database, specify name of the file it was saved to. otherwise db is generated from
 # scratch from the datalog.csv file
-load_database = True  # This is False only if you are creating a new database
+load_database = False  # This is False only if you are creating a new database
 update_database = True # add recently added sessions to database
 
-load_name = '181115'  # name of file to load
-save_name = '181115' # name to save the results of the analysis
+load_name = '190221'  # name of file to load
+save_name = '190221' # name to save the results of the analysis
 
 # selects which sessions to analyze ('all', 'experiment', 'session', 'date', 'mouse' or COHORT)
-# selector_type = 'experiment'
-# selector = ['Barnes bang wall down (dark)','Barnes US wall up (20kHz)','Barnes US wall down','Barnes US wall up (2)', 'Barnes US wall (loom)',
-#             'Barnes US wall (20kHz)', 'Barnes US wall up', 'Barnes bang wall down (trial 1)', 'Barnes loom wall down', 'Barnes bang wall (DLS)']
-#
-# selector_type = 'experiment'
-# selector = ['The Room bang', 'Anti Room bang'] # 'Peace palace bang'
-    # ,'Barnes bang wall down (dark)','Barnes US wall up(20kHz)','Barnes US wall down','Barnes US wall (loom)','Barnes US wall (DLS)','Barnes US wall (20kHz)']
-# selector = ['Barnes US wall down', 'Barnes US wall up', 'Barnes US wall up (2)', 'Barnes US wall up (20kHz)']
-selector_type = 'mouse'
-selector = ['CA4030'] #3380 is broken
+selector_type = 'number'
+selector = [45] #3380 is broken
 
 # selector_type = 'all'
 
@@ -55,7 +47,7 @@ fisheye_map_location = 'C:\\Drive\\DLC\\transforms\\fisheye_maps.npy'
 
 video_analysis_settings = {
     'fast track wndw pre': 2,
-    'fast track wndw post': 9
+    'fast track wndw post': 9.5
 }
 
 #######################
