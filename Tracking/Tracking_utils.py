@@ -1,16 +1,11 @@
 import cv2
 import numpy as np
 import math
-from moviepy.editor import VideoFileClip
 import os
 import shutil
 import pandas as pd
 import datetime
-
-from Utils.utils_classes import Trial
 from Utils.loadsave_funcs import load_yaml
-from Utils.Data_rearrange_funcs import arrange_dlc_data
-
 from Config import track_options
 
 ########################################################################################################################

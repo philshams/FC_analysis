@@ -3,9 +3,10 @@ import yaml
 import os
 from warnings import warn
 from termcolor import colored
+from Utils.Setup_funcs import create_database
 
 
-def save_data(savelogpath, load_name, save_name, loaded_db_size, object=None, name_modifier=''):
+def save_data(savelogpath, load_name, save_name, object=None, name_modifier=''):
     """ saves an object (the database) to file. If the object is not a dataframe, turns it into one"""
     save_name = os.path.join(savelogpath, save_name)
 
@@ -17,12 +18,6 @@ def save_data(savelogpath, load_name, save_name, loaded_db_size, object=None, na
     import dill as pickle
     with open(save_name+name_modifier, "wb") as dill_file:
         pickle.dump(object, dill_file)
-
-    counter = 0
-    while os.path.getsize(save_name) < loaded_db_size-1:  # wait until saving is done before continuing
-        counter += 1
-        if counter > 10000:
-            break
 
     print(colored('Database saved as {}'.format(save_name+name_modifier), 'yellow'))
 
@@ -48,4 +43,35 @@ def load_paths():
     filename = './PATHS.yml'
     return load_yaml(filename)
 
+def setup_database(save_folder, save_name, load_name, excel_path, load_database, update_database):
+    """
+    Creating a new database from scratch using experiments.csv or load a database from a pre-existing file
+    """
+    if load_database:
+        # Load existing database
+        db = load_data(save_folder, load_name)
 
+        # Add new sessions from experiments.csv
+        if update_database:
+            db = create_database(excel_path, database=db)
+
+    # Create new database
+    else:
+        db = create_database(excel_path)
+
+    save_data(save_folder, load_name, save_name, object=db, name_modifier='')
+    save_data(save_folder, load_name, save_name, object=db, name_modifier='_backup')
+
+    return db
+
+
+def print_plans(load_database, load_name, selector_type, selector):
+    """ When starting a new run, print the options specified in Config.py for the user to check """
+    if load_database:
+        print(colored('\nLoading database: {}'.format(load_name),'blue'))
+    else:
+        print(colored('\nCreating new database: {}'.format(load_name), 'blue'))
+    if selector_type == 'all':
+        print(colored('Analyzing all sessions', 'blue'))
+    else:
+        print(colored('Selector type: {}\nSelector: {}'.format(selector_type, selector), 'blue'))

@@ -8,14 +8,12 @@ class Session_metadata():
         self.experiment = None
         self.date = None
         self.mouse_id = None
-        self.stimuli = {'visual': [], 'audio': [], 'digital': []}
         self.video_file_paths = []
         self.tdms_file_paths = []
         self.trials_id_list = []
-        self.last_modified = None
-        self.created = None
         self.software = None
         self.videodata = []
+        self.number = []
 
     def __repr__(self):
         return 'Session {} Metadata'.format(self.session_id)
@@ -23,44 +21,23 @@ class Session_metadata():
     def __str__(self):
         return 'Session {} Metadata'.format(self.session_id)
 
+class Session_stimuli():
+    """  class to store metadata for a session """
+    def __init__(self):
+        self.session_id = None
+        self.stimuli = {'visual': [], 'audio': [], 'digital': []}
+
+    def __repr__(self):
+        return 'Session {} Stimuli'.format(self.session_id)
+
+    def __str__(self):
+        return 'Session {} Stimuli'.format(self.session_id)
 
 class DataBase():
     """ Class to initialise an empty database """
     def __init__(self):
         # self.sessions = {'Metadata': None, 'Tracking': None}
-        self.sessions = namedtuple('sessions', 'Metadata Tracking')
-
-
-class Trial():
-    """ Class to initialise and empty Trial object """
-    def __init__(self):
-        self.name = ''
-        self.id = None
-        self.metadata = None
-        self.std_tracing = namedtuple('std_tracking', 'x y orientation direction velocity')
-        self.dlc_tracking = {}
-
-    def __repr__(self):
-        return 'Trial: {}_{}'.format(self.name, self.id)
-
-    def __str__(self):
-        return 'Trial: {}'.format(self.name)
-
-
-class Exploration():
-    """ Class to initialise and empty Exploration object """
-    def __init__(self):
-        self.name = ''
-        self.id = None
-        self.metadata = {}
-        self.processing = {}
-        self.tracking = None
-
-    def __repr__(self):
-        return 'Exploration of sessoin {}'.format(self.name, self.id)
-
-    def __str__(self):
-        return 'Expl sess: {}'.format(self.name)
+        self.sessions = namedtuple('sessions', 'Metadata Tracking Registration Stimuli')
 
 
 class Cohort():

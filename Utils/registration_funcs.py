@@ -1,7 +1,3 @@
-from Utils.imports import *
-from Config import track_options, dlc_config_settings
-
-
 import cv2
 import numpy as np
 import scipy.misc
@@ -10,8 +6,75 @@ from tqdm import tqdm
 import glob
 
 
-def model_arena(size, trial_type, holes, registration, obstacle_type = 'wall'):
-    """ generate model arena """
+def perform_arena_registration(session, fisheye_map_location):
+    '''
+    ..........................CONTROL BACKGROUND ACQUISITION AND ARENA REGISTRATION................................
+    '''
+    x_offset, y_offset, obstacle_type, _, _ = get_arena_details(session['Metadata'].experiment)
+
+    if not np.array(session['Registration']).shape:
+        print(colored(' - Registering session', 'green'))
+
+        # Get background
+        background, width, height = get_background(session['Metadata'].video_file_paths[0][0],start_frame=1000, avg_over=20)
+
+        # Register arena
+        session['Registration'] = register_arena(background, fisheye_map_location, x_offset, y_offset, obstacle_type)
+        session['Registration'].append([width, height])
+        new_registration = True
+
+    else:
+        print(colored(' - Already registered session', 'green'))
+        new_registration = False
+
+    return session, new_registration
+
+
+def get_arena_details(experiment):
+    '''
+    ...............GET DETAILS OF THE ARENA BASED ON THE EXPERIMENT NAME....................
+    '''
+    if 'Barnes' in experiment:
+        x_offset = 300
+        y_offset = 120
+        obstacle_type = 'wall'
+        shelter_location = [500, 885]
+    elif 'Void' in experiment:
+        x_offset = 290
+        y_offset = 110
+        obstacle_type = 'void'
+        shelter_location = [500, 885]
+    elif 'Peace' in experiment:
+        x_offset = 300
+        y_offset = 120
+        obstacle_type = 'triangle'
+        shelter_location = [571, 583]
+    elif 'The Room' in experiment:
+        x_offset = 300
+        y_offset = 120
+        obstacle_type = 'room'
+        shelter_location = [455, 667]
+    elif 'Anti Room' in experiment:
+        x_offset = 300
+        y_offset = 120
+        obstacle_type = 'anti-room'
+        shelter_location = [452, 452]
+    else:
+        print('arena type not identified')
+
+    if ('up' in experiment) or ('down' in experiment):
+        obstacle_changes = True
+    else:
+        obstacle_changes = False
+
+    return x_offset, y_offset, obstacle_type, shelter_location, obstacle_changes
+
+
+
+def model_arena(size, trial_type, registration, obstacle_type = 'wall'):
+    '''
+    ..........................GENERATE A MODEL ARENA IMAGE................................
+    '''
 
     # initialize model arena
     model_arena = np.zeros((1000,1000)).astype(np.uint8)
@@ -84,13 +147,11 @@ def model_arena(size, trial_type, holes, registration, obstacle_type = 'wall'):
     alpha = .5
     model_arena_shelter = model_arena.copy()
     shelter_roi = np.zeros(model_arena.shape).astype(np.uint8)
-
     if obstacle_type == 'wall' or obstacle_type == 'void':
         cv2.rectangle(model_arena_shelter, (int(500 - 54), int(500 + 385 + 25 - 54)), (int(500 + 54), int(500 + 385 + 25 + 54)), (0, 0, 255),thickness=-1)
         cv2.addWeighted(model_arena, alpha, model_arena_shelter, 1 - alpha, 0, model_arena)
 
         cv2.rectangle(shelter_roi, (int(500 - 50), int(500 + 385 + 25 - 50)),(int(500 + 50), int(500 + 385 + 25 + 50)), 1, thickness=-1)
-
     elif obstacle_type == 'triangle':
         shelter_contours = [np.array([(500 , int((1000 - 750) / 2 + 160 + 340 - 60.6)), ( int((1000 - 866) / 2+ 485.5 ),int((1000-750)/2 + 750 - 220) ),
                                       (int((1000 - 866) / 2 + 576.4), int((1000 - 750) / 2 + 477.8)), (int((1000 - 866) / 2+ 523.9 ), int((1000-750)/2 + 386.9))])]
@@ -98,7 +159,6 @@ def model_arena(size, trial_type, holes, registration, obstacle_type = 'wall'):
         cv2.drawContours(model_arena, shelter_contours, 0, (0, 0, 255), thickness=-1)
         cv2.addWeighted(model_arena, alpha, model_arena_shelter, 1 - alpha, 0, model_arena)
         cv2.drawContours(shelter_roi, shelter_contours, 0, (0, 0, 255), thickness=-1)
-
     elif obstacle_type == 'room':
         cv2.rectangle(model_arena_shelter, (int(250/2 + 152.5 + 355/2 - 50), int(250/2 + 155 + 340 - 2.5)), (int(250/2 + 152.5 + 355/2 +50), int(250/2 + 155 + 340 - 2.5 - 100)), (0, 0, 255),thickness=-1)
         cv2.addWeighted(model_arena, alpha, model_arena_shelter, 1 - alpha, 0, model_arena)
@@ -112,34 +172,27 @@ def model_arena(size, trial_type, holes, registration, obstacle_type = 'wall'):
         cv2.rectangle(shelter_roi, (int(250 / 2 + 152.5 + 355 / 2 - 50 - 2.5), int(250 / 2 + 155 + 340 - 2.5 - 115)),
                       (int(250 / 2 + 152.5 + 355 / 2 + 50 - 2.5), int(250 / 2 + 155 + 340 - 2.5 - 100 - 115)), 1, thickness=-1)
 
-
     # add circular wells along edge
-    if holes:
+    if registration and obstacle_type == 'wall':
         number_of_circles = 20
         for circle_num in range(number_of_circles):
             x_center = int(500+385*np.sin(2*np.pi/number_of_circles*circle_num))
             y_center = int(500-385*np.cos(2*np.pi/number_of_circles*circle_num))
             cv2.circle(model_arena,(x_center,y_center),25,200,-1)
 
-    model_arena = cv2.resize(model_arena,size)
+    # resize to the size of the image
+    model_arena = cv2.resize(model_arena, size)
     shelter_roi = cv2.resize(shelter_roi, size)
 
-
+    # add points for the user to click during registration
     if obstacle_type == 'wall':
-        if trial_type or registration:
-            points = np.array(([500, 500 + 460 - 75], [500 - 460 + 75, 500], [500, 500 - 460 + 75], [500 + 460 - 75, 500])) * [size[0] / 1000, size[1] / 1000]
-        else:
-            dist_from_center = int(500 * 92 / 100)
-            points = np.array(([500, 500 + dist_from_center], [500 - dist_from_center, 500], [500, 500 - dist_from_center], [500 + dist_from_center, 500])) * [
-                size[0] / 1000, size[1] / 1000]
+        points = np.array(([500, 500 + 460 - 75], [500 - 460 + 75, 500], [500, 500 - 460 + 75], [500 + 460 - 75, 500])) * [size[0] / 1000, size[1] / 1000]
 
     elif obstacle_type == 'void':
         points = np.array(([int(500 - 750 / 2 * 92 / 100), int(500 - 188 / 2 * 92 / 100)], [int(500 - 750 / 2 * 92 / 100), int(500 + 188 / 2 * 92 / 100)],
                            [int(500 + 750 / 2 * 92 / 100), int(500 - 188 / 2 * 92 / 100)], [int(500 + 750 / 2 * 92 / 100), int(500 - 188 / 2 * 92 / 100)])) * [size[0] / 1000, size[1] / 1000]
-
     elif obstacle_type == 'triangle':
         points = np.array(( [500, int((1000-750)/2)], [int((1000-866)/2), int((1000-750)/2 + 750)], [int((1000-866)/2 + 866), int((1000-750)/2 + 750)] )) * [size[0] / 1000, size[1] / 1000]
-
     elif obstacle_type == 'room' or obstacle_type == 'anti-room':
         points = np.array(( [int(250 / 2), int(250 / 2)], [int(250 / 2), int(1000 - 250 / 2)],
                             [int(1000 - 250 / 2), int(1000 - 250 / 2)], [int(1000 - 250 / 2), int(250 / 2)] )) * [size[0] / 1000, size[1] / 1000]
@@ -147,12 +200,15 @@ def model_arena(size, trial_type, holes, registration, obstacle_type = 'wall'):
 
     return model_arena, points, shelter_roi
 
+
+
+
 def get_background(vidpath, start_frame = 1000, avg_over = 100):
-    """ extract background: average over frames of video """
-
-    vid = cv2.VideoCapture(vidpath)
-
+    '''
+    ..........................EXTRACT BACKGROUND BY AVERAGING FRAMES THROGHOUT THE VIDEO................................
+    '''
     # initialize the video
+    vid = cv2.VideoCapture(vidpath)
     width = int(vid.get(cv2.CAP_PROP_FRAME_WIDTH))
     height = int(vid.get(cv2.CAP_PROP_FRAME_HEIGHT))
     background = np.zeros((height, width))
@@ -163,35 +219,39 @@ def get_background(vidpath, start_frame = 1000, avg_over = 100):
     every_other = int(num_frames / avg_over)
     j = 0
 
+    # loop through num_frames frames
     for i in tqdm(range(num_frames)):
-
+        # only use every other x frames
         if i % every_other == 0:
             vid.set(cv2.CAP_PROP_POS_FRAMES, i)
-            ret, frame = vid.read()  # get the frame
-
+            ret, frame = vid.read()
+            # store the current frame in as a numpy array
             if ret:
-                # store the current frame in as a numpy array
                 background += frame[:, :, 0]
                 j+=1
 
-
+    # normalize the background intensity to the number of frames summed
     background = (background / (j)).astype(np.uint8)
+
+    # show the background
     cv2.imshow('background', background)
     cv2.waitKey(10)
+
+    # release the video
     vid.release()
 
-    return background
+    return background, width, height
 
 
-# =================================================================================
-#              IMAGE REGISTRATION GUI
-# =================================================================================
+
+
 def register_arena(background, fisheye_map_location, x_offset, y_offset, obstacle_type = 'wall'):
-    """ extract background: first frame of first video of a session
-    Allow user to specify ROIs on the background image """
+    '''
+    ..........................GUI TO REGISTER ARENAS TO COMMON FRAMEWORK................................
+    '''
 
     # create model arena and background
-    arena, arena_points, _ = model_arena(background.shape, False, False, True, obstacle_type) # ending 0 for void, 1 for wall
+    arena, arena_points, _ = model_arena(background.shape, 0, True, obstacle_type) # ending 0 for void, 1 for wall
 
     # load the fisheye correction
     try:
@@ -214,198 +274,118 @@ def register_arena(background, fisheye_map_location, x_offset, y_offset, obstacl
     blank_arena = arena.copy()
     background_data = [background_copy, np.array(([], [])).T]
     arena_data = [[], np.array(([], [])).T]
-    cv2.namedWindow('registered background')
+
     alpha = .7
     colors = [[150, 0, 150], [0, 255, 0]]
     color_array = make_color_array(colors, background.shape)
-    use_loaded_transform = False
-    make_new_transform_immediately = False
-    use_loaded_points = False
 
-    # LOOP OVER TRANSFORM FILES
-    file_num = -1;
-    transform_files = glob.glob('.\\transforms\\*transform.npy')
-    for file_num, transform_file in enumerate(transform_files[::-1]):
+    make_new_transform_immediately = True
 
-        # USE LOADED TRANSFORM AND SEE IF IT'S GOOD
-        loaded_transform = np.load(transform_file)
-        M = loaded_transform[0]
-        background_data[1] = loaded_transform[1]
-        arena_data[1] = loaded_transform[2]
+    print('\nSelect reference points on the experimental background image in the indicated order')
 
-        # registered_background = cv2.warpPerspective(background_copy, M, background.shape)
-        registered_background = cv2.warpAffine(background_copy, M, background.shape)
-        registered_background_color = (cv2.cvtColor(registered_background, cv2.COLOR_GRAY2RGB)
-                                       * np.squeeze(color_array[:, :, :, 0])).astype(np.uint8)
-        arena_color = (cv2.cvtColor(blank_arena, cv2.COLOR_GRAY2RGB)
-                       * np.squeeze(color_array[:, :, :, 1])).astype(np.uint8)
+    # initialize clicked point arrays
+    background_data = [background_copy, np.array(([], [])).T]
+    arena_data = [[], np.array(([], [])).T]
 
-        overlaid_arenas = cv2.addWeighted(registered_background_color, alpha, arena_color, 1 - alpha, 0)
-        print('Does transform ' + str(file_num+1) + ' / ' + str(len(transform_files)) + ' match this session?')
-        print('\'y\' - yes! \'n\' - no. \'q\' - skip examining loaded transforms. \'p\' - update current transform')
-        while True:
-            cv2.imshow('registered background', overlaid_arenas)
-            k = cv2.waitKey(10)
-            if  k == ord('n'):
-                break
-            elif k == ord('y'):
-                use_loaded_transform = True
-                break
-            elif k == ord('q'):
-                make_new_transform_immediately = True
-                break
-            elif k == ord('p'):
-                use_loaded_points = True
-                break
-        if use_loaded_transform:
-            update_transform_data = [overlaid_arenas,background_data[1], arena_data[1], M]
+    # add 1-2-3-4 markers to model arena
+    for i, point in enumerate(arena_points.astype(np.uint32)):
+        arena = cv2.circle(arena, (point[0], point[1]), 3, 255, -1)
+        arena = cv2.circle(arena, (point[0], point[1]), 4, 0, 1)
+        cv2.putText(arena, str(i+1), tuple(point), 0, .55, 150, thickness=2)
+
+        point = np.reshape(point, (1, 2))
+        arena_data[1] = np.concatenate((arena_data[1], point))
+
+    # initialize GUI
+    cv2.startWindowThread()
+    cv2.namedWindow('background')
+    cv2.imshow('background', background_copy)
+    cv2.namedWindow('model arena')
+    cv2.imshow('model arena', arena)
+
+    # create functions to react to clicked points
+    cv2.setMouseCallback('background', select_transform_points, background_data)  # Mouse callback
+
+    while True: # take in clicked points until four points are clicked
+        cv2.imshow('background',background_copy)
+
+        number_clicked_points = background_data[1].shape[0]
+        if number_clicked_points == len(arena_data[1]):
             break
-        elif make_new_transform_immediately or use_loaded_points:
-            file_num = len(glob.glob('*transform.npy'))-1
+        if cv2.waitKey(10) & 0xFF == ord('q'):
             break
 
-    if not use_loaded_transform:
-        if not use_loaded_points:
-            print('\nSelect reference points on the experimental background image in the indicated order')
-
-            # initialize clicked point arrays
-            background_data = [background_copy, np.array(([], [])).T]
-            arena_data = [[], np.array(([], [])).T]
-
-            # add 1-2-3-4 markers to model arena
-            for i, point in enumerate(arena_points.astype(np.uint32)):
-                arena = cv2.circle(arena, (point[0], point[1]), 3, 255, -1)
-                arena = cv2.circle(arena, (point[0], point[1]), 4, 0, 1)
-                cv2.putText(arena, str(i+1), tuple(point), 0, .55, 150, thickness=2)
-
-                point = np.reshape(point, (1, 2))
-                arena_data[1] = np.concatenate((arena_data[1], point))
-
-            # initialize GUI
-            cv2.startWindowThread()
-            cv2.namedWindow('background')
-            cv2.imshow('background', background_copy)
-            cv2.namedWindow('model arena')
-            cv2.imshow('model arena', arena)
-
-            # create functions to react to clicked points
-            cv2.setMouseCallback('background', select_transform_points, background_data)  # Mouse callback
-
-            while True: # take in clicked points until four points are clicked
-                cv2.imshow('background',background_copy)
-
-                number_clicked_points = background_data[1].shape[0]
-                if number_clicked_points == len(arena_data[1]):
-                    break
-                if cv2.waitKey(10) & 0xFF == ord('q'):
-                    break
-
-        # perform projective transform
-        # M = cv2.findHomography(background_data[1], arena_data[1])
-        M = cv2.estimateRigidTransform(background_data[1], arena_data[1], False)
+    # perform projective transform
+    M = cv2.estimateRigidTransform(background_data[1], arena_data[1], False)
 
 
-        # REGISTER BACKGROUND, BE IT WITH LOADED OR CREATED TRANSFORM
-        # registered_background = cv2.warpPerspective(background_copy,M[0],background.shape)
-        registered_background = cv2.warpAffine(background_copy, M, background.shape)
+    # REGISTER BACKGROUND, BE IT WITH LOADED OR CREATED TRANSFORM
+    registered_background = cv2.warpAffine(background_copy, M, background.shape)
 
-        # --------------------------------------------------
-        # overlay images
-        # --------------------------------------------------
-        alpha = .7
-        colors = [[150, 0, 150], [0, 255, 0]]
-        color_array = make_color_array(colors, background.shape)
+    # --------------------------------------------------
+    # overlay images
+    # --------------------------------------------------
+    alpha = .7
+    colors = [[150, 0, 150], [0, 255, 0]]
+    color_array = make_color_array(colors, background.shape)
 
-        registered_background_color = (cv2.cvtColor(registered_background, cv2.COLOR_GRAY2RGB)
-                                 * np.squeeze(color_array[:, :, :, 0])).astype(np.uint8)
-        arena_color = (cv2.cvtColor(blank_arena, cv2.COLOR_GRAY2RGB)
-                       * np.squeeze(color_array[:, :, :, 1])).astype(np.uint8)
+    registered_background_color = (cv2.cvtColor(registered_background, cv2.COLOR_GRAY2RGB)
+                             * np.squeeze(color_array[:, :, :, 0])).astype(np.uint8)
+    arena_color = (cv2.cvtColor(blank_arena, cv2.COLOR_GRAY2RGB)
+                   * np.squeeze(color_array[:, :, :, 1])).astype(np.uint8)
 
-        overlaid_arenas = cv2.addWeighted(registered_background_color, alpha, arena_color, 1 - alpha, 0)
-        cv2.imshow('registered background', overlaid_arenas)
+    overlaid_arenas = cv2.addWeighted(registered_background_color, alpha, arena_color, 1 - alpha, 0)
+    cv2.namedWindow('registered background')
+    cv2.imshow('registered background', overlaid_arenas)
 
-        # --------------------------------------------------
-        # initialize GUI for correcting transform
-        # --------------------------------------------------
-        print('\nLeft click model arena // Right click model background')
-        print('Purple within arena and green along the boundary represent the model arena')
-        print('Advanced users: use arrow keys and \'wasd\' to fine-tune translation and scale')
-        print('Crème de la crème: use \'tfgh\' to fine-tune shear\n')
-        update_transform_data = [overlaid_arenas,background_data[1], arena_data[1], M, background_copy]
+    # --------------------------------------------------
+    # initialize GUI for correcting transform
+    # --------------------------------------------------
+    print('\nLeft click model arena // Right click model background // Press ''y'' when finished')
+    print('Purple within arena and green along the boundary represent the model arena')
 
-        # create functions to react to additional clicked points
-        cv2.setMouseCallback('registered background', additional_transform_points, update_transform_data)
+    update_transform_data = [overlaid_arenas,background_data[1], arena_data[1], M, background_copy]
 
-        # take in clicked points until 'q' is pressed
-        initial_number_clicked_points = [update_transform_data[1].shape[0], update_transform_data[2].shape[0]]
-        M_initial = M
-        M_indices = [(0,2),(1,2),(0,0),(1,1),(0,1),(1,0),(2,0),(2,2)]
-        # M_indices_meanings = ['x-translate','y-translate','x-scale','y-scale','x->y shear','y->x shear','x perspective','y perspective']
-        M_mod_keys = [2424832, 2555904, 2490368, 2621440, ord('w'), ord('a'), ord('s'), ord('d'), ord('f'), ord('t'),
-                      ord('g'), ord('h'), ord('j'), ord('i'), ord('k'), ord('l')]
-        while True:
-            cv2.imshow('registered background',overlaid_arenas)
-            cv2.imshow('background', registered_background)
-            number_clicked_points = [update_transform_data[1].shape[0], update_transform_data[2].shape[0]]
-            update_transform = False
-            k = cv2.waitKey(10)
-            # If a left and right point are clicked:
-            if number_clicked_points[0]>initial_number_clicked_points[0] and number_clicked_points[1]>initial_number_clicked_points[1]:
-                initial_number_clicked_points = number_clicked_points
-                # update transform and overlay images
-                try:
-                    # M = cv2.findHomography(update_transform_data[1], update_transform_data[2])
-                    M = cv2.estimateRigidTransform(update_transform_data[1], update_transform_data[2],False) #True ~ full transform
-                    update_transform = True
-                except:
-                    continue
-            elif k in M_mod_keys: # if an arrow key if pressed
-                if k == 2424832: # left arrow - x translate
-                    M[M_indices[0]] = M[M_indices[0]] - abs(M_initial[M_indices[0]]) * .005
-                elif k == 2555904: # right arrow - x translate
-                    M[M_indices[0]] = M[M_indices[0]] + abs(M_initial[M_indices[0]]) * .005
-                elif k == 2490368: # up arrow - y translate
-                    M[M_indices[1]] = M[M_indices[1]] - abs(M_initial[M_indices[1]]) * .005
-                elif k == 2621440: # down arrow - y translate
-                    M[M_indices[1]] = M[M_indices[1]] + abs(M_initial[M_indices[1]]) * .005
-                elif k == ord('a'): # down arrow - x scale
-                    M[M_indices[2]] = M[M_indices[2]] + abs(M_initial[M_indices[2]]) * .005
-                elif k == ord('d'): # down arrow - x scale
-                    M[M_indices[2]] = M[M_indices[2]] - abs(M_initial[M_indices[2]]) * .005
-                elif k == ord('s'): # down arrow - y scale
-                    M[M_indices[3]] = M[M_indices[3]] + abs(M_initial[M_indices[3]]) * .005
-                elif k == ord('w'): # down arrow - y scale
-                    M[M_indices[3]] = M[M_indices[3]] - abs(M_initial[M_indices[3]]) * .005
-                elif k == ord('f'): # down arrow - x-y shear
-                    M[M_indices[4]] = M[M_indices[4]] - abs(M_initial[M_indices[4]]) * .005
-                elif k == ord('h'): # down arrow - x-y shear
-                    M[M_indices[4]] = M[M_indices[4]] + abs(M_initial[M_indices[4]]) * .005
-                elif k == ord('t'): # down arrow - y-x shear
-                    M[M_indices[5]] = M[M_indices[5]] - abs(M_initial[M_indices[5]]) * .005
-                elif k == ord('g'): # down arrow - y-x shear
-                    M[M_indices[5]] = M[M_indices[5]] + abs(M_initial[M_indices[5]]) * .005
+    # create functions to react to additional clicked points
+    cv2.setMouseCallback('registered background', additional_transform_points, update_transform_data)
 
+    # take in clicked points until 'q' is pressed
+    initial_number_clicked_points = [update_transform_data[1].shape[0], update_transform_data[2].shape[0]]
+    M_initial = M
+
+    while True:
+        cv2.imshow('registered background',overlaid_arenas)
+        cv2.imshow('background', registered_background)
+        number_clicked_points = [update_transform_data[1].shape[0], update_transform_data[2].shape[0]]
+        update_transform = False
+        k = cv2.waitKey(10)
+        # If a left and right point are clicked:
+        if number_clicked_points[0]>initial_number_clicked_points[0] and number_clicked_points[1]>initial_number_clicked_points[1]:
+            initial_number_clicked_points = number_clicked_points
+            # update transform and overlay images
+            try:
+                M = cv2.estimateRigidTransform(update_transform_data[1], update_transform_data[2],False) #True ~ full transform
                 update_transform = True
+            except:
+                continue
+            update_transform = True
+        elif  k == ord('r'):
+            print('Transformation erased')
+            update_transform_data[1] = np.array(([],[])).T
+            update_transform_data[2] = np.array(([],[])).T
+            initial_number_clicked_points = [3,3]
+        elif k == ord('q') or k == ord('y'):
+            print('Registration completed')
+            break
 
-            elif  k == ord('r'):
-                print('Transformation erased')
-                update_transform_data[1] = np.array(([],[])).T
-                update_transform_data[2] = np.array(([],[])).T
-                initial_number_clicked_points = [3,3]
-            elif k == ord('q') or k == ord('y'):
-                print('Registration completed')
-                break
+        if update_transform:
+            update_transform_data[3] = M
 
-            if update_transform:
-                update_transform_data[3] = M
-                # registered_background = cv2.warpPerspective(background_copy, M, background.shape)
-                registered_background = cv2.warpAffine(background_copy, M, background.shape)
-                registered_background_color = (cv2.cvtColor(registered_background, cv2.COLOR_GRAY2RGB)
-                                               * np.squeeze(color_array[:, :, :, 0])).astype(np.uint8)
-                overlaid_arenas = cv2.addWeighted(registered_background_color, alpha, arena_color, 1 - alpha, 0)
-                update_transform_data[0] = overlaid_arenas
-
-        np.save('.\\transforms\\str(file_num+1)' + '_transform',[M, update_transform_data[1], update_transform_data[2], fisheye_map_location])
+            registered_background = cv2.warpAffine(background_copy, M, background.shape)
+            registered_background_color = (cv2.cvtColor(registered_background, cv2.COLOR_GRAY2RGB)
+                                           * np.squeeze(color_array[:, :, :, 0])).astype(np.uint8)
+            overlaid_arenas = cv2.addWeighted(registered_background_color, alpha, arena_color, 1 - alpha, 0)
+            update_transform_data[0] = overlaid_arenas
 
     cv2.destroyAllWindows()
     return [M, update_transform_data[1], update_transform_data[2], fisheye_map_location]
@@ -457,7 +437,9 @@ def make_color_array(colors, image_size):
 
 
 def register_frame(frame, x_offset, y_offset, registration, map1, map2):
-    '''Go from raw frame to registered frame'''
+    '''
+    ..........................GO FROM A RAW TO A REGISTERED FRAME................................
+    '''
     frame_register = frame[:, :, 0]
 
     frame_register = cv2.copyMakeBorder(frame_register, y_offset,
@@ -478,7 +460,9 @@ def register_frame(frame, x_offset, y_offset, registration, map1, map2):
 
 
 def invert_fisheye_map(registration, inverse_fisheye_map_location):
-    '''Go from a normal opencv fisheye map to an inverted one, so coordinates can be transform'''
+    '''
+    ..........................GO FROM A NORMAL FISHEYE MAP TO AN INVERTED ONE.........................
+    '''
 
     if len(registration) == 5:
         pass
