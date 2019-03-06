@@ -1,13 +1,15 @@
 from Utils.video_funcs import peri_stimulus_analysis, peri_stimulus_video_clip
 from Utils.dlc_funcs import extract_dlc, filter_and_transform_dlc, compute_pose_from_dlc
-from Utils.registration_funcs import get_arena_details
+from Utils.registration_funcs import get_arena_details, model_arena, get_background
 from Utils.obstacle_funcs import get_trial_types, initialize_wall_analysis, get_trial_details, format_session_video
-
+from Utils.strategy_funcs import goalness, planning, spontaneous_homings, exploration
+from Utils.loadsave_funcs import save_data
 import cv2
 import scipy
 import numpy as np
 import os
 from termcolor import colored
+import dill as pickle
 from Config import tracking_options, dlc_options
 track_options, analysis_options, fisheye_map_location, video_analysis_settings = tracking_options()
 dlc_config_settings = dlc_options()
@@ -29,7 +31,7 @@ class Tracking():
         self.fps = self.session['Metadata'].videodata[0]['Frame rate'][0]
 
         # Determine arena type
-        self.x_offset, self.y_offset, self.obstacle_type, self.shelter_location, self.obstacle_changes \
+        self.x_offset, self.y_offset, self.obstacle_type, self.shelter_location, self.subgoal_location, self.obstacle_changes \
             = get_arena_details(self.session['Metadata'].experiment)
 
         # do tracking
@@ -44,28 +46,28 @@ class Tracking():
         if not isinstance(self.session['Tracking'], dict):
             self.session['Tracking'] = {}
 
-        # Save raw video clips without any analysis
-        if analysis_options['save stimulus clips'] and not analysis_options['DLC clips']:
-            self.analyze_trials()
-
         # Check for arena registration
         if track_options['register arena']:
             self.registration = self.session['Registration']
         else:
             self.registration = []
 
-        # run the video through DLC network
+        # get file paths
         self.video_path = self.session.Metadata.video_file_paths[0][0]
+        self.processed_coordinates_file = os.path.join(os.path.dirname(self.video_path), 'coordinates')
+
+        # Save raw video clips without any analysis
+        if analysis_options['save stimulus clips'] and not analysis_options['DLC clips']:
+            self.analyze_trials()
+
+        # run the video through DLC network
         if track_options['run DLC']:
             analyze_videos(dlc_config_settings['config_file'], self.video_path)
 
         # Track the session using DLC (extract data that was computed in the previous step)
-        if track_options['track session'] or analysis_options['DLC clips'] or analysis_options['sub-goal'] or analysis_options['planning'] or analysis_options['procedural']:
+        if track_options['track session'] or analysis_options['DLC clips'] or analysis_options['target repetition'] or analysis_options['planning'] or \
+                 analysis_options['procedural'] or analysis_options['exploration'] or analysis_options['spontaneous homings']:
             self.track_session()
-
-        # Process tracking data into usable format
-        if analysis_options['DLC clips'] or analysis_options['sub-goal'] or analysis_options['planning'] or analysis_options['procedural']:
-            self.process_tracking_data()
 
             # Analyze each trial
             self.analyze_trials()
@@ -75,37 +77,49 @@ class Tracking():
         '''
         ................................PERFORM TRACKING................................
         '''
-        if (dlc_config_settings['body parts'][0] in self.session.Tracking):
-            # carry on to analysis if tracking has already been done
+        # open saved coordinates if they exist
+        if os.path.isfile( self.processed_coordinates_file ) and not track_options['track session']:
             print(colored(' - Already extracted DLC coordinates', 'green'))
-        else:
-            # get the original behaviour video
-            print(colored(' - Tracking the whole session from ' + self.video_path, 'green'))
+            with open(self.processed_coordinates_file, "rb") as dill_file:
+                self.coordinates = pickle.load(dill_file)
 
-            # extract coordinates from DLC
-            self.session['Tracking'] = extract_dlc(dlc_config_settings, self.video_path)
+        # otherwise, extract the coordinates
+        else:
+            print(colored(' - Extracting DLC coordinates from ' + self.video_path, 'green'))
+            self.coordinates = extract_dlc(dlc_config_settings, self.video_path)
+
+            # process the extracted coordinates
+            self.process_tracking_data()
 
 
     def process_tracking_data(self):
         '''
         ................................PROCESS TRACKING DATA................................
         '''
-        # filter coordinates and transform them to the common coordinate space
+        # analyze the newly opened coordinates, if the processed coordinates haven't been saved yet
         print(colored(' - Processing DLC coordinates', 'green'))
-        self.coordinates = filter_and_transform_dlc(dlc_config_settings, self.session['Tracking'], self.x_offset, self.y_offset, self.registration,
+
+        # filter coordinates and transform them to the common coordinate space
+        self.coordinates = filter_and_transform_dlc(dlc_config_settings, self.coordinates, self.x_offset, self.y_offset, self.registration,
                                                     plot = False, filter_kernel = 21)
 
         # compute speed, angles, and pose from coordinates
         self.coordinates = compute_pose_from_dlc(dlc_config_settings['body parts'], self.coordinates, self.shelter_location,
                                                  self.session['Registration'][4][0], self.session['Registration'][4][1])
 
+        # save the processed coordinates to the video folder
+        with open(self.processed_coordinates_file, "wb") as dill_file:
+            pickle.dump(self.coordinates, dill_file)
+
+        # set up the tracking dict
+        self.session['Tracking'] = {}; self.session['Tracking']['coordinates'] = self.processed_coordinates_file
 
 
     def analyze_trials(self):
         '''
         ................................ANALYZE, DISPLAY, AND SAVE EACH TRIAL................................
         '''
-        print(colored(' - Saving trial clips', 'green'))
+        print(colored(' - Analyzing trials', 'green'))
 
         # Initialize a couple of variables
         session_trials_plot_workspace = None
@@ -126,28 +140,52 @@ class Tracking():
                     os.makedirs(save_folder)
 
                 # Get the trial types and initiate the session video and image
-                if analysis_options['DLC clips'] or True:
-                    self.session['Tracking']['Trial Types'], session_trials_video, session_video, session_trials_plot_background, \
-                    number_of_trials, height, width, border_size, rectangle_thickness = \
-                        get_trial_types(self, vid_num, stims_video, stims, save_folder, self.x_offset, self.y_offset, self.obstacle_changes, video_analysis_settings)
+                self.session['Tracking']['Trial Types'], session_trials_video, session_video, session_trials_plot_background, \
+                number_of_trials, height, width, border_size, rectangle_thickness, trial_colors = \
+                    get_trial_types(self, vid_num, stims_video, stims, save_folder, self.x_offset, self.y_offset,
+                                    self.obstacle_changes, video_analysis_settings, analysis_options)
 
                 # Loop over each stim for each video
                 for trial_num, stim_frame in enumerate(stims_video):
 
                     # get the trial details
                     start_frame, end_frame, previous_stim_frame, self.videoname = get_trial_details(self, stim_frame, trial_num, video_analysis_settings, stim_type, stims_video)
+                    self.arena, _, _ = model_arena((height, width), self.session['Tracking']['Trial Types'][trial_num], False, self.obstacle_type)
+
+                    # format the session video for this trial
+                    session_trials_plot_background = format_session_video(session_trials_plot_background, width, height, border_size, rectangle_thickness,
+                                                                          trial_num, number_of_trials, self.videoname)
 
                     # analyze sub-goals
-                    if analysis_options['sub-goal']:
+                    if analysis_options['target repetition']:
                         pass
 
-                    # analyze planning
+                    # analyze spontaneous homings
                     if analysis_options['planning']:
-                        pass
+                        try: planning_arena
+                        except: planning_arena = cv2.cvtColor(self.arena.copy(), cv2.COLOR_GRAY2RGB)
+                        planning_arena = planning(planning_arena, session_trials_plot_background, border_size, self.coordinates,
+                                                           previous_stim_frame, stim_frame, self.videoname, save_folder,
+                                                            self.session['Tracking']['Trial Types'][trial_num], self.obstacle_type, self.subgoal_location)
 
                     # analyze procedural learning
                     if analysis_options['procedural']:
                         pass
+
+                    # analyze spontaneous homings
+                    if analysis_options['spontaneous homings']:
+                        try: homing_arena
+                        except: homing_arena = cv2.cvtColor(self.arena.copy(), cv2.COLOR_GRAY2RGB)
+                        homing_arena = spontaneous_homings(homing_arena, session_trials_plot_background, border_size, self.coordinates,
+                                                           previous_stim_frame, stim_frame, self.videoname, save_folder, self.subgoal_location)
+
+                    # analyze exploration
+                    if analysis_options['exploration']:
+                        try: exploration_arena
+                        except: exploration_arena = cv2.cvtColor(self.arena.copy(), cv2.COLOR_GRAY2RGB)
+
+                        exploration_arena = exploration(exploration_arena, cv2.cvtColor(self.arena.copy(), cv2.COLOR_GRAY2RGB), session_trials_plot_background,
+                                                        border_size, self.coordinates,previous_stim_frame, stim_frame, self.videoname, save_folder, self.arena)
 
                     # do analysis and video saving
                     if analysis_options['DLC clips']:
@@ -167,5 +205,5 @@ class Tracking():
                     # do basic video saving
                     elif analysis_options['save stimulus clips']:
                         peri_stimulus_video_clip(self.video_path, self.videoname, save_folder, start_frame, end_frame, stim_frame,
-                                                 self.registration, self.x_offset, self.y_offset, self.fps, display_clip=True, counter=False)
+                                                 self.registration, self.x_offset, self.y_offset, self.fps, display_clip=True, counter=True)
 

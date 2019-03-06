@@ -29,18 +29,21 @@ def set_up_speed_colors(speed):
     '''
     set up colors for speed-dependent DLC analysis
     '''
-    
     # colors depending on speed
-    slow_color = np.array([200, 200, 200])
-    medium_color = np.array([202, 0, 50])
-    fast_color = np.array([50, 252, 50])
+    slow_color = np.array([240, 240, 240])
+    medium_color = np.array([190, 190, 240])
+    fast_color = np.array([0, 192, 120])
+    super_fast_color = np.array([0, 232, 0])
     
     # vary color based on speed
-    speed_threshold_2 = 12
+    speed_threshold_3 = 18
+    speed_threshold_2 = 14
     speed_threshold = 7
     # print(speed)
-    if speed > speed_threshold_2:
-        speed_color = fast_color
+    if speed > speed_threshold_3:
+        speed_color = super_fast_color
+    elif speed > speed_threshold_2:
+        speed_color = ((speed_threshold_3 - speed) * fast_color + (speed - speed_threshold_2) * super_fast_color) / (speed_threshold_3 - speed_threshold_2)
     elif speed > speed_threshold:
         speed_color = ((speed_threshold_2 - speed) * medium_color + (speed - speed_threshold) * fast_color) / (speed_threshold_2 - speed_threshold)
     else:
@@ -89,7 +92,7 @@ def format_session_video(session_trials_plot_background, width, height, border_s
     return session_trials_plot_background
 
 
-def get_trial_types(self, vid_num, stims_video, stims, save_folder, x_offset, y_offset, obstacle_changes, video_analysis_settings):
+def get_trial_types(self, vid_num, stims_video, stims, save_folder, x_offset, y_offset, obstacle_changes, video_analysis_settings, analysis_options):
     '''
     Takes in a video and stimulus information, and outputs the type of trial (obstacle or none)
     and the background image for DLC trials to be plotted on top of
@@ -114,12 +117,21 @@ def get_trial_types(self, vid_num, stims_video, stims, save_folder, x_offset, y_
     session_trials_plot_background = np.zeros((height + border_size, width + border_size, 3)).astype(np.uint8)
 
     fourcc = cv2.VideoWriter_fourcc(*"XVID")
-    session_videoname = '{}_{}'.format(self.session['Metadata'].experiment, self.session['Metadata'].mouse_id, )
-    session_trials_video = cv2.VideoWriter(os.path.join(save_folder, session_videoname + '_session_dlc.avi'),
-                                           fourcc, self.fps, (width + border_size, height + border_size), True)
-    session_video = cv2.VideoWriter(os.path.join(save_folder, session_videoname + '_session.avi'),
-                                    fourcc, self.fps, (width + 2 * border_size, height + 2 * border_size), True)
 
+    session_videoname = '{}_{}'.format(self.session['Metadata'].experiment, self.session['Metadata'].mouse_id, )
+
+    if analysis_options['DLC clips']:
+        session_trials_video = cv2.VideoWriter(os.path.join(save_folder, session_videoname + '_session_dlc.avi'),
+                                               fourcc, self.fps, (width + border_size, height + border_size), True)
+        session_video = cv2.VideoWriter(os.path.join(save_folder, session_videoname + '_session.avi'),
+                                        fourcc, self.fps, (width + 2 * border_size, height + 2 * border_size), True)
+    else:
+        session_trials_video = None; session_video = None
+
+    # If trial types are already saved correctly, just use those
+    if ('Trial Types' in self.session['Tracking']):
+        if len(self.session['Tracking']) == len(stims_video):
+            trial_types = self.session['Tracking']['Trial Types']
 
     # loop through each trial in the session
     for trial_num, stim_frame in enumerate(stims_video):
@@ -127,16 +139,13 @@ def get_trial_types(self, vid_num, stims_video, stims, save_folder, x_offset, y_
         start_frame = int(stim_frame - (video_analysis_settings['seconds pre stimulus'] * self.fps))
         end_frame = int(stim_frame + (video_analysis_settings['seconds post stimulus'] * self.fps))
 
-        # If trial types are already saved, just use those
-        if ('Trial Types' in self.session['Tracking']):
-            trial_types = self.session['Tracking']['Trial Types']
         # If trial types depend on the trial, determine which trial is of which type
-        elif obstacle_changes:
+        if obstacle_changes and len(trial_types) < len(stims_video):
             _, trial_type, _, _, _, _, _, _, _ = initialize_wall_analysis(True, stim_frame, start_frame, end_frame, self.registration,
                                                                           x_offset, y_offset, vid, width, height)
             trial_types.append(trial_type)
         # If all trials are the same, just add a 2 (obstacle) to trial type list
-        else:
+        elif len(trial_types) < len(stims_video):
             trial_types.append(2)
 
         # draw rectangles corresponding to the trials on the right side of the plot
@@ -151,7 +160,7 @@ def get_trial_types(self, vid_num, stims_video, stims, save_folder, x_offset, y_
                       rectangle_thickness)
 
     vid.release()
-    return trial_types, session_trials_video, session_video, session_trials_plot_background, number_of_trials, height, width, border_size, rectangle_thickness
+    return trial_types, session_trials_video, session_video, session_trials_plot_background, number_of_trials, height, width, border_size, rectangle_thickness, trial_colors
 
 
 
@@ -202,19 +211,19 @@ def initialize_wall_analysis(analyze_wall, stim_frame, start_frame, end_frame, r
     wall_mouse_show = False
     finished_clip = False
     if (wall_darkness_pre - wall_darkness_post) < -30:
-        print(colored('Wall rising trial!', 'green'))
+        # print(colored('Wall rising trial!', 'green'))
         wall_height_timecourse = [0]
         trial_type = 1
     elif (wall_darkness_pre - wall_darkness_post) > 30:
-        print(colored('Wall falling trial', 'green'))
+        # print(colored('Wall falling trial', 'green'))
         wall_height_timecourse = [1]
         trial_type = -1
     elif (wall_darkness_pre > 85) and (wall_darkness_post > 85):
-        print(colored('Obstacle trial', 'green'))
+        # print(colored('Obstacle trial', 'green'))
         trial_type = 2
         wall_height_timecourse = 1  # [1 for x in list(range(int(fps * .5)))]
     elif (wall_darkness_pre < 85) and (wall_darkness_post < 85):
-        print(colored('No obstacle trial', 'green'))
+        # print(colored('No obstacle trial', 'green'))
         trial_type = 0
         wall_height_timecourse = 0  # [0 for x in list(range(int(fps * .5)))]
     else:

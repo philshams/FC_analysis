@@ -145,7 +145,6 @@ def compute_pose_from_dlc(body_parts, coordinates, shelter_location, width, heig
         all_body_parts[:, i, :] = coordinates[body_part][0:2]
 
     # compute particular body part locations by taking the nan median of several points
-
     coordinates['snout_location'] = np.nanmean(all_body_parts[:, 0:3, :], axis=1)
     coordinates['head_location'] = np.nanmean(all_body_parts[:, 0:6, :], axis=1)
     coordinates['neck_location'] = np.nanmean(all_body_parts[:, 3:6, :], axis=1)
@@ -156,6 +155,10 @@ def compute_pose_from_dlc(body_parts, coordinates, shelter_location, width, heig
     coordinates['center_body_location'] = np.nanmean(all_body_parts[:, 6:12, :], axis=1)
     coordinates['butty_location'] = np.nanmean(all_body_parts[:, 6:, :], axis=1)
     coordinates['butt_location'] = np.nanmean(all_body_parts[:, 9:, :], axis=1)
+
+    coordinates['front_shelter_location'] = (np.nanmean(all_body_parts[:, 0:9, :], axis=1).T - shelter_location).T
+    coordinates['back_shelter_location'] = (np.nanmean(all_body_parts[:, 6:, :], axis=1).T - shelter_location).T
+
 
     # compute speed
     delta_position = np.concatenate( ( np.zeros((2,1)), np.diff(coordinates['center_location']) ) , axis = 1)
@@ -170,7 +173,8 @@ def compute_pose_from_dlc(body_parts, coordinates, shelter_location, width, heig
 
     # linearly interpolate any remaining nan values
     locations = ['speed', 'distance_from_shelter', 'speed_toward_shelter', 'head_location', 'butt_location', 'snout_location',
-                'neck_location', 'shoulder_location', 'nack_location', 'center_body_location', 'center_location', 'front_location', 'butty_location']
+                'neck_location', 'shoulder_location', 'nack_location', 'center_body_location', 'center_location', 'front_location', 'butty_location',
+                 'front_shelter_location', 'back_shelter_location']
 
     for loc_num, loc in enumerate(locations):
         if loc_num < 3:
@@ -189,7 +193,8 @@ def compute_pose_from_dlc(body_parts, coordinates, shelter_location, width, heig
     coordinates['head_angle'] = np.angle((coordinates['snout_location'][0] - coordinates['neck_location'][0]) + (-coordinates['snout_location'][1] + coordinates['neck_location'][1]) * 1j, deg=True)
     coordinates['neck_angle'] = np.angle((coordinates['head_location'][0] - coordinates['shoulder_location'][0]) + (-coordinates['head_location'][1] + coordinates['shoulder_location'][1]) * 1j, deg=True)
     coordinates['nack_angle'] = np.angle((coordinates['head_location'][0] - coordinates['nack_location'][0]) + (-coordinates['head_location'][1] + coordinates['nack_location'][1]) * 1j, deg=True)
-    # coordinates['butt_angle'] = np.angle((coordinates['shoulder_location'][0] - coordinates['butt_location'][0]) + (-coordinates['shoulder_location'][1] + coordinates['butt_location'][1]) * 1j, deg=True)
+    coordinates['shelter_angle'] = np.angle(( -coordinates['front_shelter_location'][0] + coordinates['back_shelter_location'][0]) * 1j + (+coordinates['front_shelter_location'][1] - coordinates['back_shelter_location'][1]), deg=True)
+
 
     return coordinates
 

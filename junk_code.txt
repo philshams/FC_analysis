@@ -1,3 +1,51 @@
+
+    filter_sequence = np.ones(20) * -np.percentile(coordinates['speed'], 99.5)
+    print(colored(' Calculating planness...', 'green'))
+    speed_toward_shelter = np.convolve(coordinates['speed_toward_shelter'][:stim_frame], filter_sequence, mode='valid')
+    distance_from_shelter = coordinates['distance_from_shelter'][:stim_frame]
+    # arrival_in_shelter = coordinates['distance_from_shelter'][:stim_frame] < 100
+    # future_arrival_in_shelter = np.concatenate( (arrival_in_shelter[:-30], np.zeros(30) ) )
+    for x_loc in tqdm(range(occ_map.shape[0])):
+        for y_loc in range(occ_map.shape[1]):
+            curr_dist = np.sqrt((coordinates['center_location'][0][:stim_frame] - ((720 / scale) * (x_loc + 1 / 2))) ** 2 +
+                                (coordinates['center_location'][1][:stim_frame] - ((720 / scale) * (y_loc + 1 / 2))) ** 2)
+            occ_map[x_loc, y_loc] = np.mean(curr_dist < (2 * 720 / scale))
+            # curr_speed = np.concatenate(([0], np.diff(curr_dist)))  # * np.array(stim_erase_idx)  # * (coordinates['center_location'][1] < 360) #
+            # speed_map[x_loc, y_loc] = abs(np.mean(curr_speed < -np.percentile(coordinates['speed'], 99.5)))
+
+            plan_map[x_loc, y_loc] = np.percentile(
+                np.concatenate((speed_toward_shelter, np.zeros(len(filter_sequence) - 1))) * (curr_dist < 50) * (distance_from_shelter > 175), 99.2)  # 98
+
+    plan_map_plot = plan_map.T * (occ_map.T > 0)
+
+    plan_image = plan_map_plot.copy()
+
+    plan_image = plan_image * 255 / np.percentile(plan_map_plot, 99.9)
+    try:
+        plan_threshold = int(np.percentile(plan_map_plot, 99) * 255 / np.percentile(plan_map_plot, 99.9))
+    except:
+        plan_threshold = 200
+
+    plan_image[plan_image > 255] = 255
+    plan_image = cv2.resize(plan_image.astype(np.uint8), frame.shape[0:2])
+
+    plan_image[plan_image <= int(plan_threshold * 1 / 5) * (plan_image > 1)] = int(plan_threshold * 1 / 5)
+    plan_image[(plan_image <= plan_threshold * 2 / 5) * (plan_image > int(plan_threshold * 1 / 5))] = int(plan_threshold * 3 / 5)
+    plan_image[(plan_image <= plan_threshold * 3 / 5) * (plan_image > int(plan_threshold * 2 / 5))] = int(plan_threshold * 3 / 5)
+    plan_image[(plan_image <= plan_threshold * 4 / 5) * (plan_image > int(plan_threshold * 3 / 5))] = int(plan_threshold * 4 / 5)
+    plan_image[(plan_image <= plan_threshold) * (plan_image > int(plan_threshold * 4 / 5))] = plan_threshold
+    plan_image[(plan_image < 255) * (plan_image > plan_threshold)] = int((plan_threshold + 255) / 2)
+
+    # plan_image[(arena_fresh[:,:,0] > 0) * (plan_image == 0)] = int(plan_threshold * 3 / 10)
+    plan_image[(arena_fresh[:, :, 0] < 100)] = 0
+
+    plan_image = cv2.copyMakeBorder(plan_image, border_size, 0, 0, 0, cv2.BORDER_CONSTANT, value=0)
+    textsize = cv2.getTextSize(videoname, 0, .55, 1)[0]
+    textX = int((width - textsize[0]) / 2)
+    cv2.putText(plan_image, videoname, (textX, int(border_size * 3 / 4)), 0, .55, (255, 255, 255), thickness=1)
+    scipy.misc.imsave(os.path.join(savepath, videoname + '_planness.tif'), plan_image)
+
+
                 # model_flight_image = ((model_flight_image.astype(float)*3 + arena_fresh.astype(float)*1 ) / 4).astype(np.uint8)
                 # session_trials_plot = ((session_trials_plot.astype(float) * 1 + initial_session_trials_plot.astype(float) * 1) / 2).astype(np.uint8)   
 

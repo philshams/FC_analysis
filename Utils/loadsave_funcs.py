@@ -4,9 +4,10 @@ import os
 from warnings import warn
 from termcolor import colored
 from Utils.Setup_funcs import create_database
+import time
 
 
-def save_data(savelogpath, load_name, save_name, object=None, name_modifier=''):
+def save_data(savelogpath, save_name, object=None, name_modifier=''):
     """ saves an object (the database) to file. If the object is not a dataframe, turns it into one"""
     save_name = os.path.join(savelogpath, save_name)
 
@@ -16,8 +17,18 @@ def save_data(savelogpath, load_name, save_name, object=None, name_modifier=''):
         object = pd.DataFrame([x for x in object.__dict__.values()], index=indexes)
 
     import dill as pickle
-    with open(save_name+name_modifier, "wb") as dill_file:
-        pickle.dump(object, dill_file)
+
+    # Make sure not to save while the same file is being saved
+    while True:
+        try:
+            with open(save_name+name_modifier, "wb") as dill_file:
+                pickle.dump(object, dill_file)
+            break
+        except:
+            print('file in use...')
+            time.sleep(5)
+
+
 
     print(colored('Database saved as {}'.format(save_name+name_modifier), 'yellow'))
 
@@ -28,8 +39,6 @@ def load_data(savelogpath, load_name, loadas='.pkl'):
     print(colored('Loading database: {}'.format(load_name),color='yellow'))
     db = pd.read_pickle(os.path.join(savelogpath, load_name))
     return db
-
-
 
 def load_yaml(fpath):
     """ load settings from a yaml file and return them as a dictionary """
@@ -59,8 +68,9 @@ def setup_database(save_folder, save_name, load_name, excel_path, load_database,
     else:
         db = create_database(excel_path)
 
-    save_data(save_folder, load_name, save_name, object=db, name_modifier='')
-    save_data(save_folder, load_name, save_name, object=db, name_modifier='_backup')
+    if update_database or not load_database:
+        save_data(save_folder, save_name, object=db, name_modifier='')
+        save_data(save_folder, save_name, object=db, name_modifier='_backup')
 
     return db
 

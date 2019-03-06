@@ -10,7 +10,7 @@ def perform_arena_registration(session, fisheye_map_location):
     '''
     ..........................CONTROL BACKGROUND ACQUISITION AND ARENA REGISTRATION................................
     '''
-    x_offset, y_offset, obstacle_type, _, _ = get_arena_details(session['Metadata'].experiment)
+    x_offset, y_offset, obstacle_type, _, _, _ = get_arena_details(session['Metadata'].experiment)
 
     if not np.array(session['Registration']).shape:
         print(colored(' - Registering session', 'green'))
@@ -39,35 +39,60 @@ def get_arena_details(experiment):
         y_offset = 120
         obstacle_type = 'wall'
         shelter_location = [500, 885]
+
+        subgoal_location = {}
+        subgoal_location['region'] = [(0, 0),(0, 500), (1000, 500), (1000, 0)] # contour of where sub-goal is relevant
+        subgoal_location['sub-goals'] = [(250, 500),(750, 500)] # (x, y) for each sub-goal
     elif 'Void' in experiment:
         x_offset = 290
         y_offset = 110
         obstacle_type = 'void'
         shelter_location = [500, 885]
+
+        subgoal_location = {}
+        subgoal_location['region'] = [(0, 0),(0, int(500 - 188/2*92/100)), (1000, int(500 - 188/2*92/100)), (1000, 0)] # contour of where sub-goal is relevant
+        subgoal_location['sub-goals'] = [(int(500 - 750/2*92/100), int(500 - 188/2*92/100)),(int(500 + 750/2*92/100), int(500 - 188/2*92/100))] # (x, y) for each sub-goal
     elif 'Peace' in experiment:
         x_offset = 300
         y_offset = 120
         obstacle_type = 'triangle'
         shelter_location = [571, 583]
+
+        subgoal_location = {}
+        # subgoal_location['region'] = [(0, 0),(0, 500), (1000, 500), (1000, 0)] # contour of where sub-goal is relevant
+        # subgoal_location['sub-goals'] = [(250, 500),(750, 500)] # (x, y) for each sub-goal
     elif 'The Room' in experiment:
         x_offset = 300
         y_offset = 120
         obstacle_type = 'room'
         shelter_location = [455, 667]
+
+        subgoal_location = {}
+        # subgoal_location['region'] = [(0, 0),(0, 500), (1000, 500), (1000, 0)] # contour of where sub-goal is relevant
+        # subgoal_location['sub-goals'] = [(250, 500),(750, 500)] # (x, y) for each sub-goal
     elif 'Anti Room' in experiment:
         x_offset = 300
         y_offset = 120
         obstacle_type = 'anti-room'
         shelter_location = [452, 452]
+
+        subgoal_location = {}
+        # subgoal_location['region'] = [(0, 0),(0, 500), (1000, 500), (1000, 0)] # contour of where sub-goal is relevant
+        # subgoal_location['sub-goals'] = [(250, 500),(750, 500)] # (x, y) for each sub-goal
     else:
         print('arena type not identified')
+        x_offset = None
+        y_offset = None
+        obstacle_type = None
+        shelter_location = None
+        subgoal_location = None
 
     if ('up' in experiment) or ('down' in experiment):
         obstacle_changes = True
     else:
         obstacle_changes = False
 
-    return x_offset, y_offset, obstacle_type, shelter_location, obstacle_changes
+    return x_offset, y_offset, obstacle_type, shelter_location, subgoal_location, obstacle_changes
 
 
 
@@ -84,8 +109,8 @@ def model_arena(size, trial_type, registration, obstacle_type = 'wall'):
         # arena outline
         cv2.circle(model_arena, (500, 500), 460, 255, -1)
         if trial_type:
-            # add wall - up
-            cv2.rectangle(model_arena, (int(500 - 554 / 2), int(500 - 6 / 2)), (int(500 + 554 / 2), int(500 + 6 / 2)), 90, thickness=-1)
+            # add wall - down
+            cv2.rectangle(model_arena, (int(500 - 500 / 2), int(500 - 6 / 2)), (int(500 + 500 / 2), int(500 + 6 / 2)), 90, thickness=-1)
 
         elif registration:
             # add wall - up

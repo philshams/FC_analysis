@@ -28,6 +28,8 @@ def create_database(excelpath, database=None):
         # Fill in metadata from the dictionary
         for sessname, metadata in sorted(metadata_dict.items()):
             database['Metadata'][sessname] = metadata
+            database['Number'][sessname] = metadata.number
+
         for sessname, stimulus in sorted(stimulus_dict.items()):
             database['Stimuli'][sessname] = stimulus
 
@@ -102,7 +104,7 @@ def create_database(excelpath, database=None):
                         # Now use the AI channels to find the *real* stimulus onset times and replace them
                         # TO DO: get fraction of frame during which stimulus started, use to centre reaction
                         if audio_rec_stims:
-                            stimulus_on_idx = np.where(tdms.group_channels('AI')[2].data > 3)[0] #in first data sets this is AI 1
+                            stimulus_on_idx = np.where(tdms.group_channels('AI')[2].data > .51)[0] #in first data sets this is AI 1
                             idx_since_last_stimulus_on = np.diff(stimulus_on_idx)
                             stimulus_start_idx = stimulus_on_idx[np.append(np.ones(1).astype(bool),idx_since_last_stimulus_on>30*10000)]
                             stimulus_start_frame = np.ceil(stimulus_start_idx / 10000 / (33+1/3) * 1000).astype(int)
@@ -234,8 +236,9 @@ def create_database(excelpath, database=None):
                 new_database.loc[index].Registration = registration
                 new_database.loc[index].Tracking = tracking
                     # break
+        new_database = new_database.sort_values(by='Number')
 
-        return new_database
+        return new_database.sort_values(by='Number')
 
 
 

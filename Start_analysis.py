@@ -5,7 +5,7 @@ from termcolor import colored
 from Utils.registration_funcs import register_arena, get_background, get_arena_details, perform_arena_registration
 from Utils.loadsave_funcs import save_data, load_data, load_paths, load_yaml, print_plans, setup_database
 from Utils.Data_rearrange_funcs import check_session_selected
-
+from multiprocessing.dummy import Pool as ThreadPool
 
 '''
 ...................................START ANALYSIS...................................
@@ -32,16 +32,32 @@ class Analysis():
         """"
         Once all is set up, analyze each session
         """
+        # run analysis for the a threadpooled list of sessions
+        num_parallel_processes = track_options['parallel processes']
+        splitted_session_list = [self.db.index[i::num_parallel_processes] for i in range(num_parallel_processes)]
+        pool = ThreadPool(num_parallel_processes)
+        _ = pool.map(self.run_analysis, splitted_session_list)
 
-        # Loop over each session
-        for session_name in self.db.index[::-1]:
+        # save the data
+        save_data(save_folder, save_name, object=self.db, name_modifier='')
+
+        # We're done here.
+        print(colored('done.', 'green'))
+
+    def run_analysis(self, session_list):
+        '''
+        Run through the registration, tracking, and visualization steps
+        '''
+        # Loop over each session, starting with the most recent
+        for session_name in session_list[::-1]:
             # Check if this is one of the sessions we should be processing
             session = self.db.loc[session_name]
             selected = check_session_selected(session.Metadata, selector_type, selector)
 
             # If it is, register and analyze that session
             if selected:
-                print(colored('Analyzing session: {}'.format(session_name), 'green'))
+                print(colored('Analyzing session {}: {} - {}'.format(session.Metadata.number,
+                                                                     session.Metadata.experiment, session.Metadata.mouse_id), 'green'))
 
                 # First, register the session to the common coordinate space
                 if track_options['register arena']:
@@ -50,7 +66,7 @@ class Analysis():
                     # Input the data from the registration into the global database
                     if new_registration:
                         self.db.loc[session_name]['Registration'] = session['Registration']
-                        save_data(save_folder, load_name, save_name, object=self.db, name_modifier='')
+                        save_data(save_folder, save_name, object=self.db, name_modifier='')
 
                 # Now, analyze the session
                 from Tracking.Tracking_main import Tracking
@@ -58,15 +74,13 @@ class Analysis():
 
                 # Input the data from the analysis into the global database
                 self.db.loc[session_name]['Tracking'] = session['Tracking']
-                save_data(save_folder, load_name, save_name, object=self.db, name_modifier='')
+                save_data(save_folder, save_name, object=self.db, name_modifier='')
 
-        # We're done here.
-        print(colored('done.', 'green'))
 
 
 #  START
 if __name__ == "__main__":
-    Analysis()
+    A = Analysis()
 
 
 

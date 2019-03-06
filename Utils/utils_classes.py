@@ -37,7 +37,7 @@ class DataBase():
     """ Class to initialise an empty database """
     def __init__(self):
         # self.sessions = {'Metadata': None, 'Tracking': None}
-        self.sessions = namedtuple('sessions', 'Metadata Tracking Registration Stimuli')
+        self.sessions = namedtuple('sessions', 'Number Metadata Tracking Registration Stimuli')
 
 
 class Cohort():

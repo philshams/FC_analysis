@@ -59,64 +59,6 @@ def register_frame(frame, x_offset, y_offset, registration, map1, map2):
 
 
 
-def peri_stimulus_video_clip(vidpath = '', videoname = '', savepath = '', start_frame=0., end_frame=100., stim_frame = 0,
-                   registration = 0, x_offset = 300, y_offset = 100, fps=False, display_clip = False, counter = True):
-    '''
-    Generate and save peri-stimulus video clip
-    '''
-    # set up border colors
-    pre_stim_color = [0, 0, 0, ]
-    post_stim_color = [200, 200, 200]
-    border_size = 40
-
-    # Set up video acquisition and saving
-    vid, video_clip, width, height, _ = set_up_video(vidpath, videoname, fps, savepath, border_size, counter)
-    vid.set(cv2.CAP_PROP_POS_FRAMES, start_frame)
-
-    # set up fisheye correction
-    if registration:
-        maps = np.load(registration[3]); map1 = maps[:, :, 0:2]; map2 = maps[:, :, 2] * 0
-
-    # run peri-stimulus video
-    if display_clip:
-        cv2.namedWindow('Trial Clip'); cv2.moveWindow('Trial Clip',100,100)
-    while True:
-        # get the frame
-        ret, frame = vid.read()
-        if ret:
-            # get the frame number
-            frame_num = vid.get(cv2.CAP_PROP_POS_FRAMES)
-
-            # apply the fisheye correction
-            if [registration]:
-                frame = register_frame(frame, x_offset, y_offset, registration, map1, map2)
-
-            # apply the border and count-down
-            if counter:
-                frame = apply_border_and_countdown(frame, frame_num, stim_frame, start_frame, end_frame, pre_stim_color, post_stim_color, border_size, videoname, fps, width)
-            # just use a normal grayscale image instead
-            else:
-                frame = frame[:,:,0]
-
-            # display the frame
-            if display_clip:
-                cv2.imshow('Trial Clip', frame)
-                if cv2.waitKey(1) & 0xFF == ord('q'):
-                    break
-
-            # write the frame to video
-            video_clip.write(frame)
-
-            # end the video
-            if frame_num >= end_frame:
-                break
-        else:
-            print('Problem with movie playback'); cv2.waitKey(1000); break
-    # wrap up
-    vid.release()
-    video_clip.release()
-
-
 def apply_border_and_countdown(frame, frame_num, stim_frame, start_frame, end_frame, pre_stim_color, post_stim_color, border_size, videoname, fps, width):
     '''
     Apply a border, title, and countdown to an otherwise raw peri-stimulus behaviour video
@@ -149,10 +91,72 @@ def apply_border_and_countdown(frame, frame_num, stim_frame, start_frame, end_fr
     return frame
 
 
+
+def peri_stimulus_video_clip(vidpath = '', videoname = '', savepath = '', start_frame=0., end_frame=100., stim_frame = 0,
+                   registration = 0, x_offset = 300, y_offset = 100, fps=False, display_clip = False, counter = True):
+    '''
+    Generate and save peri-stimulus video clip
+    '''
+    # set up border colors
+    pre_stim_color = [0, 0, 0, ]
+    post_stim_color = [200, 200, 200]
+    border_size = 40
+
+    # Set up video acquisition and saving
+    vid, video_clip, width, height, _ = set_up_video(vidpath, videoname, fps, savepath, border_size, counter)
+    vid.set(cv2.CAP_PROP_POS_FRAMES, start_frame)
+
+    # set up fisheye correction
+    if registration:
+        maps = np.load(registration[3]); map1 = maps[:, :, 0:2]; map2 = maps[:, :, 2] * 0
+
+    # run peri-stimulus video
+    if display_clip:
+        cv2.namedWindow(videoname); cv2.moveWindow(videoname,100,100)
+    while True:
+        # get the frame
+        ret, frame = vid.read()
+        if ret:
+            # get the frame number
+            frame_num = vid.get(cv2.CAP_PROP_POS_FRAMES)
+
+            # apply the fisheye correction
+            if registration:
+                frame = register_frame(frame, x_offset, y_offset, registration, map1, map2)
+
+            # apply the border and count-down
+            if counter:
+                frame = apply_border_and_countdown(frame, frame_num, stim_frame, start_frame, end_frame, pre_stim_color, post_stim_color, border_size, videoname, fps, width)
+            # just use a normal grayscale image instead
+            else:
+                frame = frame[:,:,0]
+
+            # display the frame
+            if display_clip:
+                cv2.imshow(videoname, frame)
+                if cv2.waitKey(1) & 0xFF == ord('q'):
+                    break
+
+            # write the frame to video
+            video_clip.write(frame)
+
+            # end the video
+            if frame_num >= end_frame:
+                break
+        else:
+            print('Problem with movie playback'); cv2.waitKey(1000); break
+    # wrap up
+    vid.release()
+    video_clip.release()
+
+
+
+
+
 '''
 
 
-.....................................................................................................
+....................the all-important video analysis function is below.................................................................................
 
 
 
@@ -184,7 +188,7 @@ def peri_stimulus_analysis(coordinates, vidpath = '', videoname = '', savepath =
     post_stim_color = [200, 200, 200]
 
     # set up flight path colors
-    wall_color, probe_color, no_wall_color, flight_color, flight_color_light, flight_color_dark = set_up_colors(trial_type)
+    wall_color, probe_color, no_wall_color, flight_color, _, _ = set_up_colors(trial_type)
 
     # set up model arena
     arena, _, shelter_roi = model_arena((height, width), trial_type*(trial_type-1), False, obstacle_type)
@@ -192,12 +196,13 @@ def peri_stimulus_analysis(coordinates, vidpath = '', videoname = '', savepath =
     arena_fresh = arena.copy()
 
     # initialize images for model mouse to go onto
-    model_flight_image = arena.copy()                                       # Single-trial image, with speed coded as color
+    # model_flight_image = arena.copy()                                       # Single-trial image, with speed coded as color
     model_mouse_mask_previous = np.zeros(arena.shape[0:2]).astype(np.uint8)
     model_mouse_mask_initial = np.zeros(arena.shape[0:2]).astype(np.uint8)
-    model_flight_in_background = session_trials_plot_in_background.copy()
+    # model_flight_in_background = session_trials_plot_in_background.copy()
     frames_past_stimulus = 0
     arrived_at_shelter = False
+    count_down = np.inf
 
     # set up session trials plot
     if session_trials_plot_workspace is None:
@@ -212,8 +217,8 @@ def peri_stimulus_analysis(coordinates, vidpath = '', videoname = '', savepath =
 
     # create windows to display clip
     if display_clip:
-        cv2.namedWindow('Trial Clip'); cv2.moveWindow('Trial Clip', 100, 100)
-        cv2.namedWindow('Session Flight'); cv2.moveWindow('Session Flight', 1000, 100)
+        cv2.namedWindow(savepath); cv2.moveWindow(savepath, 100, 100)
+        cv2.namedWindow(savepath + ' DLC'); cv2.moveWindow(savepath + ' DLC', 1000, 100)
 
     # loop over each frame
     while True:
@@ -228,16 +233,16 @@ def peri_stimulus_analysis(coordinates, vidpath = '', videoname = '', savepath =
 
             # prior to stimulus onset, refresh frame to initialized frame
             if frame_num < stim_frame:
-                model_flight_image = arena_fresh.copy()
+                # model_flight_image = arena_fresh.copy()
                 session_trials_plot = initial_session_trials_plot.copy()
                 model_mouse_mask_previous = 0
 
             # at stimulus onset, refresh model arena is the obstacle comes up for down
-            elif frame_num == stim_frame and abs(trial_type) == 1:
-                current_model_arena, _, _ = model_arena(frame.shape[0:2], trial_type > 0, False, obstacle_type)
-                model_flight_image = cv2.cvtColor(current_model_arena, cv2.COLOR_GRAY2RGB)
+            # elif frame_num == stim_frame and abs(trial_type) == 1:
+            #     current_model_arena, _, _ = model_arena(frame.shape[0:2], trial_type > 0, False, obstacle_type)
+            #     model_flight_image = cv2.cvtColor(current_model_arena, cv2.COLOR_GRAY2RGB)
 
-            # extract DLC coordinates from the saved coordinates dictionary
+            # extract DLC coordinates from the saved coordinates dictionary]
             body_angle = coordinates['body_angle'][frame_num - 1]
             shoulder_angle = coordinates['shoulder_angle'][frame_num - 1]
             head_angle = coordinates['head_angle'][frame_num - 1]
@@ -268,18 +273,19 @@ def peri_stimulus_analysis(coordinates, vidpath = '', videoname = '', savepath =
 
             # keep count of frames past stimulus
             frames_past_stimulus = frame_num - stim_frame
+            frames_til_abort = count_down - frame_num
 
-            # stop after 10 secs
-            if frames_past_stimulus > 10*fps or arrived_at_shelter:
-                pass
+            # stop after 2 secs of shelter
+            if not frames_til_abort:
+                finished_clip = True
+                break
 
             # add dark mouse if distant from previous mouse, using the above mouse mask
             elif np.sum(mouse_mask * model_mouse_mask_previous) == 0:
-                # add dark mouse to both the speed-trial plot and the session-trials plot and the session-trials-workspace plot
-                model_flight_image[model_mouse_mask.astype(bool)] = model_flight_image[model_mouse_mask.astype(bool)] * speed_color_dark
-                session_trials_plot[model_mouse_mask.astype(bool)] = session_trials_plot[model_mouse_mask.astype(bool)] * flight_color_dark
+                # add dark mouse to the session-trials plot and the session-trials-workspace plot
+                session_trials_plot[model_mouse_mask.astype(bool)] = session_trials_plot[model_mouse_mask.astype(bool)] * speed_color_dark
                 if frames_past_stimulus > 0:
-                    session_trials_plot_workspace[model_mouse_mask.astype(bool)] = session_trials_plot_workspace[model_mouse_mask.astype(bool)] * flight_color_dark
+                    session_trials_plot_workspace[model_mouse_mask.astype(bool)] = session_trials_plot_workspace[model_mouse_mask.astype(bool)] * [.9, .9, .9]
 
                 # set the current model mouse mask as the one to be compared to to see if dark mouse should be added
                 model_mouse_mask_previous = model_mouse_mask
@@ -287,13 +293,15 @@ def peri_stimulus_analysis(coordinates, vidpath = '', videoname = '', savepath =
             # continuous shading, after stimulus onset
             elif frames_past_stimulus > 0:
                 # once at shelter, end it
-                if np.sum(shelter_roi * model_mouse_mask) > 500:
-                    arrived_at_shelter = True
+                if np.sum(shelter_roi * model_mouse_mask) > 0:
+                    if not arrived_at_shelter:
+                        arrived_at_shelter = True
+                        count_down = frame_num + fps * 2
+
                 # otherwise, shade in the current mouse position
-                else:
-                    model_flight_image[model_mouse_mask.astype(bool)] = model_flight_image[model_mouse_mask.astype(bool)] * speed_color_light
-                    session_trials_plot[model_mouse_mask.astype(bool)] = session_trials_plot[model_mouse_mask.astype(bool)] * flight_color_light
-                    session_trials_plot_workspace[model_mouse_mask.astype(bool)] = session_trials_plot_workspace[model_mouse_mask.astype(bool)] * flight_color_light
+                elif not arrived_at_shelter:
+                    session_trials_plot[model_mouse_mask.astype(bool)] = session_trials_plot[model_mouse_mask.astype(bool)] * speed_color_light
+                    session_trials_plot_workspace[model_mouse_mask.astype(bool)] = session_trials_plot_workspace[model_mouse_mask.astype(bool)] * [.9, .9, .9]
 
             # get contour of initial ellipse at stimulation time, to apply to images
             if frame_num == stim_frame:
@@ -301,10 +309,7 @@ def peri_stimulus_analysis(coordinates, vidpath = '', videoname = '', savepath =
 
             # redraw this contour on each frame after the stimulus
             elif frame_num >= stim_frame:
-                cv2.drawContours(model_flight_image, contours, 0, (0,0,0), 2)
-                cv2.drawContours(model_flight_image, contours, 0, (255,255,255), 1)
-
-                cv2.drawContours(session_trials_plot, contours, 0, tuple([int(x) for x in flight_color*.7]), thickness = 3)
+                cv2.drawContours(session_trials_plot, contours, 0, (0,0,0), thickness=3)
                 cv2.drawContours(session_trials_plot, contours, 0, (255,255,255), thickness = 1)
 
             # draw a dot for each body part, to verify DLC tracking
@@ -312,24 +317,24 @@ def peri_stimulus_analysis(coordinates, vidpath = '', videoname = '', savepath =
             #     session_trials_plot = cv2.circle(session_trials_plot, tuple(coordinates[bp][:2, frame_num - 1].astype(np.uint16)), 1, (0, 250,0), -1)
 
             # place the DLC images within a background that includes a title and indication of current trial
-            session_trials_plot_in_background[border_size:, 0:-border_size] = cv2.cvtColor(session_trials_plot, cv2.COLOR_BGR2RGB) #session_trials_plot
-            model_flight_in_background[border_size:, 0:-border_size,:] = model_flight_image
+            session_trials_plot_in_background[border_size:, 0:-border_size] = cv2.cvtColor(session_trials_plot, cv2.COLOR_BGR2RGB)
 
             # apply the border and count-down
             if counter:
-                frame = apply_border_and_countdown(frame, frame_num, stim_frame, start_frame, end_frame, pre_stim_color, post_stim_color, border_size, videoname, fps, width)
+                frame = apply_border_and_countdown(frame, frame_num, stim_frame, start_frame, end_frame, pre_stim_color, post_stim_color, border_size, savepath, fps, width)
             # just use a normal grayscale image instead
             else:
                 frame = frame[:, :, 0]
 
             # display current frames
             if display_clip:
-                cv2.imshow('Trial Clip', frame); cv2.imshow('Session Flight', session_trials_plot_in_background); cv2.imshow('Trial Flight', model_flight_in_background)
+                cv2.imshow(savepath, frame); cv2.imshow(savepath + ' DLC', session_trials_plot_in_background);
                 if cv2.waitKey(1) & 0xFF == ord('q'):
                     break
 
             # write current frame to video
-            video_clip.write(frame); session_video.write(frame); video_clip_dlc.write(model_flight_in_background); session_trials_video.write(session_trials_plot_in_background)
+            video_clip.write(frame); session_video.write(frame)
+            video_clip_dlc.write(session_trials_plot_in_background); session_trials_video.write(session_trials_plot_in_background)
 
             # end video
             if frame_num >= end_frame:
@@ -339,17 +344,14 @@ def peri_stimulus_analysis(coordinates, vidpath = '', videoname = '', savepath =
             print('Problem with movie playback'); cv2.waitKey(1000); break
 
     # wrap up
-    vid.release()
-    video_clip.release()
-    video_clip_dlc.release()
+    vid.release(); video_clip.release(); video_clip_dlc.release()
 
     # save trial images
     if finished_clip:
-        scipy.misc.imsave(os.path.join(savepath, videoname + '_dlc.tif'), cv2.cvtColor(model_flight_in_background, cv2.COLOR_BGR2RGB))
         scipy.misc.imsave(os.path.join(savepath, videoname + '_dlc_history.tif'), cv2.cvtColor(session_trials_plot_in_background, cv2.COLOR_BGR2RGB))
 
     # draw contours on the session trials workspace plot
-    cv2.drawContours(session_trials_plot_workspace, contours, 0, tuple([int(x) for x in flight_color * .7]), thickness=3)
+    cv2.drawContours(session_trials_plot_workspace, contours, 0, (0, 0, 0), thickness=3)
     cv2.drawContours(session_trials_plot_workspace, contours, 0, (255, 255, 255), thickness=1)
 
     # after the last trial, save the session workspace image
@@ -369,9 +371,3 @@ def peri_stimulus_analysis(coordinates, vidpath = '', videoname = '', savepath =
         session_video.release()
 
     return session_trials_plot_workspace
-
-
-
-
-
-
