@@ -4,13 +4,14 @@ import scipy.misc
 from termcolor import colored
 from tqdm import tqdm
 import glob
+import os
 
 
 def perform_arena_registration(session, fisheye_map_location):
     '''
     ..........................CONTROL BACKGROUND ACQUISITION AND ARENA REGISTRATION................................
     '''
-    x_offset, y_offset, obstacle_type, _, _, _ = get_arena_details(session['Metadata'].experiment)
+    x_offset, y_offset, obstacle_type, _, _, _, _ = get_arena_details(session['Metadata'].experiment)
 
     if not np.array(session['Registration']).shape:
         print(colored(' - Registering session', 'green'))
@@ -40,9 +41,88 @@ def get_arena_details(experiment):
         obstacle_type = 'wall'
         shelter_location = [500, 885]
 
+        # points of optimal subgoals
         subgoal_location = {}
         subgoal_location['region'] = [(0, 0),(0, 500), (1000, 500), (1000, 0)] # contour of where sub-goal is relevant
         subgoal_location['sub-goals'] = [(250, 500),(750, 500)] # (x, y) for each sub-goal
+
+        # contour of potential infomark
+        infomark_size = 50
+        infomark_location = [(250 - infomark_size, 500 - infomark_size), (250 - infomark_size, 500 + infomark_size),
+                             (750 + infomark_size, 500 + infomark_size), (750 + infomark_size, 500 - infomark_size)]
+
+    elif 'Planning' in experiment:
+        x_offset = 300
+        y_offset = 120
+
+        obstacle_type = 'side wall'
+
+        shelter_location = [300, 700]
+
+        # points of optimal subgoals
+        subgoal_location = {}
+        subgoal_location['region'] = [(0, 0),(0, 420), (1000, 420), (1000, 0)] # contour of where sub-goal is relevant
+        subgoal_location['sub-goals'] = [(620, 420)] # (x, y) for each sub-goal
+
+        # contour of potential infomark
+        infomark_size = 50
+        infomark_location = [(200 - infomark_size, 420 - infomark_size), (200 - infomark_size, 420 + infomark_size),
+                             (620 + infomark_size, 420 + infomark_size), (620 + infomark_size, 420 - infomark_size)]
+
+    elif 'day' in experiment:
+        x_offset = 300
+        y_offset = 120
+
+        obstacle_type = 'longer wall'
+
+        shelter_location = [300, 700]
+
+        # points of optimal subgoals
+        subgoal_location = {}
+        subgoal_location['region'] = [(0, 0),(0, 450), (1000, 450), (1000, 0)] # contour of where sub-goal is relevant
+        subgoal_location['sub-goals'] = [(680, 420)] # (x, y) for each sub-goal
+
+        # contour of potential infomark
+        infomark_size = 50
+        infomark_location = [(200 - infomark_size, 440 - infomark_size), (200 - infomark_size, 440 + infomark_size),
+                             (670 + infomark_size, 440 + infomark_size), (670 + infomark_size, 440 - infomark_size)]
+
+
+    elif 'Mirror' in experiment:
+        x_offset = 300
+        y_offset = 120
+
+        obstacle_type = 'other side wall'
+
+        shelter_location = [650, 650]
+
+        # points of optimal subgoals
+        subgoal_location = {}
+        subgoal_location['region'] = [(0, 0),(0, 420), (1000, 420), (1000, 0)] # contour of where sub-goal is relevant
+        subgoal_location['sub-goals'] = [(320, 420)] # (x, y) for each sub-goal
+
+        # contour of potential infomark
+        infomark_size = 50
+        infomark_location = [(320 - infomark_size, 420 - infomark_size), (320 - infomark_size, 420 + infomark_size),
+                             (800 + infomark_size, 420 + infomark_size), (800 + infomark_size, 420 - infomark_size)]
+
+
+    elif 'Sub sub' in experiment:
+        x_offset = 300
+        y_offset = 120
+        obstacle_type = 'T wall'
+        shelter_location = [300, 700]
+
+        # points of optimal subgoals
+        subgoal_location = {}
+        subgoal_location['region'] = [(0, 0),(0, 420), (1000, 420), (1000, 0)] # contour of where sub-goal is relevant
+        subgoal_location['sub-goals'] = [(620, 420), (520, 240)] # (x, y) for each sub-goal
+
+        # contour of potential infomark
+        infomark_size = 50
+        infomark_location = [(200 - infomark_size, 420 - infomark_size), (200 - infomark_size, 420 + infomark_size),
+                             (620 + infomark_size, 420 + infomark_size), (620 + infomark_size, 420 - infomark_size)]
+
     elif 'Void' in experiment:
         x_offset = 290
         y_offset = 110
@@ -50,8 +130,17 @@ def get_arena_details(experiment):
         shelter_location = [500, 885]
 
         subgoal_location = {}
+        # contour of where sub-goal is relevant
         subgoal_location['region'] = [(0, 0),(0, int(500 - 188/2*92/100)), (1000, int(500 - 188/2*92/100)), (1000, 0)] # contour of where sub-goal is relevant
-        subgoal_location['sub-goals'] = [(int(500 - 750/2*92/100), int(500 - 188/2*92/100)),(int(500 + 750/2*92/100), int(500 - 188/2*92/100))] # (x, y) for each sub-goal
+        subgoal_location['sub-goals'] = [(int(500 - 750/2*92/100), int(500 - 188/2*92/100)),(int(500 + 750/2*92/100), int(500 - 188/2*92/100)),
+                                         (500, int(500 - 188/2*92/100))] # (x, y) for each sub-goal
+        # including a sub-goal at the top center of THE VOID...
+
+        # contour of potential infomark
+        infomark_size = 50
+        infomark_location = [(int(500 - 750/2*92/100) - infomark_size, 500 - 188/2*92/100 - infomark_size), (int(500 - 750/2*92/100) - infomark_size, 500 + 188/2*92/100 + infomark_size),
+                             (int(500 + 750/2*92/100) + infomark_size, 500 + 188/2*92/100 + infomark_size), (int(500 + 750/2*92/100) + infomark_size, 500 - 188/2*92/100 - infomark_size)]
+
     elif 'Peace' in experiment:
         x_offset = 300
         y_offset = 120
@@ -61,6 +150,7 @@ def get_arena_details(experiment):
         subgoal_location = {}
         # subgoal_location['region'] = [(0, 0),(0, 500), (1000, 500), (1000, 0)] # contour of where sub-goal is relevant
         # subgoal_location['sub-goals'] = [(250, 500),(750, 500)] # (x, y) for each sub-goal
+        obstacle_location = []
     elif 'The Room' in experiment:
         x_offset = 300
         y_offset = 120
@@ -70,6 +160,7 @@ def get_arena_details(experiment):
         subgoal_location = {}
         # subgoal_location['region'] = [(0, 0),(0, 500), (1000, 500), (1000, 0)] # contour of where sub-goal is relevant
         # subgoal_location['sub-goals'] = [(250, 500),(750, 500)] # (x, y) for each sub-goal
+        obstacle_location = []
     elif 'Anti Room' in experiment:
         x_offset = 300
         y_offset = 120
@@ -79,24 +170,27 @@ def get_arena_details(experiment):
         subgoal_location = {}
         # subgoal_location['region'] = [(0, 0),(0, 500), (1000, 500), (1000, 0)] # contour of where sub-goal is relevant
         # subgoal_location['sub-goals'] = [(250, 500),(750, 500)] # (x, y) for each sub-goal
+        obstacle_location = []
     else:
         print('arena type not identified')
         x_offset = None
         y_offset = None
         obstacle_type = None
         shelter_location = None
+        obstacle_location = None
         subgoal_location = None
+        infomark_location = None
 
     if ('up' in experiment) or ('down' in experiment):
         obstacle_changes = True
     else:
         obstacle_changes = False
 
-    return x_offset, y_offset, obstacle_type, shelter_location, subgoal_location, obstacle_changes
+    return x_offset, y_offset, obstacle_type, shelter_location, subgoal_location, infomark_location, obstacle_changes
 
 
 
-def model_arena(size, trial_type, registration, obstacle_type = 'wall'):
+def model_arena(size, trial_type, registration, obstacle_type = 'wall', simulate = False):
     '''
     ..........................GENERATE A MODEL ARENA IMAGE................................
     '''
@@ -117,6 +211,35 @@ def model_arena(size, trial_type, registration, obstacle_type = 'wall'):
             cv2.rectangle(model_arena, (int(500 - 554 / 2), int(500 - 6 / 2)), (int(500 + 554 / 2), int(500 + 6 / 2)), 60, thickness=-1)
             # add wall - down
             cv2.rectangle(model_arena, (int(500 - 504 / 2), int(500 - 8 / 2)), (int(500 + 504 / 2), int(500 + 8 / 2)), 0, thickness=-1)
+
+    elif 'other' in obstacle_type:
+        # arena outline
+        cv2.rectangle(model_arena, (200, 200), (800, 800), 255, -1)
+
+        # add wall - down
+        cv2.rectangle(model_arena, (int(320), int(420 - 6 / 2)), (int(800), int(420 + 6 / 2)), 90, thickness=-1)
+
+    elif obstacle_type == 'side wall':
+        # arena outline
+        cv2.rectangle(model_arena, (200, 200), (800, 800), 255, -1)
+
+        # add wall - down
+        cv2.rectangle(model_arena, (int(200), int(420 - 6 / 2)), (int(200 + 420), int(420 + 6 / 2)), 90, thickness=-1)
+
+    elif obstacle_type == 'longer wall':
+        # arena outline
+        cv2.rectangle(model_arena, (200, 200), (800, 800), 255, -1)
+
+        # add wall - down
+        cv2.rectangle(model_arena, (int(200), int(440 - 6 / 2)), (int(200 + 470), int(440 + 6 / 2)), 90, thickness=-1)
+
+    elif obstacle_type == 'T wall':
+        # arena outline
+        cv2.rectangle(model_arena, (200, 200), (800, 800), 255, -1)
+
+        # add wall - down
+        cv2.rectangle(model_arena, (int(200), int(440 - 6 / 2)), (int(200 + 480), int(440 + 6 / 2)), 90, thickness=-1)
+        cv2.rectangle(model_arena, (int(200+320 - 6/2), int(260)), (int(200 + 320 + 6/2), int(440)), 90, thickness=-1)
 
     elif obstacle_type == 'void':
         # arena outline
@@ -168,6 +291,10 @@ def model_arena(size, trial_type, registration, obstacle_type = 'wall'):
                                         (int(250 / 2 + 152.5 + 355 - 240), int(250 / 2 + 155 + 120)), (int(250/2 + 152.5 + 250), int(250/2 + 155))])]
         cv2.drawContours(model_arena, anti_room_contours, 0, 90, thickness=-1)
 
+    # measure distance and angle to wall from each point
+    if simulate:
+        get_obstacle_metrics(model_arena, obstacle_type, size)
+
     # add shelter
     alpha = .5
     model_arena_shelter = model_arena.copy()
@@ -176,25 +303,41 @@ def model_arena(size, trial_type, registration, obstacle_type = 'wall'):
         cv2.rectangle(model_arena_shelter, (int(500 - 54), int(500 + 385 + 25 - 54)), (int(500 + 54), int(500 + 385 + 25 + 54)), (0, 0, 255),thickness=-1)
         cv2.addWeighted(model_arena, alpha, model_arena_shelter, 1 - alpha, 0, model_arena)
 
-        cv2.rectangle(shelter_roi, (int(500 - 50), int(500 + 385 + 25 - 50)),(int(500 + 50), int(500 + 385 + 25 + 50)), 1, thickness=-1)
+        shelter_roi = cv2.rectangle(shelter_roi, (int(500 - 50), int(500 + 385 + 25 - 50)),(int(500 + 50), int(500 + 385 + 25 + 50)), 1, thickness=-1)
+    elif obstacle_type == 'other side wall':
+        cv2.rectangle(model_arena_shelter, (int(800 - 200), int(800 - 100)), (int(800 - 200 + 108), int(800 - 100 - 108)), (0, 0, 255),thickness=-1)
+        cv2.addWeighted(model_arena, alpha, model_arena_shelter, 1 - alpha, 0, model_arena)
+
+        shelter_roi = cv2.rectangle(shelter_roi, (int(800 - 200), int(800 - 100)), (int(800 - 200 + 108), int(800 - 100 - 108)), 1, thickness=-1)
+
+    elif obstacle_type == 'side wall' or obstacle_type == 'T wall':
+        cv2.rectangle(model_arena_shelter, (int(200 + 50), int(800 - 50)), (int(200 + 50 + 108), int(800 - 50 - 108)), (0, 0, 255),thickness=-1)
+        cv2.addWeighted(model_arena, alpha, model_arena_shelter, 1 - alpha, 0, model_arena)
+
+        shelter_roi = cv2.rectangle(shelter_roi, (int(200 + 50), int(800 - 50)), (int(200 + 50 + 108), int(800 - 50 - 108)), 1, thickness=-1)
+    elif obstacle_type == 'longer wall':
+        cv2.rectangle(model_arena_shelter, (int(200 + 100), int(800 - 100)), (int(200 + 100 + 108), int(800 - 100 - 108)), (0, 0, 255),thickness=-1)
+        cv2.addWeighted(model_arena, alpha, model_arena_shelter, 1 - alpha, 0, model_arena)
+
+        shelter_roi = cv2.rectangle(shelter_roi, (int(200 + 100), int(800 - 100)), (int(200 + 100 + 108), int(800 - 100 - 108)), 1, thickness=-1)
     elif obstacle_type == 'triangle':
         shelter_contours = [np.array([(500 , int((1000 - 750) / 2 + 160 + 340 - 60.6)), ( int((1000 - 866) / 2+ 485.5 ),int((1000-750)/2 + 750 - 220) ),
                                       (int((1000 - 866) / 2 + 576.4), int((1000 - 750) / 2 + 477.8)), (int((1000 - 866) / 2+ 523.9 ), int((1000-750)/2 + 386.9))])]
 
         cv2.drawContours(model_arena, shelter_contours, 0, (0, 0, 255), thickness=-1)
         cv2.addWeighted(model_arena, alpha, model_arena_shelter, 1 - alpha, 0, model_arena)
-        cv2.drawContours(shelter_roi, shelter_contours, 0, (0, 0, 255), thickness=-1)
+        shelter_roi = cv2.drawContours(shelter_roi, shelter_contours, 0, (0, 0, 255), thickness=-1)
     elif obstacle_type == 'room':
         cv2.rectangle(model_arena_shelter, (int(250/2 + 152.5 + 355/2 - 50), int(250/2 + 155 + 340 - 2.5)), (int(250/2 + 152.5 + 355/2 +50), int(250/2 + 155 + 340 - 2.5 - 100)), (0, 0, 255),thickness=-1)
         cv2.addWeighted(model_arena, alpha, model_arena_shelter, 1 - alpha, 0, model_arena)
 
-        cv2.rectangle(shelter_roi, (int(250/2 + 152.5 + 355/2 - 50), int(250/2 + 155 + 340 - 2.5)), (int(250/2 + 152.5 + 355/2 + 50), int(250/2 + 155 + 340 - 2.5 - 100)), 1, thickness=-1)
+        shelter_roi = cv2.rectangle(shelter_roi, (int(250/2 + 152.5 + 355/2 - 50), int(250/2 + 155 + 340 - 2.5)), (int(250/2 + 152.5 + 355/2 + 50), int(250/2 + 155 + 340 - 2.5 - 100)), 1, thickness=-1)
     elif obstacle_type == 'anti-room':
         cv2.rectangle(model_arena_shelter, (int(250 / 2 + 152.5 + 355 / 2 - 50 - 2.5), int(250 / 2 + 155 + 340 - 2.5 - 115)),
                       (int(250 / 2 + 152.5 + 355 / 2 + 50 - 2.5), int(250 / 2 + 155 + 340 - 2.5 - 100 - 115)), (0, 0, 255), thickness=-1)
         cv2.addWeighted(model_arena, alpha, model_arena_shelter, 1 - alpha, 0, model_arena)
 
-        cv2.rectangle(shelter_roi, (int(250 / 2 + 152.5 + 355 / 2 - 50 - 2.5), int(250 / 2 + 155 + 340 - 2.5 - 115)),
+        shelter_roi = cv2.rectangle(shelter_roi, (int(250 / 2 + 152.5 + 355 / 2 - 50 - 2.5), int(250 / 2 + 155 + 340 - 2.5 - 115)),
                       (int(250 / 2 + 152.5 + 355 / 2 + 50 - 2.5), int(250 / 2 + 155 + 340 - 2.5 - 100 - 115)), 1, thickness=-1)
 
     # add circular wells along edge
@@ -206,13 +349,15 @@ def model_arena(size, trial_type, registration, obstacle_type = 'wall'):
             cv2.circle(model_arena,(x_center,y_center),25,200,-1)
 
     # resize to the size of the image
-    model_arena = cv2.resize(model_arena, size)
-    shelter_roi = cv2.resize(shelter_roi, size)
+    if simulate: model_arena = cv2.resize(model_arena, size, interpolation = cv2.INTER_NEAREST)
+    else: model_arena = cv2.resize(model_arena, size)
+    shelter_roi = cv2.resize(shelter_roi, size, interpolation = cv2.INTER_NEAREST)
 
     # add points for the user to click during registration
     if obstacle_type == 'wall':
         points = np.array(([500, 500 + 460 - 75], [500 - 460 + 75, 500], [500, 500 - 460 + 75], [500 + 460 - 75, 500])) * [size[0] / 1000, size[1] / 1000]
-
+    elif 'wall' in obstacle_type or obstacle_type == 'T wall':
+        points = np.array(([200, 200], [200, 800], [800, 800], [800, 200])) * [size[0] / 1000, size[1] / 1000]
     elif obstacle_type == 'void':
         points = np.array(([int(500 - 750 / 2 * 92 / 100), int(500 - 188 / 2 * 92 / 100)], [int(500 - 750 / 2 * 92 / 100), int(500 + 188 / 2 * 92 / 100)],
                            [int(500 + 750 / 2 * 92 / 100), int(500 - 188 / 2 * 92 / 100)], [int(500 + 750 / 2 * 92 / 100), int(500 - 188 / 2 * 92 / 100)])) * [size[0] / 1000, size[1] / 1000]
@@ -222,10 +367,46 @@ def model_arena(size, trial_type, registration, obstacle_type = 'wall'):
         points = np.array(( [int(250 / 2), int(250 / 2)], [int(250 / 2), int(1000 - 250 / 2)],
                             [int(1000 - 250 / 2), int(1000 - 250 / 2)], [int(1000 - 250 / 2), int(250 / 2)] )) * [size[0] / 1000, size[1] / 1000]
 
+    # cv2.imshow('arena',model_arena)
 
     return model_arena, points, shelter_roi
 
 
+def get_obstacle_metrics(model_arena, obstacle_type, size):
+    ''' GENERATE A MAP OF THE DISTANCE AND ANGLE TO THE OBSTACLE'''
+
+    # check if the map already exists
+    if not os.path.isfile('C:\\Drive\\DLC\\transforms\\distance_arena_' + obstacle_type + '.npy'):
+        print('generating obstacle metrics...')
+        # resize model arena
+        model_arena = cv2.resize(model_arena, size,  interpolation=cv2.INTER_NEAREST)
+
+        # just take the white pixels
+        pixels_to_calculate = (model_arena == 255)
+        pixel_coordinates = np.where(pixels_to_calculate)
+
+        # get the coordinates of the wall
+        obstacle_pixels = (model_arena < 255) * (model_arena > 0)
+        obstacle_coordinates = np.where(obstacle_pixels)
+
+        # initialize the arena
+        distance_arena = model_arena.copy() * np.nan
+        angle_arena = model_arena.copy() * np.nan
+
+        # do the calculation for each pixel
+        for x, y in tqdm(zip(pixel_coordinates[1], pixel_coordinates[0])):
+            dist_to_obstacle = np.zeros(len(obstacle_coordinates[0]))
+            # calculate the distance to the obstacle
+            dist_to_obstacle = np.sqrt((x - obstacle_coordinates[1]) ** 2 + (y - obstacle_coordinates[0]) ** 2)
+            # calculate the minimum distance to the obstacle
+            min_dist, min_dist_pixel = np.min(dist_to_obstacle), np.argmin(dist_to_obstacle)
+            distance_arena[y, x] = min_dist
+            # calculate the angle to the obstacle
+            angle_arena[y, x] = np.angle((obstacle_coordinates[1][min_dist_pixel] - x) + (-obstacle_coordinates[0][min_dist_pixel] + y) * 1j, deg=True)
+
+        # save these maps
+        np.save('C:\\Drive\\DLC\\transforms\\distance_arena_' + obstacle_type + '.npy', distance_arena)
+        np.save('C:\\Drive\\DLC\\transforms\\angle_arena_' + obstacle_type + '.npy', angle_arena)
 
 
 def get_background(vidpath, start_frame = 1000, avg_over = 100):

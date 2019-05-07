@@ -1,9 +1,0 @@
-arena_roi: ''   # name of the user defined roi
-preview: False  # option to display on-line the results of the tracking
-stopframe: -1   # frame at which to stop the tracking, if -1 it goes untill the end
-th_scaling: 0.6  # value to scale the threshold for contour detection
-tail_th_scaling: 0.225 # value to scale the threshold for TAIL detection, used to get mouse orientation
-num mice: 1     # num mice in the arena
-min ctn area: 200  # minimum contour area for a mouse
-max cnt area: 5000 # maximum contour area for a mouse
-fast track wnd: 60  # side length of the ROI around the mouse, should facilitate orientation extraction, but not sure

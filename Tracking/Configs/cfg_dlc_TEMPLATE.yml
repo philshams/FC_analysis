@@ -1,6 +1,0 @@
-'clips': ''  # Dictionary containing 3 dictionaries to store trial clips
-'clips_folder': ''  # folder where to save the trial clips
-'dlc_network_posecfg': ''  # where the pose.cfg for the dlc network is stored
-'dlc_network_snapshot': '' # path to the trained network [snapshot]
-'scorer': 'DeepCut_resnet50_FC_50000'  # name of the dlc scorer
-'store trial videos': True   # decide if you want to save the trial clips or not

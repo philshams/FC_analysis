@@ -6,6 +6,8 @@ import matplotlib.pyplot as plt
 import copy
 import scipy.signal
 import warnings
+import cv2
+import math
 warnings.simplefilter("ignore")
 
 
@@ -39,7 +41,7 @@ def extract_dlc(dlc_config_settings, video_path):
 
 
 
-def filter_and_transform_dlc(dlc_config_settings, coordinates_copy, x_offset, y_offset, registration, plot = True, filter_kernel = 21):
+def filter_and_transform_dlc(dlc_config_settings, coordinates_copy, x_offset, y_offset, registration, plot = True, filter_kernel = 7):
     '''
     .....................................FILTER AND TRANSFORM COORDINATES FROM DLC.....................................
     '''
@@ -59,13 +61,20 @@ def filter_and_transform_dlc(dlc_config_settings, coordinates_copy, x_offset, y_
     for bp, body_part in enumerate(body_parts):
         # loop across axes
         for i in range(2):
+
             # remove coordinates with low confidence
-            coordinates[body_part][i][coordinates[body_part][2] < .99] = np.nan
+            coordinates[body_part][i][coordinates[body_part][2] < .999] = np.nan
+
+            # interpolate nan values
+            coordinates[body_part][i] = np.array(pd.Series(coordinates[body_part][i]).interpolate())
+            coordinates[body_part][i] = np.array(pd.Series(coordinates[body_part][i]).fillna(method='bfill'))
+            coordinates[body_part][i] = np.array(pd.Series(coordinates[body_part][i]).fillna(method='ffill'))
 
             # median filter coordinates (replace nans with infinity first)
-            coordinates[body_part][i][np.isnan(coordinates[body_part][i])] = np.inf
             coordinates[body_part][i] = scipy.signal.medfilt(coordinates[body_part][i], filter_kernel)
-            coordinates[body_part][i][coordinates[body_part][i] > 9999] = np.nan
+
+            # remove coordinates with low confidence
+            coordinates[body_part][i][coordinates[body_part][2] < .999] = np.nan
 
         # put all together
         all_body_parts[:, bp, :] = coordinates[body_part][0:2]
@@ -81,7 +90,7 @@ def filter_and_transform_dlc(dlc_config_settings, coordinates_copy, x_offset, y_
         ax = fig.add_subplot(111)
 
     # loop across body parts to transform points to CCB
-    for bp, body_part in enumerate(body_parts):
+    for bp, body_part in enumerate(coordinates):
         # get distance from median position for all frames
         distance_from_median_position = np.sqrt(
             (coordinates[body_part][0] - median_positions[0, :]) ** 2 + (coordinates[body_part][1] - median_positions[1, :]) ** 2)
@@ -115,7 +124,7 @@ def filter_and_transform_dlc(dlc_config_settings, coordinates_copy, x_offset, y_
         transformed_points = np.matmul(np.append(registration[0], np.zeros((1, 3)), 0),
                                        np.concatenate((transformed_points[0:1], transformed_points[1:2],
                                                        np.ones((1, len(transformed_points[0])))), 0))
-
+        #
         # fill in the coordinates array with the transformed points
         coordinates[body_part][0] = transformed_points[0, :]
         coordinates[body_part][1] = transformed_points[1, :]
@@ -126,18 +135,18 @@ def filter_and_transform_dlc(dlc_config_settings, coordinates_copy, x_offset, y_
 
         # plot, if applicable
         if plot:
-            ax.plot(coordinates[body_part][0][50000:]**2 +  coordinates[body_part][1][50000:]**2)
+            ax.plot(coordinates[body_part][0][18710:18720]) #**2 +  coordinates[body_part][1][18700:18800]**2)
 
 
     if plot:
         ax.legend(body_parts)
         plt.pause(2)
-        plt.close('all')
+        # plt.close('all')
 
     return coordinates
 
 
-def compute_pose_from_dlc(body_parts, coordinates, shelter_location, width, height):
+def compute_pose_from_dlc(body_parts, coordinates, shelter_location, width, height, subgoal_locations, infomark_location):
 
     # array of all body parts, axis x body part x frame
     all_body_parts = np.zeros((2, len(body_parts), coordinates[body_parts[0]].shape[1]))
@@ -156,8 +165,8 @@ def compute_pose_from_dlc(body_parts, coordinates, shelter_location, width, heig
     coordinates['butty_location'] = np.nanmean(all_body_parts[:, 6:, :], axis=1)
     coordinates['butt_location'] = np.nanmean(all_body_parts[:, 9:, :], axis=1)
 
-    coordinates['front_shelter_location'] = (np.nanmean(all_body_parts[:, 0:9, :], axis=1).T - shelter_location).T
-    coordinates['back_shelter_location'] = (np.nanmean(all_body_parts[:, 6:, :], axis=1).T - shelter_location).T
+    # coordinates['front_shelter_location'] = (np.nanmean(all_body_parts[:, 0:9, :], axis=1).T - shelter_location).T
+    # coordinates['back_shelter_location'] = (np.nanmean(all_body_parts[:, 6:, :], axis=1).T - shelter_location).T
 
 
     # compute speed
@@ -173,8 +182,8 @@ def compute_pose_from_dlc(body_parts, coordinates, shelter_location, width, heig
 
     # linearly interpolate any remaining nan values
     locations = ['speed', 'distance_from_shelter', 'speed_toward_shelter', 'head_location', 'butt_location', 'snout_location',
-                'neck_location', 'shoulder_location', 'nack_location', 'center_body_location', 'center_location', 'front_location', 'butty_location',
-                 'front_shelter_location', 'back_shelter_location']
+                'neck_location', 'shoulder_location', 'nack_location', 'center_body_location', 'center_location', 'front_location', 'butty_location']
+                 # 'front_shelter_location', 'back_shelter_location']
 
     for loc_num, loc in enumerate(locations):
         if loc_num < 3:
@@ -193,8 +202,86 @@ def compute_pose_from_dlc(body_parts, coordinates, shelter_location, width, heig
     coordinates['head_angle'] = np.angle((coordinates['snout_location'][0] - coordinates['neck_location'][0]) + (-coordinates['snout_location'][1] + coordinates['neck_location'][1]) * 1j, deg=True)
     coordinates['neck_angle'] = np.angle((coordinates['head_location'][0] - coordinates['shoulder_location'][0]) + (-coordinates['head_location'][1] + coordinates['shoulder_location'][1]) * 1j, deg=True)
     coordinates['nack_angle'] = np.angle((coordinates['head_location'][0] - coordinates['nack_location'][0]) + (-coordinates['head_location'][1] + coordinates['nack_location'][1]) * 1j, deg=True)
-    coordinates['shelter_angle'] = np.angle(( -coordinates['front_shelter_location'][0] + coordinates['back_shelter_location'][0]) * 1j + (+coordinates['front_shelter_location'][1] - coordinates['back_shelter_location'][1]), deg=True)
 
+    coordinates['shelter_angle'] = np.degrees( np.arctan2(coordinates['front_location'][1] - coordinates['butty_location'][1], coordinates['front_location'][0] - coordinates['butty_location'][0]) -\
+             np.arctan2(shelter_location[1] * height / 1000 - coordinates['butty_location'][1], shelter_location[0] * width / 1000 - coordinates['butty_location'][0]) )
+    coordinates['shelter_angle'][coordinates['shelter_angle'] < -180] = coordinates['shelter_angle'][coordinates['shelter_angle'] < -180] + 360
+    coordinates['shelter_angle'][coordinates['shelter_angle'] > 180] = coordinates['shelter_angle'][coordinates['shelter_angle'] > 180] - 360
+
+    # get angular speeds
+    coordinates['angular_speed_shelter'] = abs(np.concatenate(([0], np.diff(coordinates['shelter_angle']))))
+    coordinates['angular_speed_shelter'][coordinates['angular_speed_shelter'] > 180] = \
+        360 - coordinates['angular_speed_shelter'][coordinates['angular_speed_shelter']> 180]
+    coordinates['angular_speed_shelter'][coordinates['angular_speed_shelter'] > 12] = 12
+    coordinates['angular_speed_shelter'][coordinates['angular_speed_shelter'] < -12] = -12
+
+    coordinates['angular_speed'] = abs(np.concatenate(([0], np.diff(coordinates['body_angle']))))
+    coordinates['angular_speed'][coordinates['angular_speed'] > 180] = \
+        360 - coordinates['angular_speed'][coordinates['angular_speed']> 180]
+    coordinates['angular_speed'][coordinates['angular_speed'] > 12] = 12
+    coordinates['angular_speed'][coordinates['angular_speed'] < -12] = -12
+
+    # correct center location
+    coordinates['center_location'][0][coordinates['center_location'][0] >= width] = width - 1
+    coordinates['center_location'][1][coordinates['center_location'][1] >= height] = height - 1
+    x_location = coordinates['center_location'][0]
+    y_location = coordinates['center_location'][1].astype(np.uint16)
+
+    # instead of angle to shelter, take min of angle to subgoals
+    coordinates['subgoal_angle'] = np.zeros((len(subgoal_locations['sub-goals']) + 1, len(coordinates['speed'])))
+    coordinates['subgoal_angle'][0,:] = coordinates['shelter_angle']
+
+    # instead of  distance to shelter, take min of distance to shelter and distance to subgoals
+    coordinates['distance_from_subgoal'] = np.zeros((len(subgoal_locations['sub-goals']) + 1, len(coordinates['speed'])))
+
+    # instead of speed to shelter, take max of speed to shelter and speed to subgoals
+    coordinates['speed_toward_subgoal'] = np.zeros((len(subgoal_locations['sub-goals'])+1, len(coordinates['speed']) ))
+    coordinates['speed_toward_subgoal'][0,:] = coordinates['speed_toward_shelter']
+    subgoal_bound = [ (int(x * width / 1000), int(y* height / 1000)) for x, y in subgoal_locations['region'] ]
+    infomark_bound = [(int(x * width / 1000), int(y * height / 1000)) for x, y in infomark_location]
+
+    # compute distance from subgoal
+    subgoal_mask = np.zeros((height, width))
+    cv2.drawContours(subgoal_mask, [np.array(subgoal_bound)], 0, 100, -1)
+    subgoal_mask = subgoal_mask.astype(bool)
+
+    # compute distance from infomark
+    infomark_mask = np.zeros((height, width))
+    cv2.drawContours(infomark_mask, [np.array(infomark_bound)], 0, 100, -1)
+    infomark_mask = infomark_mask.astype(bool)
+
+    # get the x and y locations to loop through
+    x_location = coordinates['front_location'][0].astype(np.uint16)
+    y_location = coordinates['front_location'][1].astype(np.uint16)
+    x_location[x_location >= width] = width - 1
+    y_location[y_location >= height] = height - 1
+
+    for i, sg in enumerate(subgoal_locations['sub-goals']):
+        # calculate distance to subgoal
+        coordinates['distance_from_subgoal'][i+1, :] = np.sqrt((coordinates['center_location'][0] - sg[0] * width / 1000) ** 2 +
+                                                   (coordinates['center_location'][1] - sg[1] * height / 1000) ** 2)
+
+        # compute valid locations to go to subgoal
+        within_subgoal_bound = []; within_infomark_bound = [];
+        for x, y in zip(x_location, y_location):
+            within_subgoal_bound.append(subgoal_mask[y, x] + infomark_mask[y, x])
+            within_infomark_bound.append(infomark_mask[y, x])
+
+        # compute speed w.r.t. subgoal
+        coordinates['speed_toward_subgoal'][i+1, :] = np.concatenate( ([0], np.diff(coordinates['distance_from_subgoal'][i+1, :]))) * within_subgoal_bound
+
+        # compute subgoal angle
+        coordinates['subgoal_angle'][i + 1, :] = np.degrees(np.arctan2(coordinates['front_location'][1] - coordinates['butty_location'][1], coordinates['front_location'][0] - coordinates['butty_location'][0]) - \
+                                                  np.arctan2(sg[1] * height / 1000 - coordinates['butty_location'][1], sg[0] * width / 1000 - coordinates['butty_location'][0]))
+        coordinates['subgoal_angle'][i + 1, coordinates['subgoal_angle'][i + 1, :] < -180] = coordinates['subgoal_angle'][i + 1, coordinates['subgoal_angle'][i + 1, :] < -180] + 360
+        coordinates['subgoal_angle'][i + 1, coordinates['subgoal_angle'][i + 1, :] >  180] = coordinates['subgoal_angle'][i + 1, coordinates['subgoal_angle'][i + 1, :] >  180] - 360
+        coordinates['subgoal_angle'][i + 1, :] = coordinates['subgoal_angle'][i + 1, :] + ( [(1 - x)*9999 for x in within_subgoal_bound] )
+
+    coordinates['speed_toward_subgoal'] = np.min(coordinates['speed_toward_subgoal'], 0)
+    coordinates['distance_from_subgoal'] = np.min(coordinates['distance_from_subgoal'], 0)
+    coordinates['subgoal_angle'] = np.nanmin(abs(coordinates['subgoal_angle']), 0)
+    coordinates['in_subgoal_bound'] = within_subgoal_bound
+    coordinates['in_fomark_bound'] = within_infomark_bound
 
     return coordinates
 

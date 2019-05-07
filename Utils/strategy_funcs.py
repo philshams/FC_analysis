@@ -10,634 +10,589 @@ import scipy.ndimage
 from Utils.registration_funcs import model_arena
 import time
 
-def ccw(A,B,C):
-    return (C[1]-A[1]) * (B[0]-A[0]) > (B[1]-A[1]) * (C[0]-A[0])
 
-# Return true if line segments AB and CD intersect
-def intersect(A,B,C,D):
-    return ccw(A,C,D) != ccw(B,C,D) and ccw(A,B,C) != ccw(A,B,D)
+'''
+FIRST, SOME AUXILIARY FUNCTIONS TO HELP WITH STRATEGY PROCESSING
+'''
 
-def point_in_polygon(pt, corners, inf = np.inf):
-    result = False
-    for i in range(len(corners)-1):
-        if intersect((corners[i][0], corners[i][1]), ( corners[i+1][0], corners[i+1][1]), (pt[0], pt[1]), (inf, pt[1])):
-            result = not result
-    if intersect((corners[-1][0], corners[-1][1]), (corners[0][0], corners[0][1]), (pt[0], pt[1]), (inf, pt[1])):
-        result = not result
-    return result
+def filter_seq(n, sign):
+
+    filter_sequence = np.ones(n) * sign
+
+    return filter_sequence
 
 
-def spontaneous_homings(exploration_arena_copy, session_trials_plot_background, border_size, coordinates, previous_stim_frame, stim_frame, videoname, savepath, subgoal_locations):
+def convolve(data, n, sign, time = 'current', time_chase = 20):
+
+    if time == 'past':
+        convolved_data = np.concatenate((np.zeros(n - 1), np.convolve(data, filter_seq(n, sign), mode='valid'))) / n
+    elif time == 'future':
+        convolved_data = np.concatenate((np.convolve(data, filter_seq(n, sign), mode='valid'), np.zeros(n - 1))) / n
+    elif time == 'far future':
+        convolved_data = np.concatenate((np.convolve(data, filter_seq(n, sign), mode='valid'), np.zeros(n - 1 + time_chase))) / n
+        convolved_data = convolved_data[time_chase:]
+    else:
+        convolved_data = np.concatenate((np.zeros(int(n/2 - 1)), np.convolve(data, filter_seq(n, sign), mode='valid'), np.zeros(int(n/2)))) / n
+
+    return convolved_data
+
+
+def initialize_arrays(exploration_arena_copy, stim_frame, previous_stim_frame):
+
+    exploration_arena = copy.deepcopy(exploration_arena_copy)
+    save_exploration_arena = exploration_arena.copy()
+    model_mouse_mask_initial = (exploration_arena[:, :, 0] * 0).astype(bool)
+    thresholds_passed = np.zeros(stim_frame - previous_stim_frame)
+    stimulus_started = False
+
+    return exploration_arena, save_exploration_arena, model_mouse_mask_initial, thresholds_passed, stimulus_started
+
+
+def create_local_variables(coordinates, stim_frame, previous_stim_frame, skip_frames):
+
+    goal_speeds = coordinates['speed_toward_subgoal'][previous_stim_frame + skip_frames:stim_frame + skip_frames]
+    absolute_speeds = coordinates['speed'][previous_stim_frame + skip_frames:stim_frame + skip_frames]
+    subgoal_angles = coordinates['subgoal_angle'][previous_stim_frame + skip_frames:stim_frame + skip_frames]
+    body_angles = coordinates['body_angle'][previous_stim_frame + skip_frames:stim_frame + skip_frames]
+    angular_speed = coordinates['angular_speed_shelter'][previous_stim_frame + skip_frames:stim_frame + skip_frames]
+    distance_from_shelter = coordinates['distance_from_shelter'][previous_stim_frame + skip_frames:stim_frame + skip_frames]
+    distance_from_subgoal = coordinates['distance_from_shelter'][previous_stim_frame + skip_frames:stim_frame + skip_frames]
+    within_subgoal_bound = coordinates['in_subgoal_bound'][previous_stim_frame + skip_frames:stim_frame + skip_frames]
+
+    x_location_butt = coordinates['butty_location'][0][previous_stim_frame + skip_frames:stim_frame + skip_frames].astype(np.uint16)
+    y_location_butt = coordinates['butty_location'][1][previous_stim_frame + skip_frames:stim_frame + skip_frames].astype(np.uint16)
+
+    x_location_face = coordinates['front_location'][0][previous_stim_frame + skip_frames:stim_frame + skip_frames].astype(np.uint16)
+    y_location_face = coordinates['front_location'][1][previous_stim_frame + skip_frames:stim_frame + skip_frames].astype(np.uint16)
+
+    return goal_speeds, absolute_speeds, body_angles, subgoal_angles, angular_speed, distance_from_shelter, distance_from_subgoal, within_subgoal_bound, x_location_butt, y_location_butt, x_location_face, y_location_face
+
+def threshold(data, limit, type = '>'):
+
+    if type == '>':
+        passed_threshold = (data > limit).astype(np.uint16)
+    elif type == '<':
+        passed_threshold = (data < limit).astype(np.uint16)
+
+    return passed_threshold
+
+def get_homing_groups(thresholds_passed, minimum_distance, minimum_duration, distance_from_subgoal, distance_from_shelter, minimum_shelter_distance, speeds):
+
+    groups = []
+    idx = 0
+    group_idx = np.zeros(len(thresholds_passed))
+
+    for k, g in itertools.groupby(thresholds_passed):
+        groups.append(list(g))
+        group_length = len(groups[len(groups) - 1]);
+        idx += group_length
+        distance_traveled = (distance_from_subgoal[idx - 1] - distance_from_subgoal[idx - group_length]) / distance_from_subgoal[idx - group_length]
+        if k and ((group_length < minimum_duration) or (distance_traveled > minimum_distance) or (distance_from_shelter[idx - group_length] < minimum_shelter_distance)):
+        # if k and ((distance_from_shelter[idx - group_length] < minimum_shelter_distance)):
+            thresholds_passed[idx - group_length: idx] = False
+        elif k:
+            group_idx[idx - group_length] = group_length
+            group_idx[idx - 1] = 2000*(np.mean(speeds[idx - group_length:idx]) / group_length**2)
+            # print(distance_traveled)
+
+    return thresholds_passed, group_idx
+
+
+def multi_phase_phinder(thresholds_passed, minimum_distance, max_shelter_proximity, body_angles, distance_from_shelter,
+                            x_location_butt, y_location_butt, x_location_face, y_location_face, critical_turn, first_frame):
+
+    groups = []; idx = 0
+    vectors  = [];
+    group_idx = np.zeros(len(thresholds_passed))
+    end_idx = np.zeros(len(thresholds_passed))
+    distance_from_start = np.zeros(len(thresholds_passed))
+
+    for k, g in itertools.groupby(thresholds_passed):
+        groups.append(list(g))
+        group_length = len(groups[len(groups)-1]);
+        idx += group_length
+        # for each bout, get the relevant vectors
+        if k:
+            # get later phases of the escape
+            start_index = idx - group_length
+
+            # get the distance travelled so far during the bout
+            distance_from_start[idx - group_length: idx] = np.sqrt((x_location_butt[idx - group_length: idx] - x_location_butt[idx - group_length]) ** 2 + \
+                                                                   (y_location_butt[idx - group_length: idx] - y_location_butt[idx - group_length]) ** 2)
+
+            while True:
+                # get the cumulative distance traveled
+                distance_traveled = np.sqrt((x_location_butt[start_index:idx] - x_location_butt[start_index]) ** 2
+                                            + (y_location_butt[start_index:idx] - y_location_butt[start_index]) ** 2)
+
+                # has the minimum distance been traveled
+                traveled_far_enough = np.where(distance_traveled > minimum_distance)[0]
+                if not traveled_far_enough.size: break
+
+                # now check for more phases: find the cumulative turn angle since the start of the bout
+                angle_turned =(body_angles[start_index:idx] - body_angles[start_index + traveled_far_enough[0]])
+                angle_turned[angle_turned > 180] = 360 - angle_turned[angle_turned > 180]
+                angle_turned[angle_turned < -180] = 360 + angle_turned[angle_turned < -180]
+
+                # not including the beginning
+                angle_turned[:traveled_far_enough[0]] = 0
+
+                # get the indices of critically large turns
+                critically_turned = np.where(abs(angle_turned) > critical_turn)[0]
+
+                if critically_turned.size:
+                    # break if getting too close to shelter
+                    if (distance_from_shelter[start_index + critically_turned[0]] < max_shelter_proximity):
+                        group_idx[start_index] = idx + first_frame
+                        end_idx[idx] = start_index + first_frame
+                        break
+                    else:
+                        group_idx[start_index] = start_index + critically_turned[0] - 1 + first_frame
+                        end_idx[start_index + critically_turned[0] - 1] = start_index + first_frame
+                        start_index += critically_turned[0]
+                else:
+                    group_idx[start_index] = idx - 1 + first_frame
+                    end_idx[idx - 1] = start_index + first_frame
+                    break
+
+    return group_idx, distance_from_start, end_idx
+
+
+def trial_start(thresholds_passed, minimum_distance, x_location_butt, y_location_butt):
+
+    groups = []; idx = 0
+    vectors  = []; group_idx = np.zeros(len(thresholds_passed))
+    trial_start_array = np.zeros(len(thresholds_passed))
+
+    for k, g in itertools.groupby(thresholds_passed):
+        groups.append(list(g))
+        group_length = len(groups[len(groups)-1]);
+        idx += group_length
+        if k:
+            distance_traveled = np.sqrt((x_location_butt[idx - group_length:idx] - x_location_butt[idx - group_length]) ** 2
+                                        + (y_location_butt[idx - group_length:idx] - y_location_butt[idx - group_length]) ** 2)
+            far_enough_way = np.where( distance_traveled > minimum_distance)[0]
+            if far_enough_way.size:
+                trial_start_array[idx - group_length: idx - group_length + far_enough_way[0]] = True
+
+    return trial_start_array
+
+
+def get_color_settings(frame_num, stim_frame, speed_setting, speed_colors, multipliers, exploration_arena, model_mouse_mask, group_counter, blue_duration):
+
+    # determine color
+    if frame_num >= stim_frame - 60:
+        speed_color = np.array([200, 200, 200])
+    else:
+        speed_color = speed_colors[speed_setting] + (group_counter < blue_duration )*np.array([230,-4,30]) #[20, 254, 140]
+        # speed_color = speed_colors[speed_setting] + (group_counter < 70) * np.array([230, -4, 30])
+
+    # get darkness
+    multiplier = multipliers[speed_setting]
+
+    # make this trial's stimulus response more prominent in the saved version
+    if frame_num >= stim_frame:
+        save_multiplier = multiplier / 5
+    else:
+        save_multiplier = multiplier
+
+    # create color multiplier to modify image
+    color_multiplier = 1 - (1 - speed_color / [255, 255, 255]) / (np.mean(1 - speed_color / [255, 255, 255]) * multiplier)
+    save_color_multiplier = 1 - (1 - speed_color / [255, 255, 255]) / (np.mean(1 - speed_color / [255, 255, 255]) * save_multiplier)
+
+    return color_multiplier, save_color_multiplier
+
+
+def stimulus_onset(stimulus_started, model_mouse_mask, exploration_arena):
+
+    _, contours, _ = cv2.findContours(model_mouse_mask.astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    save_exploration_arena = exploration_arena.copy()
+    stimulus_started = True
+    first_stim_frame = True
+
+    return save_exploration_arena, stimulus_started, contours
+
+def draw_mouse(model_mouse_mask, model_mouse_mask_total, coordinates, frame_num, back_butt_dist, group_length, stim_frame, stimulus_started, group_counter, time_chase):
+
+    # reset mask at start of bout
+    model_mouse_mask = model_mouse_mask * (1 - (group_length > 0)) * (1 - (frame_num >= stim_frame and not stimulus_started))
+
+    # extract DLC coordinates from the saved coordinates dictionary
+    body_angle = coordinates['body_angle'][frame_num]
+    shoulder_angle = coordinates['shoulder_angle'][frame_num]
+    shoulder_location = tuple(coordinates['shoulder_location'][:, frame_num].astype(np.uint16))
+    body_location = tuple(coordinates['center_body_location'][:, frame_num].astype(np.uint16))
+
+    # draw ellipses representing model mouse
+    model_mouse_mask = cv2.ellipse(model_mouse_mask, body_location, (int(back_butt_dist), int(back_butt_dist * .4)), 180 - body_angle, 0, 360, 100, thickness=-1)
+    model_mouse_mask = cv2.ellipse(model_mouse_mask, shoulder_location, (int(back_butt_dist * .8), int(back_butt_dist * .26)), 180 - shoulder_angle, 0, 360, 100, thickness=-1)
+
+    # stop shading after n frames
+    if group_counter >= time_chase:
+        # extract DLC coordinates from the saved coordinates dictionary
+        old_body_angle = coordinates['body_angle'][frame_num - time_chase]
+        old_shoulder_angle = coordinates['shoulder_angle'][frame_num - time_chase]
+        old_shoulder_location = tuple(coordinates['shoulder_location'][:, frame_num - time_chase].astype(np.uint16))
+        old_body_location = tuple(coordinates['center_body_location'][:, frame_num - time_chase].astype(np.uint16))
+
+        # erase ellipses representing model mouse
+        model_mouse_mask = cv2.ellipse(model_mouse_mask, old_body_location, (int(back_butt_dist), int(back_butt_dist * .4)), 180 - old_body_angle, 0, 360, 0,thickness=-1)
+        model_mouse_mask = cv2.ellipse(model_mouse_mask, old_shoulder_location, (int(back_butt_dist * .8), int(back_butt_dist * .26)), 180 - old_shoulder_angle, 0, 360, 0, thickness=-1)
+
+        # draw ellipses representing model mouse
+        model_mouse_mask_total = cv2.ellipse(model_mouse_mask_total, body_location, (int(back_butt_dist), int(back_butt_dist * .33)), 180 - body_angle, 0, 360,100, thickness=-1)
+        model_mouse_mask_total = cv2.ellipse(model_mouse_mask_total, shoulder_location, (int(back_butt_dist * .8), int(back_butt_dist * .23)),180 - shoulder_angle, 0, 360, 100, thickness=-1)
+    else:
+        model_mouse_mask_total = model_mouse_mask.copy()
+
+    # return model_mouse_mask.astype(bool), model_mouse_mask_initial, model_mouse_mask_total
+    return model_mouse_mask.astype(bool), model_mouse_mask_total
+
+def draw_silhouette(model_mouse_mask_initial, coordinates, frame_num, back_butt_dist):
+
+    # extract DLC coordinates from the saved coordinates dictionary]
+    body_angle = coordinates['body_angle'][frame_num - 1]
+    shoulder_angle = coordinates['shoulder_angle'][frame_num - 1]
+    head_angle = coordinates['head_angle'][frame_num - 1]
+    neck_angle = coordinates['neck_angle'][frame_num - 1]
+    nack_angle = coordinates['nack_angle'][frame_num - 1]
+    head_location = tuple(coordinates['head_location'][:, frame_num - 1].astype(np.uint16))
+    nack_location = tuple(coordinates['nack_location'][:, frame_num - 1].astype(np.uint16))
+    front_location = tuple(coordinates['front_location'][:, frame_num - 1].astype(np.uint16))
+    shoulder_location = tuple(coordinates['shoulder_location'][:, frame_num - 1].astype(np.uint16))
+    body_location = tuple(coordinates['center_body_location'][:, frame_num - 1].astype(np.uint16))
+
+    # when turning, adjust relative sizes
+    if abs(body_angle - shoulder_angle) > 20:
+        shoulder = False
+    else:
+        shoulder = True
+
+    # draw ellipses representing model mouse
+    model_mouse_mask = cv2.ellipse(model_mouse_mask_initial.copy(), head_location, (int(back_butt_dist * .6), int(back_butt_dist * .3)), 180 - head_angle, 0, 360, 100, thickness=-1)
+    model_mouse_mask = cv2.ellipse(model_mouse_mask, front_location, (int(back_butt_dist * .5), int(back_butt_dist * .33)), 180 - neck_angle, 0, 360, 100, thickness=-1)
+    model_mouse_mask = cv2.ellipse(model_mouse_mask, body_location, (int(back_butt_dist * .9), int(back_butt_dist * .5)), 180 - body_angle, 0, 360, 100, thickness=-1)
+    model_mouse_mask = cv2.ellipse(model_mouse_mask, nack_location, (int(back_butt_dist * .7), int(back_butt_dist * .35)), 180 - nack_angle, 0, 360, 100,thickness=-1)
+    if shoulder:
+        model_mouse_mask = cv2.ellipse(model_mouse_mask, shoulder_location, (int(back_butt_dist), int(back_butt_dist * .44)), 180 - shoulder_angle, 0, 360, 100, thickness=-1)
+
+    return model_mouse_mask.astype(bool)
+
+def dilute_shading(exploration_arena, save_exploration_arena, prior_exploration_arena, model_mouse_mask_initial, stimulus_started, end_index, speed_setting):
+
+    speed = end_index #+ .3 * speed_setting
+    if speed > .6: speed = .6
+    if speed < .3: speed = .3
+    # print(speed)
+
+    exploration_arena[model_mouse_mask_initial.astype(bool)] = \
+        ((speed * exploration_arena[model_mouse_mask_initial.astype(bool)].astype(np.uint16) +
+          (1 - speed) * prior_exploration_arena[model_mouse_mask_initial.astype(bool)].astype(np.uint16))).astype(np.uint8)
+
+    if stimulus_started:
+        save_exploration_arena[model_mouse_mask_initial.astype(bool)] = \
+            ((speed * save_exploration_arena[model_mouse_mask_initial.astype(bool)].astype(np.uint16) +
+              (1 - speed) * prior_exploration_arena[model_mouse_mask_initial.astype(bool)].astype(np.uint16))).astype(np.uint8)
+    # else:
+    #     save_exploration_arena = None
+
+    return exploration_arena, save_exploration_arena
+
+
+'''
+NOW, THE ACTUAL STRATEGY PROCESSING FUNCTIONS
+'''
+
+def spontaneous_homings(exploration_arena_copy, session_trials_plot_background, border_size, coordinates, previous_stim_frame, stim_frame, videoname, savepath, subgoal_locations, obstacle_type):
     '''
     compute and display EXPLORATION
     go through each frame, adding the mouse silhouette
     '''
 
-    # for debugging, make a copy
-    exploration_arena = copy.deepcopy(exploration_arena_copy)
-    save_exploration_arena = exploration_arena.copy()
+   # make video
+    fourcc = cv2.VideoWriter_fourcc(*"XVID")
+    video_clip = cv2.VideoWriter(os.path.join(savepath, videoname + ' homings.avi'), fourcc, 160,
+                                  (exploration_arena_copy.shape[1], exploration_arena_copy.shape[1]), True)
 
-    # instead of speed to shelter, take max of speed to shelter and speed to subgoals
-    skip_frames = 300
-    coordinates['speed_toward_subgoal'] = np.zeros((len(subgoal_locations['sub-goals'])+1, stim_frame - previous_stim_frame ))
-    coordinates['speed_toward_subgoal'][0,:] = coordinates['speed_toward_shelter'][previous_stim_frame + skip_frames:stim_frame + skip_frames]
-    coordinates['center_location'][0][coordinates['center_location'][0] >= exploration_arena.shape[1]] = exploration_arena.shape[1] - 1
-    coordinates['center_location'][1][coordinates['center_location'][1] >= exploration_arena.shape[0]] = exploration_arena.shape[0] - 1
-    x_location = coordinates['center_location'][0][previous_stim_frame + skip_frames:stim_frame + skip_frames].astype(np.uint16)
-    y_location = coordinates['center_location'][1][previous_stim_frame + skip_frames:stim_frame + skip_frames].astype(np.uint16)
-    subgoal_bound = [ (int(x * exploration_arena.shape[1] / 1000), int(y* exploration_arena.shape[0] / 1000)) for x, y in subgoal_locations['region'] ]
+    # visualize results
+    cv2.namedWindow(savepath + 'homings');
 
-    # compute distance from subgoal
-    polygon_mask = np.zeros(exploration_arena.shape[0:2])
-    cv2.drawContours(polygon_mask, [np.array(subgoal_bound)], 0, 100, -1)
-    polygon_mask = polygon_mask.astype(bool)
+    # how many frames after each stimulus to look at
+    skip_frames = 300 + 150*(obstacle_type=='void')
+    if previous_stim_frame == 0: previous_stim_frame -= skip_frames
 
-    for i, sg in enumerate(subgoal_locations['sub-goals']):
-        # calculate distance to subgoal
-        distance_from_subgoal = np.sqrt((x_location - sg[0] * exploration_arena.shape[1] / 1000) ** 2 +
-                                                   (y_location - sg[1] * exploration_arena.shape[0] / 1000) ** 2)
-        # compute valid locations to go to subgoal
-        within_subgoal_bound = []
-        for x, y in zip(x_location, y_location):
-            # within_subgoal_bound.append(point_in_polygon([x, y],subgoal_bound))
-            within_subgoal_bound.append(polygon_mask[y, x] )
+    # initialize arrays
+    exploration_arena, save_exploration_arena, model_mouse_mask, thresholds_passed, stimulus_started = \
+        initialize_arrays(exploration_arena_copy, stim_frame, previous_stim_frame)
 
-        # compute speed w.r.t. subgoal
-        coordinates['speed_toward_subgoal'][i+1, :] = np.concatenate( ([0], np.diff(distance_from_subgoal))) * within_subgoal_bound
+    # get the frame numbers to analyze
+    frame_nums = np.arange(previous_stim_frame + skip_frames, stim_frame + skip_frames)
 
-    coordinates['speed_toward_subgoal'] = np.min(coordinates['speed_toward_subgoal'], 0)
+    # set the speed parameters
+    speeds = [[.5, .75, 1], [.5, 1, 4]]
+    speed_colors = [np.array([20, 254, 140]), np.array([20, 254, 140])]
+    multipliers = [50, 50]
+    smooth_duration = 30
 
+    # set distance parameters
+    close_to_shelter_distance = 40
+    minimum_shelter_distance = 150
+    close_to_shelter_angle = 30
+    small_shelter_angle = 10
+    strict_shelter_angle = 85 + (obstacle_type=='side wall')*10
 
-    # initialize the mouse mask
-    model_mouse_mask_initial = exploration_arena[:, :, 0] * 0
-
-    # set what this mouse considers a high speed
-    speeds = [.5, 1, 2, 4]
-
-    # initialize thresholds passed array
-    thresholds_passed = np.zeros(stim_frame - previous_stim_frame)
-    stimulus_contour_retrieved = False
-
-    # get the coordinates up to and including this trial
-    # current_speeds = coordinates['speed_toward_shelter'][previous_stim_frame + skip_frames:stim_frame + skip_frames]
-    current_speeds = coordinates['speed_toward_subgoal']
-    absolute_speeds = coordinates['speed'][previous_stim_frame + skip_frames:stim_frame + skip_frames]
-    shelter_angles = coordinates['shelter_angle'][previous_stim_frame + skip_frames:stim_frame + skip_frames]
-    angular_speed = abs(np.concatenate(([0], np.diff(shelter_angles))))
-    angular_speed[angular_speed > 180] = 360 - angular_speed[angular_speed > 180]
-    distance_from_shelter = coordinates['distance_from_shelter'][previous_stim_frame + skip_frames:stim_frame + skip_frames]
+    # create local variables for the current epoch
+    goal_speeds, absolute_speeds, shelter_angles, subgoal_angles, angular_speed, distance_from_shelter, distance_from_subgoal, within_subgoal_bound, _, _, _, _ = \
+        create_local_variables(coordinates, stim_frame, previous_stim_frame, skip_frames)
 
     # do convolutions to get current, future, far future, and past speeds w.r.t the shelter
-    filter_sequence_24 = -1 * np.ones(24)
-    filter_sequence_30 = -1 * np.ones(30)
-    filter_sequence_45 = -1 * np.ones(45)
-    filter_sequence_60 = -1 * np.ones(60)
+    current_speed = convolve(goal_speeds, 24, -1, time='current')
+    past_speed = convolve(goal_speeds, 45, -1, time='past')
+    future_speed = convolve(goal_speeds, 60, -1, time='future')
+    far_future_speed = convolve(goal_speeds, 60, -1, time='far future', time_chase=20)
 
-    past_speed = np.concatenate((np.zeros(len(filter_sequence_45) - 1), np.convolve(current_speeds, filter_sequence_45, mode='valid'))) / len(
-        filter_sequence_45)
-    future_speed = np.concatenate((np.convolve(current_speeds, filter_sequence_60, mode='valid'), np.zeros(len(filter_sequence_60) - 1))) / len(
-        filter_sequence_60)
-    far_future_speed = np.concatenate((np.convolve(current_speeds, filter_sequence_60, mode='valid'), np.zeros(len(filter_sequence_60) - 1 + 20))) / len(
-        filter_sequence_60)
-    far_future_speed = far_future_speed[20:]
-    current_speed = np.concatenate((np.zeros(12 - 1), np.convolve(current_speeds, filter_sequence_24, mode='valid'), np.zeros(12))) / len(filter_sequence_24)
+    # is the mouse close enough to the shelter
+    minimum_distance = 400 + 100 * (obstacle_type=='void')
+    close_enough_to_shelter = convolve(distance_from_shelter < minimum_distance, 60, +1, time='future')
+    angle_thresholded = threshold(abs(subgoal_angles), close_to_shelter_angle, '<')  # np.array(within_subgoal_bound) +
+    strict_angle_thresholded = threshold(abs(subgoal_angles), strict_shelter_angle, '<') + threshold(frame_nums, stim_frame)
+    distance_thresholded = threshold(distance_from_shelter, close_to_shelter_distance)
 
-
+    # loop across fast and slow homings
     for speed_setting in [True, False]:
 
         # use higher speed setting to make faster homings darker
-        high_speed = speeds[2 + int(speed_setting)]
-        medium_speed = speeds[1 + int(speed_setting)]
-        low_speed = speeds[0]
-
-        # get the frame numbers to analyze
-        frame_nums = np.arange(previous_stim_frame + skip_frames,stim_frame + skip_frames)
+        low_speed, medium_speed, high_speed = speeds[speed_setting][0], speeds[speed_setting][1], speeds[speed_setting][2]
 
         # threshold the convolved speeds to determine which frames to draw
-        current_thresholded = (current_speed > high_speed).astype(np.uint16)
-        future_thresholded = (future_speed > high_speed) * (current_speed > medium_speed).astype(np.uint16)
-        far_future_thresholded = (far_future_speed > high_speed) * (current_speed > medium_speed).astype(np.uint16)
-        past_thresholded = (past_speed > high_speed) * (current_speed > medium_speed).astype(np.uint16)
+        current_speed_thrsh = threshold(current_speed, high_speed)
+        future_speed_thrsh = threshold(future_speed, high_speed) * threshold(current_speed, medium_speed)
+        far_future_speed_thrsh = threshold(far_future_speed, high_speed) * threshold(current_speed, medium_speed)
+        past_speed_thrsh = threshold(past_speed, high_speed) * threshold(current_speed, medium_speed)
+        stimulus_thresholded = threshold(frame_nums, stim_frame - 1 + smooth_duration) * threshold(current_speed, low_speed)
 
-        # additional thresholds
-        stimulus_thresholded = ( (absolute_speeds > .25) * (distance_from_shelter > 60) * (frame_nums >= stim_frame) ).astype(np.uint16) #(current_speed < 0) +
-        angle_thresholded = ( within_subgoal_bound + abs(shelter_angles) < 60).astype(np.uint16)
-        distance_thresholded = (distance_from_shelter > 80).astype(np.uint16)
+        # combine speed thresholds into one
+        combined_speed_thresholds = (current_speed_thrsh + future_speed_thrsh + far_future_speed_thrsh + past_speed_thrsh)
 
-        # make sure within a certain distance of shelter at the end of the bout
-        minimum_distance = 400
-        close_enough_to_shelter = np.concatenate((np.convolve(distance_from_shelter < minimum_distance, -1*filter_sequence_60, mode='valid'), np.zeros(len(filter_sequence_60) - 1)))
-
-        # combine thresholds into one
-        thresholds_passed_first_pass = ( distance_thresholded * angle_thresholded * close_enough_to_shelter * (current_thresholded + future_thresholded + far_future_thresholded + past_thresholded + stimulus_thresholded)) > 0
+        # combine all thresholds into one
+        thresholds_passed_first_pass = distance_thresholded * (angle_thresholded * close_enough_to_shelter * combined_speed_thresholds + stimulus_thresholded)
 
         # and smooth it *out*
-        smooth_length = 30
-        thresholds_passed_first_pass = np.concatenate((np.zeros(int(smooth_length/2) - 1), np.convolve(thresholds_passed_first_pass, np.ones(smooth_length), mode='valid'), np.zeros(int(smooth_length/2)))) > 0
+        thresholds_passed_first_pass = (strict_angle_thresholded * convolve(thresholds_passed_first_pass, smooth_duration, +1, time='current') ).astype(bool)
 
         # finally, add a minimum duration threshold
-        minimum_distance_traveled = -.5
-        minimum_distance_traveled = minimum_distance_traveled - .25 * minimum_distance_traveled * speed_setting
-        minimum_duration = 60 + smooth_length
-        minimum_duration = minimum_duration - .5 * minimum_duration * speed_setting
-        groups = []; idx = 0
-        for k, g in itertools.groupby(thresholds_passed_first_pass*(1 - thresholds_passed)):
-            groups.append(list(g))  # Store group iterator as a list
-            group_length = len(groups[len(groups)-1]); idx += group_length
-            distance_traveled = (distance_from_shelter[idx-1] - distance_from_shelter[idx - group_length]) / distance_from_shelter[idx - group_length]
-            if k and (group_length < minimum_duration or (distance_traveled > minimum_distance_traveled)):
-                thresholds_passed_first_pass[idx - group_length: idx] = False
+        minimum_distance = -.5 + .3 * speed_setting + (obstacle_type=='void')*.3 # this will be problematic for other arenas
+        minimum_duration = smooth_duration + 5
+
+        minimum_distance = (-.4 + .2 * speed_setting) + (obstacle_type=='void')*.3
+        minimum_duration = smooth_duration + 5
+        # print(speed_setting)
+        thresholds_passed_first_pass, group_idx = get_homing_groups(thresholds_passed_first_pass * (1 - thresholds_passed),
+                                                                         minimum_distance, minimum_duration, distance_from_subgoal, distance_from_shelter,
+                                                                        minimum_shelter_distance, absolute_speeds)
+
+        # set function output
+        trial_groups = thresholds_passed_first_pass + thresholds_passed
 
         # get the index when adequately long locomotor bouts pass the threshold
-        thresholds_passed = thresholds_passed_first_pass * (1 - thresholds_passed)
+        thresholds_passed = thresholds_passed_first_pass  # + (frame_nums==stim_frame)
+
         thresholds_passed_idx = np.where(thresholds_passed)[0]
+        group_counter = 0
+        bout_starting = True
+        model_mouse_mask_total = model_mouse_mask.copy()
 
         # loop over each frame that passed the threshold
-        for i, frame_num in enumerate(frame_nums[thresholds_passed_idx]):
+        for idx in thresholds_passed_idx:
 
-            # extract DLC coordinates from the saved coordinates dictionary
-            body_angle = coordinates['body_angle'][frame_num]
-            shoulder_angle = coordinates['shoulder_angle'][frame_num]
-            shoulder_location = tuple(coordinates['shoulder_location'][:, frame_num].astype(np.uint16))
-            body_location = tuple(coordinates['center_body_location'][:, frame_num].astype(np.uint16))
+            # get frame number
+            frame_num = frame_nums[idx]
+            # if (frame_num >= stim_frame - 10):
+            #     continue
 
-            # set scale for size of model mouse
-            back_butt_dist = 15 + speed_setting * 2
+            # set up new bout
+            if group_idx[idx] and not group_counter:
+                prior_exploration_arena = exploration_arena.copy(); group_length = group_idx[idx]
+                model_mouse_mask_total = model_mouse_mask.copy(); bout_starting = False
+            group_counter += 1
 
-            # draw ellipses representing model mouse
-            model_mouse_mask = cv2.ellipse(model_mouse_mask_initial.copy(), body_location, (int(back_butt_dist * .7), int(back_butt_dist * .35)), 180 - body_angle, 0, 360, 100, thickness=-1)
-            model_mouse_mask = cv2.ellipse(model_mouse_mask , shoulder_location, (int(back_butt_dist), int(back_butt_dist*.2)), 180 - shoulder_angle ,0, 360, 100, thickness=-1)
+            # draw model mouse
+            back_butt_dist = 11 + (frame_num >= stim_frame) * 2
+            time_chase = 80 - (frame_num >= stim_frame) * 60
+            model_mouse_mask, model_mouse_mask_total = draw_mouse(model_mouse_mask, model_mouse_mask_total, coordinates, frame_num, back_butt_dist,
+                                                                  group_idx[idx], stim_frame, stimulus_started, group_counter, time_chase)
 
-            # angular speed
-            current_angular_speed = angular_speed[frame_num - (previous_stim_frame + skip_frames)]
-            current_speed_toward_shelter = current_speeds[frame_num - (previous_stim_frame + skip_frames)]
-
-            # determine color by angular speed
-            if current_angular_speed > 2.5 or current_speed_toward_shelter > -medium_speed:
-                if not speed_setting: #frame_num < stim_frame and
-                    speed_color = np.array([150, 220, 220])  # yellow
-                    multiplier = 85
-                else:
-                    speed_color = np.array([220, 230, 205])  # blue
-                    multiplier = 25
-            else:
-                if not speed_setting: #frame_num < stim_frame and
-                    speed_color = np.array([120, 180, 230])  # orange
-                    multiplier = 65
-                else:
-                    speed_color = np.array([152, 230, 152])  # green
-                    multiplier = 25
-            if frame_num >= stim_frame - 30:
-                speed_color = np.array([100, 100, 100])
-
-            # make this trial's stimulus response more prominent in the saved version
-            if frame_num >= stim_frame and speed_setting:
-                save_multiplier = multiplier / 4
-            else:
-                save_multiplier = multiplier
-
-            # make lighter if there's overlap with previous homings
-            if frame_num < stim_frame and np.mean(exploration_arena[model_mouse_mask.astype(bool)]) < 220:
-                multiplier += 80
-                save_multiplier += 80
-            if frame_num > stim_frame and np.mean(exploration_arena[model_mouse_mask.astype(bool)]) < 200:
-                continue
+            # determine color and darkness
+            blue_duration = 80 - max(0, 90 - group_length)
+            color_multiplier, save_color_multiplier = get_color_settings(frame_num, stim_frame, speed_setting, speed_colors, multipliers,
+                                                                         exploration_arena, model_mouse_mask, group_counter, blue_duration)
 
             # on the stimulus onset, get the contours of the mouse body
-            if frame_num >= stim_frame and not stimulus_contour_retrieved:
-                _, contours, _ = cv2.findContours(model_mouse_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-                save_exploration_arena = exploration_arena.copy()
-                stimulus_contour_retrieved = True
-
-            # create color multiplier to modify image
-            color_multiplier = 1 - (1 - speed_color / [255, 255, 255]) / (np.mean(1 - speed_color / [255, 255, 255]) * multiplier)
-            save_color_multiplier = 1 - (1 - speed_color / [255, 255, 255]) / (np.mean(1 - speed_color / [255, 255, 255]) * save_multiplier)
+            if (frame_num >= stim_frame or not speed_setting) and not stimulus_started:
+                save_exploration_arena, stimulus_started, _ = stimulus_onset(stimulus_started, model_mouse_mask, exploration_arena)
+                continue
 
             # apply color to arena image
             exploration_arena[model_mouse_mask.astype(bool)] = exploration_arena[model_mouse_mask.astype(bool)] * color_multiplier
 
             # apply color to this trial's image
-            if frame_num >= stim_frame or not speed_setting:
+            if stimulus_started:
                 save_exploration_arena[model_mouse_mask.astype(bool)] = save_exploration_arena[model_mouse_mask.astype(bool)] * save_color_multiplier
 
+            # dilute the color at the end of the bout
+            if group_idx[idx] and group_counter > 1:
+                exploration_arena, save_exploration_arena = dilute_shading(exploration_arena, save_exploration_arena, prior_exploration_arena,
+                                                                           model_mouse_mask_total, stimulus_started, group_idx[idx], speed_setting)
+                group_counter = 0
+
             # display image
-            cv2.imshow(savepath +'homings', exploration_arena)
-            # cv2.imshow(savepath + 'homings2', save_exploration_arena)
+            cv2.imshow(savepath + 'homings', exploration_arena)
+
+            video_clip.write(exploration_arena)
 
             # press q to quit
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
 
+
+
     # apply the contours and border to the image and save the image
-    try:
-        # save_exploration_arena[ cv2.cvtColor(save_exploration_arena, cv2.COLOR_BGR2GRAY) < 100 ] = save_exploration_arena[ cv2.cvtColor(save_exploration_arena, cv2.COLOR_BGR2GRAY) < 100 ] + 80
-        save_exploration_arena = cv2.drawContours(save_exploration_arena, contours, 0, (150, 150, 150), -1) #(90, 0, 200), -1) # 164, 181, 124
-        save_exploration_arena = cv2.drawContours(save_exploration_arena, contours, 0, (0,0,0), 2) #(90, 0, 200), 1)
-        session_trials_plot_background[border_size:, 0:-border_size] = save_exploration_arena
-        scipy.misc.imsave(os.path.join(savepath, videoname + '_spont_homings.tif'), cv2.cvtColor(session_trials_plot_background, cv2.COLOR_BGR2RGB))
-    except:
-        print('repeat stimulus trial')
+    cv2.imshow(savepath + 'homings', save_exploration_arena); cv2.waitKey(1)
+    session_trials_plot_background[border_size:, 0:-border_size] = save_exploration_arena
+    scipy.misc.imsave(os.path.join(savepath, videoname + '_spont_homings.tif'), cv2.cvtColor(session_trials_plot_background, cv2.COLOR_BGR2RGB))
+
+    video_clip.release()
+    return exploration_arena, trial_groups
 
 
 
-    return exploration_arena
-
-
-def planning(exploration_arena_copy, session_trials_plot_background, border_size, coordinates, previous_stim_frame, stim_frame, videoname, savepath, trial_type, obstacle_type, subgoal_locations):
+def procedural_learning(exploration_arena_copy, session_trials_plot_background, border_size, coordinates, previous_stim_frame, stim_frame, videoname, savepath, subgoal_locations, trial_groups):
     '''
     compute and display EXPLORATION
     go through each frame, adding the mouse silhouette
     '''
 
-    # for debugging, make a copy
-    exploration_arena = np.ones(exploration_arena_copy.shape, np.uint8)*255
+    # visualize results
+    cv2.namedWindow(savepath + ' paths')
 
-    # set what this mouse considers a high speed
-    speeds = [.5, 1, 2, 4]
-
-    # initialize thresholds passed array
-    thresholds_passed = np.zeros(stim_frame)
-    stimulus_contour_retrieved = False
-
-    # instead of speed to shelter, take max of speed to shelter and speed to subgoals
-    coordinates['speed_toward_subgoal'] = np.zeros((len(subgoal_locations['sub-goals'])+1, stim_frame ))
-    coordinates['speed_toward_subgoal'][0,:] = coordinates['speed_toward_shelter'][:stim_frame]
+    # initialize the arena and mouse mask
+    exploration_arena = copy.deepcopy(exploration_arena_copy)
+    save_exploration_arena = exploration_arena.copy()
+    model_mouse_mask_initial = exploration_arena[:, :, 0] * 0
+    stimulus_started = True
 
     # instead of speed to shelter, take max of speed to shelter and speed to subgoals
     skip_frames = 300
-    coordinates['speed_toward_subgoal'] = np.zeros((len(subgoal_locations['sub-goals'])+1, stim_frame))
-    coordinates['speed_toward_subgoal'][0,:] = coordinates['speed_toward_shelter'][:stim_frame]
-    coordinates['center_location'][0][coordinates['center_location'][0] >= exploration_arena.shape[1]] = exploration_arena.shape[1] - 1
-    coordinates['center_location'][1][coordinates['center_location'][1] >= exploration_arena.shape[0]] = exploration_arena.shape[0] - 1
-    x_location = coordinates['center_location'][0][:stim_frame].astype(np.uint16)
-    y_location = coordinates['center_location'][1][:stim_frame].astype(np.uint16)
-    subgoal_bound = [ (int(x * exploration_arena.shape[1] / 1000), int(y* exploration_arena.shape[0] / 1000)) for x, y in subgoal_locations['region'] ]
+    if previous_stim_frame == 0: previous_stim_frame -= skip_frames
 
-    # compute distance from subgoal
-    polygon_mask = np.zeros(exploration_arena.shape[0:2])
-    cv2.drawContours(polygon_mask, [np.array(subgoal_bound)], 0, 100, -1)
-    polygon_mask = polygon_mask.astype(bool)
+    # set what this mouse considers a high speed
+    speeds = [.5, 1, 4]
+    high_speed, medium_speed, low_speed = speeds[2], speeds[1], speeds[0]
 
-    for i, sg in enumerate(subgoal_locations['sub-goals']):
-        # calculate distance to subgoal
-        distance_from_subgoal = np.sqrt((x_location - sg[0] * exploration_arena.shape[1] / 1000) ** 2 +
-                                                   (y_location - sg[1] * exploration_arena.shape[0] / 1000) ** 2)
-        # compute valid locations to go to subgoal
-        within_subgoal_bound = []
-        for x, y in zip(x_location, y_location):
-            # within_subgoal_bound.append(point_in_polygon([x, y],subgoal_bound))
-            within_subgoal_bound.append(polygon_mask[y, x] )
+    # create local variables for the current epoch
+    goal_speeds, _, body_angles, subgoal_angles, angular_speed, distance_from_shelter, _, _, x_location_butt, y_location_butt, x_location_face, y_location_face = \
+        create_local_variables(coordinates, stim_frame, previous_stim_frame, skip_frames)
 
-        # compute speed w.r.t. subgoal
-        coordinates['speed_toward_subgoal'][i+1, :] = np.concatenate( ([0], np.diff(distance_from_subgoal))) * within_subgoal_bound
+    # do convolutions to get current, future, far future, and past speeds w.r.t the shelter
+    now_speed = convolve(goal_speeds, 12, -1, time='current')  # 12?
+    past_speed = convolve(goal_speeds, 30, -1, time='past')  # 12?
+    present_angular_speed = convolve(abs(angular_speed), 8, +1, time='current')  # 12?
 
-    coordinates['speed_toward_subgoal'] = np.min(coordinates['speed_toward_subgoal'], 0)
+    # get the frame numbers to analyze
+    frame_nums = np.arange(previous_stim_frame + skip_frames, stim_frame + skip_frames)
 
+    # take homings from spontaneous homings function output
+    thresholds_passed = trial_groups.copy()
 
+    # get rid of segments just prior to stimulus
+    thresholds_passed[-(skip_frames + 10):-skip_frames] = False
 
-    for speed_setting in [True, False]:
+    # get vectors from the first phase of all homings
+    minimum_distance = 40 # 50
+    max_shelter_proximity = 150 # 200 #150
+    critical_turn = 25 #was 45, and replaced subgoal_angles with body_angles
+    group_idx, distance_from_start, end_idx = multi_phase_phinder(thresholds_passed, minimum_distance, max_shelter_proximity, body_angles, distance_from_shelter,
+                                             x_location_butt, y_location_butt, x_location_face, y_location_face, critical_turn, frame_nums[0])
 
-        # use higher speed setting to make faster homings darker
-        high_speed = speeds[2 + int(speed_setting)]
-        medium_speed = speeds[1 + int(speed_setting)]
-        low_speed = speeds[0]
+    thresholds_passed_idx = np.where(group_idx)[0]
+    # thresholds_passed_idx = np.where(thresholds_passed)[0]
+    group_counter = 0
 
-        # initialize the mouse mask
-        model_mouse_mask_initial = exploration_arena[:,:,0] * 0
+    # loop over each frame that passed the threshold
+    for idx in thresholds_passed_idx:
 
-        # get the coordinates up to and including this trial
-        skip_frames = 300
-        # current_speeds = coordinates['speed_toward_shelter'][:stim_frame]
-        current_speeds = coordinates['speed_toward_subgoal']
-        absolute_speeds = coordinates['speed'][:stim_frame]
-        shelter_angles = coordinates['shelter_angle'][:stim_frame]
-        angular_speed = abs(np.concatenate( ([0], np.diff(shelter_angles) ) ) )
-        angular_speed[angular_speed > 180] = 360 - angular_speed[angular_speed > 180]
-        distance_from_shelter = coordinates['distance_from_shelter'][:stim_frame]
+        # get frame number
+        frame_num = frame_nums[idx]
+        # print(present_angular_speed[idx])
 
-        # get the frame numbers to analyze
-        frame_nums = np.arange(stim_frame)
+        # set scale for size of model mouse
+        back_butt_dist = 18
 
-        # do convolutions to get current, future, far future, and past speeds w.r.t the shelter
-        filter_sequence_24 = -1 * np.ones(24)
-        filter_sequence_30 = -1 * np.ones(30)
-        filter_sequence_45 = -1 * np.ones(45)
-        filter_sequence_60 = -1 * np.ones(60)
+        # draw ellipses representing model mouse
+        model_mouse_mask = draw_silhouette(model_mouse_mask_initial.copy(), coordinates, frame_num, back_butt_dist)
 
-        past_speed = np.concatenate((np.zeros(len(filter_sequence_45) - 1),np.convolve(current_speeds, filter_sequence_45, mode='valid'))) / len(filter_sequence_45)
-        future_speed = np.concatenate((np.convolve(current_speeds, filter_sequence_60, mode='valid'), np.zeros(len(filter_sequence_60) - 1))) / len(filter_sequence_60)
-        far_future_speed = np.concatenate((np.convolve(current_speeds, filter_sequence_60, mode='valid'), np.zeros(len(filter_sequence_60) - 1 + 20))) / len(filter_sequence_60)
-        far_future_speed = far_future_speed[20:]
-        current_speed = np.concatenate((np.zeros(12 - 1), np.convolve(current_speeds, filter_sequence_24, mode='valid'), np.zeros(12))) / len(filter_sequence_24)
+        # determine color and darkness
+        speed_color = np.array([210, 230, 200])  # blue
+        multiplier = 10
+        save_multiplier = multiplier
 
-        # threshold the convolved speeds to determine which frames to draw
-        current_thresholded = (current_speed > high_speed).astype(np.uint16)
-        future_thresholded = (future_speed > high_speed) * (current_speed > medium_speed).astype(np.uint16)
-        far_future_thresholded = (far_future_speed > high_speed) * (current_speed > medium_speed).astype(np.uint16)
-        past_thresholded = (past_speed > high_speed) * (current_speed > medium_speed).astype(np.uint16)
+        # modify color and darkness for stimulus driven escapes
+        if frame_num >= stim_frame - 30:
+            speed_color = np.array([100, 100, 100])
+            save_multiplier = 2
 
-        # additional thresholds
-        # stimulus_thresholded = ( (absolute_speeds > .25) * (distance_from_shelter > 60) * (frame_nums >= stim_frame) ).astype(np.uint16) #(current_speed < 0) +
-        angle_thresholded = ( abs(shelter_angles) < 90).astype(np.uint16)
-        distance_thresholded = (distance_from_shelter > 80).astype(np.uint16)
+        # determine arrow color
+        if group_idx[idx]:
+            if frame_num < stim_frame - 60:
+                line_color = [.6 * x for x in [210, 230, 200]]
+                save_line_color = line_color
+            else:
+                line_color = [100, 100, 100]
+                save_line_color = [10, 10, 10]
 
-        # make sure within a certain distance of shelter at the end of the bout
-        minimum_distance = 200
-        close_enough_to_shelter = np.concatenate((np.convolve(distance_from_shelter < minimum_distance, -1*filter_sequence_60, mode='valid'), np.zeros(len(filter_sequence_60) - 1)))
+            # compute procedural vector
+            origin = np.array([int(coordinates['center_body_location'][0][frame_num - 1]), int(coordinates['center_body_location'][1][frame_num - 1])])
+            endpoint_index = int(group_idx[idx]) #int(frame_num - 1 + group_idx[idx] - end_idx[int(group_idx[idx])])
+            endpoint = np.array([int(coordinates['center_body_location'][0][endpoint_index]), int(coordinates['center_body_location'][1][endpoint_index]) ])
 
-        # combine thresholds into one
-        thresholds_passed_first_pass = ( distance_thresholded * angle_thresholded * close_enough_to_shelter *
-                                         (current_thresholded + future_thresholded + far_future_thresholded + past_thresholded)) > 0
+            vector_tip = (origin + 20 * (endpoint - origin) / np.sqrt(np.sum( (endpoint - origin)**2)) ).astype(int)
 
-        # and smooth it *out*
-        smooth_length = 30
-        thresholds_passed_first_pass = np.concatenate((np.zeros(int(smooth_length/2) - 1), np.convolve(thresholds_passed_first_pass, np.ones(smooth_length), mode='valid'), np.zeros(int(smooth_length/2)))) > 0
+            cv2.arrowedLine(exploration_arena, tuple(origin), tuple(vector_tip), line_color, thickness=1, tipLength=.2)
+            cv2.arrowedLine(save_exploration_arena, tuple(origin), tuple(vector_tip), save_line_color, thickness=2, tipLength=.2)
 
-        # make sure not moving away from shelter during bout
-        present_speed = np.concatenate((np.zeros(6 - 1), np.convolve(current_speeds, -1 * np.ones(12), mode='valid'), np.zeros(6)))
-        thresholds_passed_first_pass = thresholds_passed_first_pass * (present_speed > 0)
+            group_counter += 1
 
-        # make sure not making a turn during bout
-        present_angular_speed = abs( np.concatenate((np.zeros(5 - 1), np.convolve(angular_speed, -1 * np.ones(10), mode='valid'), np.zeros(5))) )
-        thresholds_passed_first_pass = thresholds_passed_first_pass * (present_angular_speed < 45)
+        # create color multiplier to modify image
+        color_multiplier = 1 - (1 - speed_color / [255, 255, 255]) / (np.mean(1 - speed_color / [255, 255, 255]) * multiplier)
+        save_color_multiplier = 1 - (1 - speed_color / [255, 255, 255]) / (np.mean(1 - speed_color / [255, 255, 255]) * save_multiplier)
 
-        # finally, add a minimum duration threshold
-        minimum_distance_traveled = -.25
-        minimum_duration = smooth_length + 10
-        minimum_duration = minimum_duration - .5 * minimum_duration * speed_setting
-        groups = []; idx = 0; start_index = []; speed = []
+        # apply color to arena image
+        exploration_arena[model_mouse_mask.astype(bool)] = exploration_arena[model_mouse_mask.astype(bool)] * color_multiplier
+        save_exploration_arena[model_mouse_mask.astype(bool)] = save_exploration_arena[model_mouse_mask.astype(bool)] * save_color_multiplier
 
-        # loop across each group of frames
-        for k, g in itertools.groupby(thresholds_passed_first_pass*(1 - thresholds_passed)):
-            # Store group iterator as a list
-            groups.append(list(g))
-            # get the number of frames in the group
-            group_length = len(groups[len(groups)-1]); idx += group_length
-            # get the distance traveled
-            distance_traveled = (distance_from_shelter[idx-1] - distance_from_shelter[idx - group_length]) / distance_from_shelter[idx - group_length]
-            # if not enough distance traveled or not end at shelter, get rid of it
-            if k and (distance_from_shelter[idx-1] > 150 or (group_length < minimum_duration or (not speed_setting and distance_traveled > minimum_distance_traveled))):
-                thresholds_passed_first_pass[idx - group_length: idx] = False
-            elif k:
-                start_index = start_index + [idx - group_length]
-                speed.append( abs((distance_from_shelter[idx-1] - distance_from_shelter[idx - group_length]) / (group_length/30) ) )
+        # display image
+        cv2.imshow(savepath + ' paths', save_exploration_arena)
 
-        # get the index when adequately long locomotor bouts pass the threshold
-        thresholds_passed = thresholds_passed_first_pass*(1 - thresholds_passed)
-        thresholds_passed_idx = np.where(thresholds_passed)[0]
+        # press q to quit
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
 
-        # loop over each frame that passed the threshold
-        for i, frame_num in enumerate(frame_nums[start_index]): #enumerate(frame_nums[thresholds_passed_idx]):
-
-            start_frame_num = frame_num
-            start_idx = i
-            previous_mouse_mask = model_mouse_mask_initial.copy()
-
-            for b in range(-20, 10): #[0]: #
-                frame_num = start_frame_num + b;
-                i = start_idx + b
-
-                # extract DLC coordinates from the saved coordinates dictionary
-                body_angle = coordinates['body_angle'][frame_num]
-                body_location = tuple(coordinates['center_body_location'][:, frame_num].astype(np.uint16))
-
-                # set scale for size of model mouse
-                back_butt_dist = 30 #+ speed_setting * 5
-
-                # draw ellipses representing model mouse
-                model_mouse_mask = cv2.ellipse(model_mouse_mask_initial.copy(), body_location, (int(back_butt_dist), int(back_butt_dist*.6)), 180 - body_angle, 0, 360, 1, thickness=-1)
-                if np.sum(model_mouse_mask * previous_mouse_mask) > (np.pi * back_butt_dist**2 /2):
-                    continue
-                else:
-                    previous_mouse_mask = model_mouse_mask
-
-                # determine color
-                speed_color = np.array([150, 255, 100])*.8  # green
-
-                # determine darkness by speed
-                multiplier = 50000 / speed[start_idx]**2
-                # multiplier = 6
-                if multiplier < 2.5:
-                    multiplier = 2.5
-                elif multiplier > 20:
-                    multiplier = 20
-                # print(multiplier)
-
-                # create color multiplier to modify image
-                color_multiplier = 1 - (1 - speed_color / [255, 255, 255]) / (np.mean(1 - speed_color / [255, 255, 255]) * multiplier)
-
-                # apply color to arena image
-                exploration_arena[model_mouse_mask.astype(bool)] = exploration_arena[model_mouse_mask.astype(bool)] * color_multiplier
-
-                # display image
-                cv2.imshow(savepath +' planning', exploration_arena)
-
-                # press q to quit
-                if cv2.waitKey(1) & 0xFF == ord('q'):
-                    break
-
-    # blur the image
-    exploration_arena_blur = cv2.GaussianBlur(exploration_arena, ksize=(25, 25), sigmaX=6, sigmaY=6)
-
-    # draw arena
-    arena, _, _ = model_arena(exploration_arena_copy.shape[0:2], trial_type, False, obstacle_type)
-    arena_color = cv2.cvtColor(arena, cv2.COLOR_GRAY2RGB)
-    exploration_arena_blur[arena < 255] = arena_color[arena < 255]
-    exploration_arena_blur = (exploration_arena_blur).astype(np.uint8)
-
-    # show and save image
-    cv2.imshow(savepath + ' planning', exploration_arena_blur); cv2.waitKey(1)
-    session_trials_plot_background[border_size:, 0:-border_size] = exploration_arena_blur
-    scipy.misc.imsave(os.path.join(savepath, videoname + '_planning_utility.tif'), cv2.cvtColor(session_trials_plot_background, cv2.COLOR_BGR2RGB))
-
-
-
-
-    return exploration_arena
-
-
-def goalness():
-    '''
-    compute and display GOALNESS DURING EXPLORATION
-    go through each frame, adding the mouse silhouette
-    '''
-
-    scale = int(frame.shape[0] /10)
-    goal_arena, _, _ = model_arena(frame.shape[0:2], trial_type, False, False, obstacle_type)
-    speed_map = np.zeros((scale, scale))
-    occ_map = np.zeros((scale, scale))
-
-    goal_map = np.zeros((scale, scale))
-
-    # stim_erase_idx = np.arange(len(coordinates['center_location'][0][:stim_frame]))
-    # stim_erase_idx = [np.min(abs(x - stims)) for x in stim_erase_idx]
-    # stim_erase_idx = [x > 300 for x in stim_erase_idx]
-
-    # filter_sequence = np.concatenate( (np.ones(15)*-np.percentile(coordinates['speed'],99.5), np.zeros(10)) )
-    filter_sequence = np.ones(20) * -np.percentile(coordinates['speed'], 99.5)
-    print(colored(' Calculating goalness...', 'green'))
-    for x_loc in tqdm(range(occ_map.shape[0])):
-        for y_loc in range(occ_map.shape[1]):
-            curr_dist = np.sqrt((coordinates['center_location'][0][:stim_frame] - ((720 / scale) * (x_loc + 1 / 2))) ** 2 +
-                                (coordinates['center_location'][1][:stim_frame] - ((720 / scale) * (y_loc + 1 / 2))) ** 2)
-            occ_map[x_loc, y_loc] = np.mean(curr_dist < (2 * 720 / scale))
-            curr_speed = np.concatenate(([0], np.diff(curr_dist))) # * np.array(stim_erase_idx)  # * (coordinates['center_location'][1] < 360) #
-            speed_map[x_loc, y_loc] = abs(np.mean(curr_speed < -np.percentile(coordinates['speed'], 99.5)))
-
-            goal_map[x_loc, y_loc] = np.percentile(np.concatenate((np.zeros(len(filter_sequence) - 1),
-                                                                   np.convolve(curr_speed, filter_sequence, mode='valid'))) * (curr_dist < 60), 99.8)  # 98
-
-    goal_map_plot = goal_map.T * (occ_map.T > 0)
-
-    goal_image = goal_map_plot.copy()
-
-    goal_image = goal_image * 255 / np.percentile(goal_map_plot, 99)
-    goal_threshold = int(np.percentile(goal_map_plot, 90) * 255 / np.percentile(goal_map_plot, 99))
-
-    goal_image[goal_image > 255] = 255
-    goal_image = cv2.resize(goal_image.astype(np.uint8), frame.shape[0:2])
-
-    goal_image[goal_image <= int(goal_threshold * 1 / 5) * (goal_image > 1)] = int(goal_threshold * 1 / 10)
-    goal_image[(goal_image <= goal_threshold * 2 / 5) * (goal_image > int(goal_threshold * 1 / 5))] = int(goal_threshold * 2 / 10)
-    goal_image[(goal_image <= goal_threshold * 3 / 5) * (goal_image > int(goal_threshold * 2 / 5))] = int(goal_threshold * 3 / 10)
-    goal_image[(goal_image <= goal_threshold * 4 / 5) * (goal_image > int(goal_threshold * 3 / 5))] = int(goal_threshold * 4 / 10)
-    goal_image[(goal_image <= goal_threshold) * (goal_image > int(goal_threshold * 4 / 5))] = int(goal_threshold * 6 / 10)
-    goal_image[(goal_image < 255) * (goal_image > goal_threshold)] = int(goal_threshold)
-
-    # goal_image[(arena_fresh[:,:,0] > 0) * (goal_image == 0)] = int(goal_threshold * 1 / 5)
-    goal_image[(arena_fresh[:, :, 0] < 100)] = 0
-
-    goal_image = cv2.copyMakeBorder(goal_image, border_size, 0, 0, 0, cv2.BORDER_CONSTANT, value=0)
-    textsize = cv2.getTextSize(videoname, 0, .55, 1)[0]
-    textX = int((width - textsize[0]) / 2)
-    cv2.putText(goal_image, videoname, (textX, int(border_size * 3 / 4)), 0, .55, (255, 255, 255), thickness=1)
-    scipy.misc.imsave(os.path.join(savepath, videoname + '_goalness.tif'), goal_image)
-
-    cv2.imshow('goal', goal_image)
+    # apply the contours and border to the image and save the image
+    cv2.imshow(savepath + ' paths', save_exploration_arena);
     cv2.waitKey(1)
-
-
-
-
-#
-#
-# def planning(savepath, videoname, coordinates, height, width, trial_type, obstacle_type, previous_stim_frame, stim_frame):
-#     '''
-#     compute and display PLANNESS DURING EXPLORATION
-#     go through each frame, adding the mouse silhouette
-#     '''
-#
-#     # get model arena and downsample x10
-#     downsample = 20
-#     scale = int(height / downsample)
-#     radius = np.sqrt(2*downsample**2)
-#
-#     # determine when the mouse is in the shelter
-#     in_shelter = coordinates['distance_from_shelter'][:stim_frame] < 100
-#     x_location = coordinates['center_location'][0][:stim_frame]
-#     y_location = coordinates['center_location'][1][:stim_frame]
-#
-#     # determine when the mouse isn't moving toward the shelter
-#     speed = coordinates['speed_toward_shelter'][:stim_frame]
-#     # high_speed = np.percentile(speed, 99)*2
-#     slow_speed = abs(speed) < .5
-#
-#     # determine when the mouse is moving toward the shelter
-#     filter = np.ones(15)
-#     future_speed = np.concatenate((np.convolve(speed, filter, mode='valid'), np.zeros(len(filter) - 1))) / len(filter)
-#     will_move_toward_shelter = future_speed < -.5
-#
-#
-#     # determine how long from each frame to the next frame in the shelter
-#     time_to_shelter = []; groups = []
-#     for k, g in itertools.groupby(in_shelter):
-#         groups.append(list(g))
-#         group_length = len(groups[len(groups) - 1]);
-#         # if in the shelter, set value to zero
-#         if k:
-#             time_to_shelter = time_to_shelter + [255 for x in range(group_length)]
-#         # if not in shelter, set value to timesteps to shelter
-#         else:
-#             current_time_to_shelter = [x for x in range(1, group_length+1)]
-#             time_to_shelter = time_to_shelter + current_time_to_shelter[::-1]
-#     time_to_shelter = np.array(time_to_shelter)
-#
-#     # initialize planning maps
-#     plan_map = np.zeros((scale, scale))
-#
-#     # loop over each location on a grid
-#     for x_loc in tqdm(range(plan_map.shape[0])):
-#         for y_loc in range(plan_map.shape[1]):
-#             # get indices when mouse is in current square
-#             within_square = ( abs(x_location - ((width  / scale) * (x_loc + 1 / 2)) ) <= downsample/2 ) * \
-#                             ( abs(y_location - ((height / scale) * (y_loc + 1 / 2))) <= downsample/2 )
-#
-#             # if there is any occupancy (during slow movement and future movement toward shelter)
-#             if np.sum(within_square * slow_speed * will_move_toward_shelter):
-#                 plan_map[y_loc, x_loc] = np.percentile(time_to_shelter[within_square * slow_speed * will_move_toward_shelter], 1) #np.min(time_to_shelter[within_square * slow_speed])
-#             else:
-#                 plan_map[y_loc, x_loc] = 255
-#
-#     # copy the plan map for plotting and reformate to be uint8
-#     plan_map_plot = plan_map.copy()
-#     plan_map_plot[plan_map_plot>=255] = 255
-#     plan_map_plot = 255 - plan_map_plot.astype(np.uint8)
-#
-#     # upsample plot and then apply median filter
-#     plan_map_plot = cv2.resize(plan_map_plot, (width, height), interpolation=cv2.INTER_CUBIC)
-#     plan_map_plot = scipy.signal.medfilt2d(plan_map_plot, kernel_size=71)
-#
-#     # show plot of plans (white on black)
-#     cv2.imshow('plans', plan_map_plot)
-#
-#     # draw arena
-#     arena, _, _ = model_arena((height, width), trial_type, False, obstacle_type)
-#     arena_color = cv2.cvtColor(arena, cv2.COLOR_GRAY2RGB)
-#     arena_color_copy = arena_color.copy()
-#
-#     # convert plan map to color
-#     plan_map_color = cv2.cvtColor(plan_map_plot, cv2.COLOR_GRAY2RGB)
-#
-#     # get the total intensity of pixels on this plot
-#     total_plans = np.sum(plan_map_plot)
-#
-#     # get each blob of pixels
-#     _, contours, _ = cv2.findContours(plan_map_plot, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-#
-#     # initialize mask
-#     blank_image = np.zeros(arena.shape)
-#
-#     # color in each blob from the plan map onto the arena plot
-#     for c in range(len(contours)):
-#         # draw contours on the blank mask
-#         contour_mask = cv2.drawContours(blank_image.copy(), contours, c, color=(1, 1, 1), thickness=cv2.FILLED)
-#
-#         # calculate the importance of this particular blob
-#         plans_in_curr_contour = np.sum(plan_map_plot[contour_mask.astype(bool)]) / total_plans
-#
-#         # for planning points accounting for at least 5% of planning utility, draw them in on the arena plot
-#         if plans_in_curr_contour > .05:
-#             arena_color[contour_mask.astype(bool)] = (255 - plan_map_color[contour_mask.astype(bool)]* [1, plans_in_curr_contour, 1])
-#
-#     # or color in all blobs at once
-#     arena_color[plan_map_plot.astype(bool)] = plan_map_color[plan_map_plot.astype(bool)]
-#
-#     # draw the shelter and obstacle, in case they were drawn over
-#     arena_color[arena<255] = arena_color_copy[arena<255]
-#
-#     # show the arena
-#     cv2.imshow('arena', arena_color)
-#     cv2.waitKey(1)
-#
-#     # save the image
-#     scipy.misc.imsave(os.path.join(savepath, videoname + '_planning.tif'), cv2.cvtColor(arena_color, cv2.COLOR_BGR2RGB))
+    session_trials_plot_background[border_size:, 0:-border_size] = save_exploration_arena
+    scipy.misc.imsave(os.path.join(savepath, videoname + '_procedural_learning.tif'), cv2.cvtColor(session_trials_plot_background, cv2.COLOR_BGR2RGB))
 
 
 
 
 
+    return exploration_arena, group_idx, distance_from_start, end_idx
 
-def exploration(exploration_arena_copy, exploration_arena_trial, session_plot_background, border_size, coordinates, previous_stim_frame, stim_frame, videoname, savepath, arena):
+
+
+
+def exploration(exploration_arena_copy, session_plot_background, border_size, coordinates, previous_stim_frame, stim_frame, videoname, savepath, arena):
     '''
     compute and display EXPLORATION
     go through each frame, adding the mouse silhouette
@@ -645,14 +600,15 @@ def exploration(exploration_arena_copy, exploration_arena_trial, session_plot_ba
 
     # for debugging, make a copy
     exploration_arena = copy.deepcopy(exploration_arena_copy)
-    save_exploration_arena = exploration_arena.copy()
-    trial_plot_background = session_plot_background
+    dim_exploration_arena = ((2 * cv2.cvtColor(exploration_arena_copy, cv2.COLOR_BGR2GRAY).astype(float) +
+                                arena.astype(float) * 3) / 5).astype(np.uint8)
+    exploration_arena_trial = cv2.cvtColor(dim_exploration_arena, cv2.COLOR_GRAY2RGB)
 
     # initialize the mouse mask
     model_mouse_mask_initial = exploration_arena[:,:,0] * 0
 
     # get the coordinates up to and including this trial
-    current_speeds = coordinates['speed_toward_shelter'][previous_stim_frame :stim_frame]
+    current_speeds = coordinates['speed_toward_shelter'][previous_stim_frame:stim_frame]
     distance_from_shelter = coordinates['distance_from_shelter'][previous_stim_frame:stim_frame]
 
     # get the frame numbers to analyze
@@ -673,11 +629,9 @@ def exploration(exploration_arena_copy, exploration_arena_trial, session_plot_ba
         current_speed_toward_shelter = current_speed[frame_num - (previous_stim_frame)]
         current_distance_from_shelter = distance_from_shelter[frame_num - (previous_stim_frame)]
 
-        # stop once at shelter
-        # if frame_num >= stim_frame and current_distance_from_shelter < 60:
-        #     break
-        if current_distance_from_shelter < 50:
-            continue
+        # stop when at shelter
+        # if current_distance_from_shelter < 50:
+        #     continue
 
         # extract DLC coordinates from the saved coordinates dictionary
         body_angle = coordinates['body_angle'][frame_num]
@@ -693,32 +647,35 @@ def exploration(exploration_arena_copy, exploration_arena_trial, session_plot_ba
         model_mouse_mask = cv2.ellipse(model_mouse_mask , shoulder_location, (int(back_butt_dist), int(back_butt_dist*.2)), 180 - shoulder_angle ,0, 360, 100, thickness=-1)
 
         # determine color by angular speed
-        if current_speed_toward_shelter < 0:
-            speed_color = np.array([190, 189, 225])  # red
-            multiplier = 35
+        if current_speed_toward_shelter <= 0:
+            speed_color = np.array([190, 189, 240])  # red
+            speed_color = np.array([250, 220, 223])  # red
+            multiplier = 100
         else:
-            speed_color = np.array([190, 220, 190])  # green
-            multiplier = 30
+            speed_color = np.array([190, 240, 190])  # green
+            speed_color = np.array([190, 240, 190])  # green
+            multiplier = 50
 
         # create color multiplier to modify image
         color_multiplier = 1 - (1 - speed_color / [255, 255, 255]) / (np.mean(1 - speed_color / [255, 255, 255]) * multiplier)
 
         # prevent any region from getting too dark (trial)
-        if np.mean(exploration_arena_trial[model_mouse_mask.astype(bool)]) < 100: #( 100 - (frame_num >= stim_frame) * 50 ):
+        if np.mean(exploration_arena_trial[model_mouse_mask.astype(bool)]) < 100:
             continue
 
         # apply color to arena image (trial)
         exploration_arena_trial[model_mouse_mask.astype(bool)] = exploration_arena_trial[model_mouse_mask.astype(bool)] * color_multiplier
 
         # prevent any region from getting too dark (session)
-        if np.mean(exploration_arena_trial[model_mouse_mask.astype(bool)]) < 100: #( 100 - (frame_num >= stim_frame) * 50 ):
+        if np.mean(exploration_arena_trial[model_mouse_mask.astype(bool)]) < 100:
             continue
 
         # apply color to arena image (session)
         exploration_arena[model_mouse_mask.astype(bool)] = exploration_arena[model_mouse_mask.astype(bool)] * color_multiplier
 
         # display image
-        cv2.imshow(savepath +'homings', exploration_arena)
+        cv2.imshow(savepath +' explore', exploration_arena)
+        cv2.imshow(savepath + 'trial explore', exploration_arena_trial)
 
         # press q to quit
         if cv2.waitKey(1) & 0xFF == ord('q'):
@@ -727,10 +684,10 @@ def exploration(exploration_arena_copy, exploration_arena_trial, session_plot_ba
     # apply the contours and border to the image and save the image
     try:
         session_plot_background[border_size:, 0:-border_size] = exploration_arena
-        trial_plot_background[border_size:, 0:-border_size] = exploration_arena_trial
-
         scipy.misc.imsave(os.path.join(savepath, videoname + '_exploration_all.tif'), cv2.cvtColor(session_plot_background, cv2.COLOR_BGR2RGB))
-        scipy.misc.imsave(os.path.join(savepath, videoname + '_exploration_recent.tif'), cv2.cvtColor(trial_plot_background, cv2.COLOR_BGR2RGB))
+
+        session_plot_background[border_size:, 0:-border_size] = exploration_arena_trial
+        scipy.misc.imsave(os.path.join(savepath, videoname + '_exploration_recent.tif'), cv2.cvtColor(session_plot_background, cv2.COLOR_BGR2RGB))
     except:
         print('repeat stimulus trial')
 
@@ -756,3 +713,4 @@ def exploration(exploration_arena_copy, exploration_arena_trial, session_plot_ba
     scipy.misc.imsave(os.path.join(savepath, videoname + '_exploration2.tif'), H_image)
 
     return exploration_arena
+

@@ -1,6 +1,0 @@
-'clips': {'visual': {}, 'audio': {},'digital': {}},
-'clips_folder': 'C:\\Users\\annaL\\Documents\\branco\\videos',
-#'dlc_network_path': 'C:\\Users\\Federico\\Documents\\GitHub\\BrancoLab_RandomCode\\Analysis_V2\\Tracking',
-'dlc_network_snapshot': 'C:\\Users\\annaL\\Desktop\\DeepLabCut\\pose-tensorflow\\models\\LVJan30-trainset95shuffle1\\train\\snapshot-50000',
-'scorer': 'DeepCut_resnet_50_95shuffle1_50000forTask_LV',
-'store trial videos': True

@@ -1,9 +1,0 @@
-arena_roi: 'short bridge'
-preview: False
-stopframe: -1
-th_scaling: 0.6
-tail_th_scaling: 0.225
-num mice: 1
-min ctn area: 200
-max cnt area: 5000
-fast track wnd: 60

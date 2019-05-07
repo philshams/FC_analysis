@@ -25,7 +25,7 @@ def set_up_colors(trial_type):
     return wall_color, probe_color, no_wall_color, flight_color, flight_color_light, flight_color_dark
 
 
-def set_up_speed_colors(speed):
+def set_up_speed_colors(speed, simulation = False):
     '''
     set up colors for speed-dependent DLC analysis
     '''
@@ -33,11 +33,12 @@ def set_up_speed_colors(speed):
     slow_color = np.array([240, 240, 240])
     medium_color = np.array([190, 190, 240])
     fast_color = np.array([0, 192, 120])
+    fast_color = np.array([0, 232, 120])
     super_fast_color = np.array([0, 232, 0])
     
     # vary color based on speed
-    speed_threshold_3 = 18
-    speed_threshold_2 = 14
+    speed_threshold_3 = 118
+    speed_threshold_2 = 18 #30 #14
     speed_threshold = 7
     # print(speed)
     if speed > speed_threshold_3:
@@ -52,25 +53,24 @@ def set_up_speed_colors(speed):
     speed_color_light = 1 - (1 - speed_color / [255, 255, 255]) / (np.mean(1 - speed_color / [255, 255, 255]) / .08)
     speed_color_dark = 1 - (1 - speed_color / [255, 255, 255]) / (np.mean(1 - speed_color / [255, 255, 255]) / .38)
 
+    if simulation:
+        speed_color_light, speed_color_dark = np.flip(speed_color_light), np.flip(speed_color_dark)
+
     return speed_color_light, speed_color_dark
 
 
-def get_trial_details(self, stim_frame, trial_num, video_analysis_settings, stim_type, stims_video):
+def get_trial_details(self, stim_frame, trial_num, video_analysis_settings, stim_type, stims_video, previous_vid_duration):
     '''
     Get details like start time and end time for this trial
     '''
     start_frame = int(stim_frame - (video_analysis_settings['seconds pre stimulus'] * self.fps))
     end_frame = int(stim_frame + (video_analysis_settings['seconds post stimulus'] * self.fps))
-    if trial_num:
-        previous_stim_frame = stims_video[trial_num - 1]
-    else:
-        previous_stim_frame = 0
 
     videoname = '{}_{}_{}-{} ({}\')'.format(self.session['Metadata'].experiment,
                                                  self.session['Metadata'].mouse_id,
-                                                 stim_type, trial_num + 1, round(stim_frame / self.fps / 60))
+                                                 stim_type, trial_num + 1, round((stim_frame + previous_vid_duration) / self.fps / 60))
 
-    return start_frame, end_frame, previous_stim_frame, videoname
+    return start_frame, end_frame, videoname
 
 def format_session_video(session_trials_plot_background, width, height, border_size, rectangle_thickness, trial_num, number_of_trials, videoname):
     '''
@@ -92,46 +92,31 @@ def format_session_video(session_trials_plot_background, width, height, border_s
     return session_trials_plot_background
 
 
-def get_trial_types(self, vid_num, stims_video, stims, save_folder, x_offset, y_offset, obstacle_changes, video_analysis_settings, analysis_options):
+def get_trial_types(self, vid_num, number_of_vids, stims_video, stims, save_folder, x_offset, y_offset, obstacle_changes, video_analysis_settings, analysis_options):
     '''
     Takes in a video and stimulus information, and outputs the type of trial (obstacle or none)
     and the background image for DLC trials to be plotted on top of
     '''
     # initialize trial types array
     trial_types = []
-    number_of_trials = len(stims[0])
+    number_of_trials = len(stims[vid_num])
 
-    # set up colors
-    wall_color = np.array([102, 102, 242]) / 1.6
-    probe_color = np.array([200, 200, 200]) / 1.6
-    no_wall_color = np.array([242, 102, 102]) / 1.6
-    trial_colors = [probe_color, no_wall_color, probe_color, wall_color]
-    border_size = 40
-    rectangle_thickness = 3
 
     # set up the image and video that trial type information will modify
     vid = cv2.VideoCapture(self.session['Metadata'].video_file_paths[vid_num][0])
     width = int(vid.get(cv2.CAP_PROP_FRAME_WIDTH))
     height = int(vid.get(cv2.CAP_PROP_FRAME_HEIGHT))
-
-    session_trials_plot_background = np.zeros((height + border_size, width + border_size, 3)).astype(np.uint8)
-
-    fourcc = cv2.VideoWriter_fourcc(*"XVID")
-
-    session_videoname = '{}_{}'.format(self.session['Metadata'].experiment, self.session['Metadata'].mouse_id, )
-
-    if analysis_options['DLC clips']:
-        session_trials_video = cv2.VideoWriter(os.path.join(save_folder, session_videoname + '_session_dlc.avi'),
-                                               fourcc, self.fps, (width + border_size, height + border_size), True)
-        session_video = cv2.VideoWriter(os.path.join(save_folder, session_videoname + '_session.avi'),
-                                        fourcc, self.fps, (width + 2 * border_size, height + 2 * border_size), True)
-    else:
-        session_trials_video = None; session_video = None
+    video_duration = int(vid.get(cv2.CAP_PROP_FRAME_COUNT))
 
     # If trial types are already saved correctly, just use those
     if ('Trial Types' in self.session['Tracking']):
-        if len(self.session['Tracking']) == len(stims_video):
-            trial_types = self.session['Tracking']['Trial Types']
+        try:
+            if len(self.session['Tracking']['Trial Types'][vid_num]) == len(stims_video):
+                trial_types = self.session['Tracking']['Trial Types'][vid_num]
+        except:
+            pass
+    else:
+        self.session['Tracking']['Trial Types'] = [[] for x in range(number_of_vids)]
 
     # loop through each trial in the session
     for trial_num, stim_frame in enumerate(stims_video):
@@ -148,6 +133,49 @@ def get_trial_types(self, vid_num, stims_video, stims, save_folder, x_offset, y_
         elif len(trial_types) < len(stims_video):
             trial_types.append(2)
 
+    self.session['Tracking']['Trial Types'][vid_num] = trial_types
+
+    vid.release()
+
+    return trial_types, number_of_trials, height, width, video_duration, self
+
+
+def setup_session_video(self, vid_num, stims_video, height, width, stims, save_folder, x_offset, y_offset, obstacle_changes,
+                        video_analysis_settings, analysis_options, trial_types, number_of_trials):
+    '''
+    Takes in a video and stimulus information, and outputs the type of trial (obstacle or none)
+    and the background image for DLC trials to be plotted on top of
+    '''
+
+    # set up colors
+    wall_color = np.array([102, 102, 242]) / 3
+    probe_color = np.array([200, 200, 200]) / 3
+    no_wall_color = np.array([242, 102, 102]) / 3
+    wall_color = np.array([132, 132, 242]) / 3
+    probe_color = np.array([200, 200, 200]) / 3
+    no_wall_color = np.array([242, 132, 132]) / 3
+    trial_colors = [probe_color, no_wall_color, probe_color, wall_color]
+    border_size = 40
+    rectangle_thickness = 3
+
+    # set up the image and video that trial type information will modify
+    session_trials_plot_background = np.zeros((height + border_size, width + border_size, 3)).astype(np.uint8)
+
+    fourcc = cv2.VideoWriter_fourcc(*"XVID")
+
+    session_videoname = '{}_{}'.format(self.session['Metadata'].experiment, self.session['Metadata'].mouse_id, )
+
+    if analysis_options['DLC clips']:
+        session_trials_video = cv2.VideoWriter(os.path.join(save_folder, session_videoname + '_session_dlc.avi'),
+                                               fourcc, self.fps, (width + border_size, height + border_size), True)
+        session_video = cv2.VideoWriter(os.path.join(save_folder, session_videoname + '_session.avi'),
+                                        fourcc, self.fps, (width + 2 * border_size, height + 2 * border_size), True)
+    else:
+        session_trials_video = None; session_video = None
+
+    # loop through each trial in the session
+    for trial_num in range(number_of_trials):
+
         # draw rectangles corresponding to the trials on the right side of the plot
         cv2.rectangle(session_trials_plot_background,
                       (int(width + border_size / 4), int(trial_num / number_of_trials * (height + 2 * border_size / 4) + border_size / 4)),
@@ -159,9 +187,7 @@ def get_trial_types(self, vid_num, stims_video, stims, save_folder, x_offset, y_
                       (int(width + 3 * border_size / 4), int((trial_num + 1) / number_of_trials * (height + 2 * border_size / 4))), (0, 0, 0),
                       rectangle_thickness)
 
-    vid.release()
-    return trial_types, session_trials_video, session_video, session_trials_plot_background, number_of_trials, height, width, border_size, rectangle_thickness, trial_colors
-
+    return session_trials_video, session_video, session_trials_plot_background, border_size, rectangle_thickness, trial_colors
 
 
 def initialize_wall_analysis(analyze_wall, stim_frame, start_frame, end_frame, registration, x_offset, y_offset, vid, width, height):

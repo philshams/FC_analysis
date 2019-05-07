@@ -1,6 +1,0 @@
-'clips': ''
-'clips_folder': 'D:\\Dropbox (UCL - SWC)\\Dropbox (UCL - SWC)\\Rotation_vte\\data\\z_TrialVideos'
-dlc_network_posecfg: 'C:\Users\Federico\Documents\GitHub\DeepLabCut\pose-tensorflow\models\Maze21Aug-trainset95shuffle1\test'
-'dlc_network_snapshot': 'C:\Users\Federico\Documents\GitHub\DeepLabCut\pose-tensorflow\models\maze21Aug-trainset95shuffle1\train\snapshot-650000'
-'scorer': 'DeepCut_resnet50_FC_1030000'
-'store trial videos': True

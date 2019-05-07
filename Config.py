@@ -11,17 +11,22 @@ def setup():
     DLC_folder = 'C:\\Drive\\Behaviour\\DeepLabCut'
 
     load_database = True                      # This is False only if you are creating a new database
-    update_database = False                  # Add recently added sessions or metadata to database
+    update_database = False                   # Add recently added sessions or metadata to database
 
     load_name = '190221'                      # name of file to load
     save_name = '190221'                      # name to save the results of the analysis
 
+    # selector_type = 'experiment'                  # selects which sessions to analyze ('all', 'experiment', 'session', 'date', 'mouse', 'number')
+    # selector = ['Barnes US wall (loom)']
+    #
     selector_type = 'experiment'                  # selects which sessions to analyze ('all', 'experiment', 'session', 'date', 'mouse', 'number')
-    selector = ['Barnes bang wall down (dark)', 'Barnes US wall down',
-                'Barnes US wall up (2)', 'Barnes US wall up', 'Barnes bang wall down (trial 1)',
-                'Barnes bang wall down (dark)', 'Void bang']                            # e.g. [n for n in range(1,24)]
+    selector = ['Barnes bang wall down (dark)']
+
     # selector_type = 'number'                  # selects which sessions to analyze ('all', 'experiment', 'session', 'date', 'mouse', 'number')
-    # selector = [x for x in [48]]
+    # selector = [x for x in [47] ]
+    #
+    # selector_type = 'number'                  # selects which sessions to analyze ('all', 'experiment', 'session', 'date', 'mouse', 'number')
+    # selector = [x for x in [1,2,3,4,5,6,42, 43, 45, 46, 47, 48] ]
 
     return excel_path, save_folder, DLC_folder, load_database, update_database, load_name, save_name, selector_type, selector
 
@@ -41,21 +46,50 @@ def tracking_options():
 
         'parallel processes': 7 }          # Number of sessions to analyze simultaneously
 
+    # analysis_options = {
+    #
+    #     'raw clips': False,                 # Save only raw videos of the peri-stimulus period
+    #
+    #     'DLC clips': True,                 # Save videos of DLC model mouse in model arena
+    #
+    #     'spontaneous homings': True,       # Analyze spontaneous homings
+    #
+    #     'procedural': True,                # Analyze procedural learning
+    #
+    #     'target repetition': False,         # Analyze previous targets
+    #
+    #     'planning': False,                  # Analyze planning points
+    #
+    #     'exploration': True,               # Analyze exploration
+    #
+    #     'infomark': False,                   # Analyze infomark
+    #
+    #     'simulate': True,                   # Simulate each strategy
+    #
+    #     'summary': True }                   # Make the moon-like summary plots
+
+    #
     analysis_options = {
 
-        'save stimulus clips': False,      # Save only raw videos of the peri-stimulus period
+        'raw clips': False,                 # Save only raw videos of the peri-stimulus period
 
         'DLC clips': False,                 # Save videos of DLC model mouse in model arena
 
+        'spontaneous homings': False,       # Analyze spontaneous homings
+
+        'procedural': False,                # Analyze procedural learning
+
         'target repetition': False,         # Analyze previous targets
 
-        'planning': True,                 # Analyze planning points
+        'planning': False,                  # Analyze planning points
 
-        'exploration': False,              # Analyze exploration
+        'exploration': False,               # Analyze exploration
 
-        'spontaneous homings': True,      # Analyze spontaneous homings
+        'infomark': False,                   # Analyze infomark
 
-        'procedural': False }              # Analyze procedural learning
+        'simulate': False,                   # Simulate each strategy
+
+        'summary': False }                   # Make the moon-like summary plots
 
 
 
@@ -83,6 +117,5 @@ def dlc_options():
     }
 
     return dlc_config_settings
-
 
 

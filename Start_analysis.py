@@ -1,10 +1,12 @@
 from Config import setup, tracking_options
 excel_path, save_folder, DLC_folder, load_database, update_database, load_name, save_name, selector_type, selector = setup()
-track_options, _, fisheye_map_location, _ = tracking_options()
+track_options, analysis_options, fisheye_map_location, _ = tracking_options()
 from termcolor import colored
 from Utils.registration_funcs import register_arena, get_background, get_arena_details, perform_arena_registration
 from Utils.loadsave_funcs import save_data, load_data, load_paths, load_yaml, print_plans, setup_database
 from Utils.Data_rearrange_funcs import check_session_selected
+from Analysis.Four_panel_plot import four_panel_plot, four_panel_plot_simulate, three_panel_plot_simulate
+from Analysis.find_w import parameterize
 from multiprocessing.dummy import Pool as ThreadPool
 
 '''
@@ -24,8 +26,11 @@ class Analysis():
         # to see all entries: self.db
         # to drop an entry: self.db = self.db.drop(['desired_entry_to_drop'])
 
+        # parameterize the model
+        parameterize(self.db)
+
         # Call the main func that orchestrates the application of the processes
-        self.main()
+        # self.main()
 
 
     def main(self):
@@ -59,6 +64,7 @@ class Analysis():
                 print(colored('Analyzing session {}: {} - {}'.format(session.Metadata.number,
                                                                      session.Metadata.experiment, session.Metadata.mouse_id), 'green'))
 
+
                 # First, register the session to the common coordinate space
                 if track_options['register arena']:
                     session, new_registration = perform_arena_registration(session, fisheye_map_location)
@@ -71,6 +77,17 @@ class Analysis():
                 # Now, analyze the session
                 from Tracking.Tracking_main import Tracking
                 Tracking(session)
+
+                # Save a compacted form of the data
+                if analysis_options['summary']:
+
+                    # Save a compacted form of the data
+                    try: four_panel_plot(session)
+                    except: print('experiment not fully analyzed')
+
+                    # Save a compacted form of the simulated data
+                    try: four_panel_plot_simulate(session); three_panel_plot_simulate(session)
+                    except: print('experiment not fully simulated')
 
                 # Input the data from the analysis into the global database
                 self.db.loc[session_name]['Tracking'] = session['Tracking']

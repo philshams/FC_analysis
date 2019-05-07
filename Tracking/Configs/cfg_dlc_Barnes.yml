@@ -1,6 +1,0 @@
-#'clips': ''
-#'clips_folder': 'C:\Drive\DLC\data\wall_data'
-#dlc_network_posecfg: 'C:\\Drive\\DLC\\data\\videos_train_dlc\\Barnes_USSep25_2018-trainset95shuffle1\\test'
-#'dlc_network_snapshot': 'C:\\Drive\\DLC\\data\\videos_train_dlc\\Barnes_USSep25_2018-trainset95shuffle1\\train\\snapshot-50000'
-#'scorer': 'DeepCut_resnet50_Philip_50000'
-#'store trial videos': True
