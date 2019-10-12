@@ -165,8 +165,8 @@ def peri_stimulus_video_clip(vidpath = '', videoname = '', savepath = '', start_
 
 
 
-def peri_stimulus_analysis(coordinates, vidpath = '', videoname = '', savepath = '', dlc_config_settings = {}, session_video = None, previous_stim_frame = 0, x_offset = 300, y_offset = 100, obstacle_type = 'wall',
-                           session_trials_video = None, session_trials_plot_workspace = None, session_trials_plot_in_background = None,
+def peri_stimulus_analysis(coordinates, vidpath = '', videoname = '', savepath = '', dlc_config_settings = {}, session_video = None, x_offset = 300, y_offset = 100, obstacle_type = 'wall',
+                           wall_change_frame = 0, session_trials_video = None, session_trials_plot_workspace = None, session_trials_plot_in_background = None,
                            number_of_trials = 10, trial_num = 0, start_frame=0., end_frame=100., stim_frame = 0, trial_type = 1,
                            registration = 0, fps=False, border_size = 40, display_clip = False, counter = True, finished_clip = False):
     '''
@@ -175,7 +175,7 @@ def peri_stimulus_analysis(coordinates, vidpath = '', videoname = '', savepath =
     # Set up video acquisition and saving
     vid, video_clip, width, height, fourcc = set_up_video(vidpath, videoname, fps, savepath, border_size, counter)
     vid.set(cv2.CAP_PROP_POS_FRAMES, start_frame)
-    video_clip_dlc = cv2.VideoWriter(os.path.join(savepath, videoname + '_dlc.avi'), fourcc,fps, (width + border_size, height + border_size), True)
+    video_clip_dlc = cv2.VideoWriter(os.path.join(savepath, videoname + '_dlc.avi'), fourcc,fps, (width + border_size*counter, height + border_size*counter), True)
 
     # set up dlc
     body_parts = dlc_config_settings['body parts']
@@ -191,7 +191,7 @@ def peri_stimulus_analysis(coordinates, vidpath = '', videoname = '', savepath =
     wall_color, probe_color, no_wall_color, flight_color, _, _ = set_up_colors(trial_type)
 
     # set up model arena
-    arena, _, shelter_roi = model_arena((height, width), trial_type*(trial_type-1), False, obstacle_type)
+    arena, _, shelter_roi = model_arena((height, width), trial_type > 0, False, obstacle_type, shelter = not 'no shelter' in videoname) #*(trial_type-1)
     arena = cv2.cvtColor(arena, cv2.COLOR_GRAY2RGB)
     arena_fresh = arena.copy()
     trial_plot = arena.copy()
@@ -206,11 +206,22 @@ def peri_stimulus_analysis(coordinates, vidpath = '', videoname = '', savepath =
     count_down = np.inf
 
     # set up session trials plot
-    if session_trials_plot_workspace is None or True: #REMOVE THIS TO ADD DLC HISTORY TO BACKGORUND
+    if session_trials_plot_workspace is None: #REMOVE THIS TO ADD DLC HISTORY TO BACKGORUND
         session_trials_plot = arena.copy()
         session_trials_plot_workspace = arena.copy()
-    else:
-        session_trials_plot = ((session_trials_plot_workspace.astype(float) * 1 + arena.copy().astype(float) * 4) / 5).astype(np.uint8)
+#    else:
+        # session_trials_plot = ((session_trials_plot_workspace.astype(float) * 1 + arena.copy().astype(float) * 4) / 5).astype(np.uint8)
+        # session_trials_plot = ((session_trials_plot_workspace.astype(float) * 1 + arena.copy().astype(float) * 1) / 2).astype(np.uint8)
+    if trial_type<=0 and 'down' in videoname:
+        old_arena, _, _ = model_arena((height, width), True, False, obstacle_type, shelter = not 'no shelter' in videoname)
+        old_arena = cv2.cvtColor(old_arena, cv2.COLOR_GRAY2RGB)
+
+        discrepancy = ~((arena - old_arena)==0)
+
+        session_trials_plot_workspace[discrepancy] = ((old_arena[discrepancy] * 1 + arena[discrepancy].astype(float) * 4) / 5).astype(np.uint8)
+        trial_plot[discrepancy] =                    ((old_arena[discrepancy] * 1 + arena[discrepancy].astype(float) * 4) / 5).astype(np.uint8)
+
+    session_trials_plot = session_trials_plot_workspace.copy()  # TEMPORARY
 
     # set up pre-stimulus session trials plot
     initial_session_trials_plot = session_trials_plot.copy()
@@ -267,7 +278,7 @@ def peri_stimulus_analysis(coordinates, vidpath = '', videoname = '', savepath =
             back_butt_dist = 16
 
             # when turning, adjust relative sizes
-            if abs(body_angle - shoulder_angle) > 25:
+            if abs(body_angle - shoulder_angle) > 35:
                 shoulder = False
             else:
                 shoulder = True
@@ -279,7 +290,7 @@ def peri_stimulus_analysis(coordinates, vidpath = '', videoname = '', savepath =
             model_mouse_mask = cv2.ellipse(model_mouse_mask, front_location, (int(back_butt_dist * .5), int(back_butt_dist * .33)), 180 - neck_angle, 0, 360,100, thickness=-1)
 
             if shoulder:
-                model_mouse_mask = cv2.ellipse(model_mouse_mask, shoulder_location, (int(back_butt_dist), int(back_butt_dist * .44)), 180 - shoulder_angle, 0,360, 100, thickness=-1)
+                model_mouse_mask = cv2.ellipse(model_mouse_mask, shoulder_location, (int(back_butt_dist), int(back_butt_dist * .4)), 180 - shoulder_angle, 0,360, 100, thickness=-1)
 
 
             # make a single large ellipse used to determine when do use the flight_color_dark
@@ -289,17 +300,26 @@ def peri_stimulus_analysis(coordinates, vidpath = '', videoname = '', savepath =
             frames_past_stimulus = frame_num - stim_frame
             frames_til_abort = count_down - frame_num
 
+            # get contour of initial ellipse at stimulation time, to apply to images
+            if frame_num == stim_frame:
+                _, contours, _ = cv2.findContours(model_mouse_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+                x_stim = float(body_location[0]); y_stim = float(body_location[1])
+
             # stop after 2 secs of shelter
             if not frames_til_abort:
                 finished_clip = True
                 break
 
             # add dark mouse if distant from previous mouse, using the above mouse mask
-            elif np.sum(mouse_mask * model_mouse_mask_previous) == 0 and not arrived_at_shelter:
+            elif np.sum(mouse_mask * model_mouse_mask_previous) == 0 and not arrived_at_shelter and frames_past_stimulus:
                 # add dark mouse to the session-trials plot and the session-trials-workspace plot
                 session_trials_plot[model_mouse_mask.astype(bool)] = session_trials_plot[model_mouse_mask.astype(bool)] * speed_color_dark
                 if frames_past_stimulus > 0:
-                    session_trials_plot_workspace[model_mouse_mask.astype(bool)] = session_trials_plot_workspace[model_mouse_mask.astype(bool)] * [.9, .9, .9]
+                    dist_from_start = np.sqrt((x_stim - float(body_location[0]))**2 + (y_stim - float(body_location[1]))**2)
+                    dist_to_make_red = 150
+                    prev_homing_color = np.array([.98, .98, .98]) + np.max((0,dist_to_make_red - dist_from_start))/dist_to_make_red * np.array([.02, -.02, -.02])
+
+                    session_trials_plot_workspace[model_mouse_mask.astype(bool)] = session_trials_plot_workspace[model_mouse_mask.astype(bool)] * prev_homing_color#[.9, .9, .9]
                     trial_plot[model_mouse_mask.astype(bool)] = trial_plot[model_mouse_mask.astype(bool)] * speed_color_dark
 
                 # set the current model mouse mask as the one to be compared to to see if dark mouse should be added
@@ -308,24 +328,35 @@ def peri_stimulus_analysis(coordinates, vidpath = '', videoname = '', savepath =
             # continuous shading, after stimulus onset
             elif frames_past_stimulus >= 0:
                 # once at shelter, end it
-                if np.sum(shelter_roi * mouse_mask) > 0:
-                    if not arrived_at_shelter:
-                        arrived_at_shelter = True
-                        count_down = frame_num + fps * 2
+                if not 'no shelter' in videoname:
+                    if np.sum(shelter_roi * mouse_mask) > 0: #temporary
+                        if not arrived_at_shelter:
+                            arrived_at_shelter = True
+                            count_down = frame_num + fps * 2
 
-                # otherwise, shade in the current mouse position
-                elif not arrived_at_shelter:
-                    session_trials_plot[model_mouse_mask.astype(bool)] = session_trials_plot[model_mouse_mask.astype(bool)] * speed_color_light
-                    session_trials_plot_workspace[model_mouse_mask.astype(bool)] = session_trials_plot_workspace[model_mouse_mask.astype(bool)] * [.9, .9, .9]
-                    trial_plot[model_mouse_mask.astype(bool)] = trial_plot[model_mouse_mask.astype(bool)] * speed_color_light
+                    # otherwise, shade in the current mouse position
+                    elif not arrived_at_shelter:
+                        dist_from_start = np.sqrt((x_stim - float(body_location[0])) ** 2 + (y_stim - float(body_location[1])) ** 2)
+                        dist_to_make_red = 150
+                        prev_homing_color = np.array([.98, .98, .98]) + np.max((0, dist_to_make_red - dist_from_start)) / dist_to_make_red * np.array(
+                            [.02, -.02, -.02])
 
-            # get contour of initial ellipse at stimulation time, to apply to images
-            if frame_num == stim_frame:
-                _, contours, _ = cv2.findContours(model_mouse_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+                        session_trials_plot[model_mouse_mask.astype(bool)] = session_trials_plot[model_mouse_mask.astype(bool)] * speed_color_light
+                        session_trials_plot_workspace[model_mouse_mask.astype(bool)] = session_trials_plot_workspace[model_mouse_mask.astype(bool)] * prev_homing_color #* [.9, .9, .9]
+                        trial_plot[model_mouse_mask.astype(bool)] = trial_plot[model_mouse_mask.astype(bool)] * speed_color_light
+
+
+
 
             # redraw this contour on each frame after the stimulus
             elif frame_num >= stim_frame:
                 cv2.drawContours(session_trials_plot, contours, 0, (255,255,255), thickness = 1)
+
+            # if wall falls or rises, color mouse in RED
+            if (trial_type==1 or trial_type==-1) and (frame_num == wall_change_frame) and False:
+                _, contours_wall_change, _ = cv2.findContours(model_mouse_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+                cv2.drawContours(session_trials_plot, contours_wall_change, 0, (220,0,0), thickness=-1)
+                cv2.drawContours(trial_plot, contours_wall_change, 0, (220,0,0), thickness=-1)
 
             # draw a dot for each body part, to verify DLC tracking
             # for bp in body_parts:
@@ -342,33 +373,87 @@ def peri_stimulus_analysis(coordinates, vidpath = '', videoname = '', savepath =
             else:
                 frame = frame[:, :, 0]
 
-            # add a looming spot
-            loom_radius = 30 * (frame_num - stim_frame) * ( (frame_num - stim_frame) < 10) * (frame_num > stim_frame)
+            # add a looming spot - for actual loom
+            # loom_radius = 30 * (frame_num - stim_frame) * ( (frame_num - stim_frame) < 10) * (frame_num > stim_frame)
+            loom_on = np.tile(np.concatenate((np.ones(5), np.zeros(5))), 9).astype(int)
 
+
+            if obstacle_type == 'wall' or obstacle_type == 'void':
+                shape = 'circle'
+                size = 340 #334
+
+            elif obstacle_type == 'side wall':
+                shape = 'square'
+                size = 224 #218
+
+            # elif obstacle_type == 'void':
+            #     shape = 'circle'
+            #     size = 353 #347
+
+            elif obstacle_type == 'side wall 32' or obstacle_type == 'side wall 14':
+                shape = 'square'
+                size = 295
+            else:
+                shape = 'circle'
+                size = 340  # 334
+                loom_on = np.tile(np.concatenate((np.ones(5), np.zeros(5))), 9*3).astype(int)
+
+
+            if frame_num < stim_frame or frame_num > stim_frame+89: loom_radius = 0 #89 for 3 secs, 269 for 9 secs
+            else: loom_radius = size * loom_on[frame_num - stim_frame] #218 for planning #334 for barnes #347 for void
+
+            session_trials_plot_show = session_trials_plot.copy()
+            trial_plot_show = trial_plot.copy()
             if loom_radius:
                 frame = frame.copy()
                 loom_frame = frame.copy()
-                loom_arena = session_trials_plot_in_background.copy()
+                loom_arena = session_trials_plot.copy()
+                loom_arena2 = trial_plot.copy()
 
-                stimulus_location = tuple(coordinates['center_body_location'][:, stim_frame - 1].astype(np.uint16))
+                # for actual loom
+                # stimulus_location = tuple(coordinates['center_body_location'][:, stim_frame - 1].astype(np.uint16))
+                # cv2.circle(loom_frame, stimulus_location, loom_radius, 100, -1)
+                # cv2.circle(loom_arena, stimulus_location, loom_radius, (100,100,100), -1)
 
-                cv2.circle(loom_frame, stimulus_location, loom_radius, 0, -1)
-                cv2.circle(loom_arena, stimulus_location, loom_radius, 0, -1)
+                center = (int(frame.shape[1] / 2), int(frame.shape[0] / 2))
+                if shape == 'circle':
+                    cv2.circle(loom_frame, center, loom_radius, 200, 12)
+                    cv2.circle(loom_arena, center, loom_radius, (200, 200, 200), 12)
+                    cv2.circle(loom_arena2, center, loom_radius, (200, 200, 200), 12)
 
-                alpha = .4
+                elif shape == 'square':
+                    cv2.rectangle(loom_frame, tuple([c+loom_radius for c in center]), tuple([c-loom_radius for c in center]), 200, 12)
+                    cv2.rectangle(loom_arena,  tuple([c+loom_radius for c in center]), tuple([c-loom_radius for c in center]), (200, 200, 200), 12)
+                    cv2.rectangle(loom_arena2,  tuple([c+loom_radius for c in center]), tuple([c-loom_radius for c in center]), (200, 200, 200), 12)
+
+                alpha = .3
                 cv2.addWeighted(frame, alpha, loom_frame, 1 - alpha, 0, frame)
-                cv2.addWeighted(session_trials_plot_in_background, alpha, loom_arena, 1 - alpha, 0, session_trials_plot_in_background)
+                cv2.addWeighted(session_trials_plot, alpha, loom_arena, 1 - alpha, 0, session_trials_plot_show)
+                cv2.addWeighted(trial_plot, alpha, loom_arena, 1 - alpha, 0, trial_plot_show)
+
+            session_trials_plot_show = cv2.cvtColor(session_trials_plot_show, cv2.COLOR_BGR2RGB)
+            trial_plot_show = cv2.cvtColor(trial_plot_show, cv2.COLOR_BGR2RGB)
+
+            # put minute of stimulation in clip
+            stim_minute = str(int(np.round(stim_frame / 60 / 30))) + "'"
+            frame = frame.copy()
+            cv2.putText(frame, stim_minute, (20, 50), 0, 1, (255, 255, 255), thickness=2)
 
             # display current frames
             if display_clip:
-                cv2.imshow(savepath, frame); cv2.imshow(savepath + ' DLC', session_trials_plot_in_background);
+                cv2.imshow(savepath, frame);
+                cv2.imshow('hi', session_trials_plot_workspace);
+                if counter: cv2.imshow(savepath + ' DLC', session_trials_plot_in_background);
+                else: cv2.imshow(savepath + ' DLC', session_trials_plot_show);
                 if cv2.waitKey(1) & 0xFF == ord('q'):
                     break
 
             # write current frame to video
             video_clip.write(frame); session_video.write(frame)
-            video_clip_dlc.write(session_trials_plot_in_background); session_trials_video.write(session_trials_plot_in_background)
-
+            if counter:
+                video_clip_dlc.write(session_trials_plot_in_background); session_trials_video.write(session_trials_plot_in_background)
+            else:
+                video_clip_dlc.write(session_trials_plot_show); session_trials_video.write(session_trials_plot_show)
             # end video
             if frame_num >= end_frame:
                 finished_clip = True
@@ -385,17 +470,23 @@ def peri_stimulus_analysis(coordinates, vidpath = '', videoname = '', savepath =
 
         # format and save trial plot
         # cv2.drawContours(trial_plot, contours, 0, (0, 0, 0), thickness=2)
-        cv2.drawContours(trial_plot, contours, 0, (255, 255, 255), thickness=1)
+        cv2.drawContours(trial_plot_show, contours, 0, (255, 255, 255), thickness=1)
 
         # scipy.misc.imsave(os.path.join(savepath, videoname + '_dlc_pure.tif'), trial_plot)
 
         trial_plot_in_background = session_trials_plot_in_background.copy()
-        trial_plot_in_background[border_size:, 0:-border_size] = cv2.cvtColor(trial_plot, cv2.COLOR_BGR2RGB)
+        trial_plot_in_background[border_size:, 0:-border_size] = trial_plot_show
         scipy.misc.imsave(os.path.join(savepath, videoname + '_dlc.tif'), cv2.cvtColor(trial_plot_in_background, cv2.COLOR_BGR2RGB))
 
+
     # draw contours on the session trials workspace plot
-    cv2.drawContours(session_trials_plot_workspace, contours, 0, (0, 0, 0), thickness=2)
-    cv2.drawContours(session_trials_plot_workspace, contours, 0, (255, 255, 255), thickness=1)
+    # cv2.drawContours(session_trials_plot_workspace, contours, 0, (0, 0, 0), thickness=2)
+    # cv2.drawContours(session_trials_plot_workspace, contours, 0, (0, 0, 0), thickness=1)
+
+    cv2.drawContours(session_trials_plot_workspace, contours, 0, (220, 0, 0), thickness=-1)
+    cv2.drawContours(session_trials_plot_workspace, contours, 0, (0,0,0), thickness=1)
+
+    scipy.misc.imsave(os.path.join(savepath, videoname + '_history.tif'), session_trials_plot_workspace)
 
     # after the last trial, save the session workspace image
     if trial_num == (number_of_trials - 1):

@@ -1,15 +1,18 @@
-from Config import setup, tracking_options
+from Config import setup, tracking_options, dlc_options
 excel_path, save_folder, DLC_folder, load_database, update_database, load_name, save_name, selector_type, selector = setup()
 track_options, analysis_options, fisheye_map_location, _ = tracking_options()
+dlc_config_settings = dlc_options()
 from termcolor import colored
 from Utils.registration_funcs import register_arena, get_background, get_arena_details, perform_arena_registration
 from Utils.loadsave_funcs import save_data, load_data, load_paths, load_yaml, print_plans, setup_database
 from Utils.Data_rearrange_funcs import check_session_selected
-from Analysis.Four_panel_plot import four_panel_plot, four_panel_plot_simulate, three_panel_plot_simulate
-from Analysis.find_w import parameterize
+from Analysis.Four_panel_plot import four_panel_plot
+from Analysis.successor import SR
+from Analysis.summary_cat import summary_plots
 from multiprocessing.dummy import Pool as ThreadPool
 
 '''
+
 ...................................START ANALYSIS...................................
 
 '''
@@ -26,11 +29,18 @@ class Analysis():
         # to see all entries: self.db
         # to drop an entry: self.db = self.db.drop(['desired_entry_to_drop'])
 
+        # find the successor representation
+        # SR(self.db)
+
         # parameterize the model
-        parameterize(self.db)
+        # parameterize(self.db)
 
         # Call the main func that orchestrates the application of the processes
-        # self.main()
+        self.main()
+
+        # do group analysis
+        if analysis_options['proper analysis']:
+            summary_plots(dlc_config_settings['clips_folder'])
 
 
     def main(self):
@@ -39,9 +49,12 @@ class Analysis():
         """
         # run analysis for the a threadpooled list of sessions
         num_parallel_processes = track_options['parallel processes']
-        splitted_session_list = [self.db.index[i::num_parallel_processes] for i in range(num_parallel_processes)]
-        pool = ThreadPool(num_parallel_processes)
-        _ = pool.map(self.run_analysis, splitted_session_list)
+        if num_parallel_processes > 1:
+            splitted_session_list = [self.db.index[i::num_parallel_processes] for i in range(num_parallel_processes)]
+            pool = ThreadPool(num_parallel_processes)
+            _ = pool.map(self.run_analysis, splitted_session_list)
+        else:
+            self.run_analysis(self.db.index)
 
         # save the data
         save_data(save_folder, save_name, object=self.db, name_modifier='')
@@ -85,13 +98,10 @@ class Analysis():
                     try: four_panel_plot(session)
                     except: print('experiment not fully analyzed')
 
-                    # Save a compacted form of the simulated data
-                    try: four_panel_plot_simulate(session); three_panel_plot_simulate(session)
-                    except: print('experiment not fully simulated')
-
                 # Input the data from the analysis into the global database
                 self.db.loc[session_name]['Tracking'] = session['Tracking']
                 save_data(save_folder, save_name, object=self.db, name_modifier='')
+                save_data(save_folder, save_name, object=self.db, name_modifier='_backup')
 
 
 
