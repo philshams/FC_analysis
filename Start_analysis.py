@@ -36,7 +36,7 @@ class Analysis():
         # parameterize(self.db)
 
         # Call the main func that orchestrates the application of the processes
-        self.main()
+        # self.main()
 
         # do group analysis
         if analysis_options['proper analysis']:

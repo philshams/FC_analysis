@@ -567,7 +567,7 @@ def spontaneous_homings(exploration_arena_copy, session_trials_plot_background, 
    # make video
     if make_vid:
         fourcc = cv2.VideoWriter_fourcc(*"XVID")
-        video_clip = cv2.VideoWriter(os.path.join(savepath, videoname + ' homings.avi'), fourcc, 160,
+        video_clip = cv2.VideoWriter(os.path.join(savepath, videoname + ' homings.mp4'), fourcc, 160,
                                   (exploration_arena_copy.shape[1], exploration_arena_copy.shape[1]), True)
 
     # visualize results
@@ -680,7 +680,7 @@ def spontaneous_homings(exploration_arena_copy, session_trials_plot_background, 
                 start_position = coordinates['center_location'][1][frame_num-1]
 
                 end_position = coordinates['center_location'][1][frame_num-1 + int(group_length)]
-            if end_position < 324:
+            if end_position < 320: #324
                 continue
 
             group_counter += 1
@@ -693,11 +693,13 @@ def spontaneous_homings(exploration_arena_copy, session_trials_plot_background, 
             model_mouse_mask = draw_silhouette(np.zeros_like(exploration_arena)[:,:,0], coordinates, frame_num, back_butt_dist)
 
             speed = smoothed_speed[frame_num - 1] * 1.7
-            speed_color_light, speed_color_dark = set_up_speed_colors(speed, spontaneous = True)
+            speed_color_light, speed_color_dark = set_up_speed_colors(speed, spontaneous = True, red = True)
 
             # emphasize the back
             if start_position > 280:
                 speed_color_light, speed_color_dark = speed_color_light**.3, speed_color_dark**.3
+            # else:
+            #     speed_color_dark = speed_color_dark ** .5
 
             if frame_num >= stim_frame - 10:
                 speed_color_light, speed_color_dark = np.ones(3)*np.mean(speed_color_light), np.ones(3)*np.mean(speed_color_dark)
@@ -718,7 +720,9 @@ def spontaneous_homings(exploration_arena_copy, session_trials_plot_background, 
             # display image
             cv2.imshow(savepath + 'homings', exploration_arena)
 
-            if make_vid: video_clip.write(exploration_arena)
+            # print(frame_num)
+            if frame_num > 4000:
+                if make_vid: video_clip.write(exploration_arena)
 
             # press q to quit
             if cv2.waitKey(1) & 0xFF == ord('q'):
@@ -779,9 +783,9 @@ def procedural_learning(exploration_arena_copy, session_trials_plot_background, 
     thresholds_passed[-(skip_frames + 10):-skip_frames] = False
 
     # get vectors from the first phase of all homings
-    minimum_distance = 50 # 50
+    minimum_distance = 200 # 50 #TEMPORARY FOR TIAGO
     max_shelter_proximity = 50 # 200 #150
-    critical_turn = 45 #was 45, and replaced subgoal_angles with body_angles
+    # critical_turn = 45 #was 45, and replaced subgoal_angles with body_angles TEMPORARILY BACK TO 45
     critical_turn = 25  # was 45, then 25 and replaced subgoal_angles with body_angles
     group_idx, distance_from_start, end_idx = multi_phase_phinder(thresholds_passed, minimum_distance, max_shelter_proximity, body_angles, distance_from_shelter,
                                              x_location_butt, y_location_butt, x_location_face, y_location_face, critical_turn, frame_nums[0],
@@ -873,6 +877,8 @@ def exploration(session_plot_background, border_size, coordinates, previous_stim
     go through each frame, adding the mouse silhouette
     '''
 
+    # if previous_stim_frame: # SUPER TEMPORARY
+
     # for debugging, make a copy
     exploration_arena_trial = cv2.cvtColor(arena, cv2.COLOR_GRAY2RGB)
 
@@ -890,6 +896,9 @@ def exploration(session_plot_background, border_size, coordinates, previous_stim
     last_in_shelter = np.where(distance_from_shelter < 30)[0]
     if last_in_shelter.size: start_idx = last_in_shelter[-1]
     else: start_idx = 0
+
+    # start at previous stim frame FOR TIAGO
+    start_idx = 100
 
     # set up coloring
     total_time = len(frame_nums[start_idx:])
@@ -918,13 +927,16 @@ def exploration(session_plot_background, border_size, coordinates, previous_stim
         time_color = f1 * np.array([190, 240, 190]) + f2 * np.array([250, 220, 223])
         multiplier = f1 * 40 + f2 * 80
 
+        #GRAYSCALE FOR TIAGO
+        time_color = np.array([220,220,220])
+
         # create color multiplier to modify image
         color_multiplier = 1 - (1 - time_color / [255, 255, 255]) / (np.mean(1 - time_color / [255, 255, 255]) * multiplier)
 
 
         # prevent any region from getting too dark (trial)
-        # if np.mean(exploration_arena_trial[model_mouse_mask.astype(bool)]) < 100:
-        #     continue
+        if np.mean(exploration_arena_trial[model_mouse_mask.astype(bool)]) < 100:
+            continue
 
         # apply color to arena image (trial)
         exploration_arena_trial[model_mouse_mask.astype(bool)] = exploration_arena_trial[model_mouse_mask.astype(bool)] * color_multiplier
@@ -936,9 +948,9 @@ def exploration(session_plot_background, border_size, coordinates, previous_stim
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
 
-    # color in final position in red
-    _, contours, _ = cv2.findContours(model_mouse_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    cv2.drawContours(exploration_arena_trial, contours, 0, (0,0,160), thickness=2)
+    # color in final position in red - OR NOT FOR TIAGO
+    # _, contours, _ = cv2.findContours(model_mouse_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    # cv2.drawContours(exploration_arena_trial, contours, 0, (0,0,160), thickness=2)
 
     # apply the contours and border to the image and save the image
     try:
@@ -978,7 +990,7 @@ def exploration(session_plot_background, border_size, coordinates, previous_stim
     exploration_image[exploration_image > 255] = 255
     exploration_image = exploration_image.astype(np.uint8)
 
-    exploration_image[(arena > 0) * (exploration_image[:,:,0] < 10)] = 15
+    exploration_image[(arena > 0) * (exploration_image[:,:,0] < 10)] = 10
     # exploration_all[(arena > 0) * (exploration_all[:, :, 0] == 0)] = 20
     # exploration_image_save = cv2.copyMakeBorder(exploration_image, border_size, 0, 0, 0, cv2.BORDER_CONSTANT, value=0)
     # textsize = cv2.getTextSize(videoname, 0, .55, 1)[0]

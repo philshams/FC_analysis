@@ -26,16 +26,22 @@ def set_up_colors(trial_type):
     return wall_color, probe_color, no_wall_color, flight_color, flight_color_light, flight_color_dark
 
 
-def set_up_speed_colors(speed, simulation = False, spontaneous = False):
+def set_up_speed_colors(speed, simulation = False, spontaneous = False, red = False):
     '''
     set up colors for speed-dependent DLC analysis
     '''
     # colors depending on speed
-    slow_color = np.array([240, 240, 240])
-    medium_color = np.array([190, 190, 240])
-    fast_color = np.array([0, 192, 120])
-    fast_color = np.array([0, 232, 120])
-    super_fast_color = np.array([0, 232, 0])
+    if red:
+        slow_color = np.array([240, 240, 240])
+        medium_color = np.array([240, 10, 10])
+        fast_color = np.array([220, 220, 0])
+        super_fast_color = np.array([232, 0, 0])
+    else:
+        slow_color = np.array([240, 240, 240])
+        medium_color = np.array([190, 190, 240])
+        # fast_color = np.array([0, 192, 120])
+        fast_color = np.array([0, 232, 120])
+        super_fast_color = np.array([0, 232, 0])
     
     # vary color based on speed
     speed_threshold_3 = 20 #118 - not actually used?..
@@ -141,6 +147,16 @@ def get_trial_types(self, vid_num, number_of_vids, stims_video, stims, save_fold
 
         trial_types = [2*int(s>20*30*60) for s in stims_video]
         print(trial_types)
+
+        wall_change_frame_store = None
+
+    elif obstacle_type == 'void':
+
+        void_up_mice = ['CA7505', 'CA7492', 'CA7502']
+        if np.any([mouse==self.session.Metadata.mouse_id for mouse in void_up_mice]):
+            trial_types = [2*int(s<36*30*60) for s in stims_video]
+        else:
+            trial_types = [2 for s in stims_video]
 
         wall_change_frame_store = None
 

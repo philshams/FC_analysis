@@ -14,7 +14,8 @@ plt.rcParams.update({'font.size': 18})
 import seaborn as sb
 from scipy.ndimage import gaussian_filter1d
 from Utils.registration_funcs import get_arena_details, model_arena
-import tqdm
+from Utils.obstacle_funcs import set_up_speed_colors
+from tqdm import tqdm
 import statsmodels.api as sm
 
 
@@ -34,12 +35,426 @@ def summary_plots(save_folder):
     with open(save_file, 'rb') as dill_file:
         analysis_dictionary = pickle.load(dill_file)
 
+    '''
+       FIT AND PLOT THE KERNEL DENSITY ESTIMATE
+       '''
+
+    def fit_kde(x, **kwargs):
+        """ Fit a KDE using StatsModels.
+            kwargs is useful to pass stuff to the fit, e.g. the binwidth (bw)"""
+        x = np.array(x).astype(np.float)
+        kde = sm.nonparametric.KDEUnivariate(x)
+        kde.fit(**kwargs)  # Estimate the densities
+        return kde
+
+    def plot_shaded_withline(ax, x, y, z=None, label=None, violin=True, **kwargs):
+        """[Plots a curve with shaded area and the line of the curve clearly visible]
+
+        Arguments:
+            ax {[type]} -- [matplotlib axis]
+            x {[np.array, list]} -- [x data]
+            y {[np.array, list]} -- [y data]
+
+        Keyword Arguments:
+            z {[type]} -- [description] (default: {None})
+            label {[type]} -- [description] (default: {None})
+            alpha {float} -- [description] (default: {.15})
+        """
+        # if z is not None:
+        fill_alpha = .2
+        line_alpha = .4
+
+        redness = kwargs['color'][0]
+        if type(redness) != str:
+            if redness > .5: fill_alpha += .1
+
+        ax.fill_betweenx(y, z + x, z, alpha=fill_alpha, **kwargs)
+        ax.plot(z + x, y, alpha=line_alpha, label=label, **kwargs)
+        if violin:
+            ax.fill_betweenx(y, z - x, z, alpha=fill_alpha, **kwargs)
+            ax.plot(z - x, y, alpha=line_alpha, label=label, **kwargs)
+        # else:
+        #     ax.fill_between(x, y, alpha=alpha, **kwargs)
+
+    def plot_kde(ax, kde, data, z, vertical=False, normto=None, label=None, violin=True, clip=False, **kwargs):
+        """[Plots a KDE distribution. Plots first the shaded area and then the outline.
+           KDE can be oriented vertically, inverted, normalised...]
+
+        Arguments:
+            ax {[plt.axis]} -- [ax onto which to plot]
+            kde {[type]} -- [KDE fitted with statsmodels]
+            z {[type]} -- [value used to shift the plotted curve. e.g for a horizzontal KDE if z=0 the plot will lay on the X axis]
+
+        Keyword Arguments:
+            invert {bool} -- [mirror the KDE plot relative to the X or Y axis, depending on ortentation] (default: {False})
+            vertical {bool} -- [plot KDE vertically] (default: {False})
+            normto {[float]} -- [normalise the KDE so that the peak of the distribution is at a certain value] (default: {None})
+            label {[string]} -- [label for the legend] (default: {None})
+
+        Returns:
+            ax, kde
+        """
+        if vertical:
+            x = kde.density
+            y = kde.support
+        else:
+            x, y = kde.support, kde.density
+
+        if clip:
+
+            if np.max(data) > 1:
+                x = x[(y > 0)]  # * (y < 1)]
+                y = y[(y > 0)]  # * (y < 1)]
+            else:
+                x = x[(y > 0) * (y < 1)]
+                y = y[(y > 0) * (y < 1)]
+
+        if normto is not None:
+            if not vertical:
+                y = y / np.max(y) * normto
+            else:
+                x = x / np.max(x) * normto
+
+        plot_shaded_withline(ax, x, y, z=z, violin=violin, **kwargs)
+
+        return ax, kde
+
+    '''
+    COMBINE THE RUNNING-TO-CENTER DIRECTIONALITY PLOTS PER CONDITION
+    '''
+
+    # # OBSTACLE VS NO OBSTACLE
+    experiments = ['Circle wall up', ['Circle wall down', 'Circle lights on off (baseline)'] ]
+    conditions = ['no obstacle', ['obstacle','obstacle']]
+
+    # # OBSTACLE VS OBSTACLE GONE
+    experiments = ['Circle wall up', 'Circle wall down']
+    conditions = ['no obstacle', 'no obstacle']
+
+    # LIGHT VS DARK
+    # experiments = ['Circle wall down (dark)', 'Circle wall down']
+    # conditions = ['obstacle', 'obstacle']
+    #
+    # # VOID VS WALL
+    # experiments = ['Circle void up', ['Circle wall down', 'Circle lights on off (baseline)']]
+    # conditions = ['obstacle', ['obstacle', 'obstacle']]
+    #
+    # # VOID VS WALL
+    # experiments = ['Circle void up', 'Circle wall down (no baseline)']
+    # conditions = ['obstacle', 'obstacle']
+
+    sides = ['back'] #, 'front']
+
+    fast_color = np.array([.5, 1, .5])
+    slow_color = np.array([1, .9, .9])
+
+    arena, _, shelter_roi = model_arena((720,720), False, False, 'wall', simulate=True)
+    arena0 = cv2.cvtColor(arena, cv2.COLOR_GRAY2RGB)
+    arena1 = arena0.copy()
+
+    scaling_factor = 100 / arena.shape[0]
+
+    for s, start in enumerate(sides):
+        for c, (experiment, condition) in enumerate(zip(experiments, conditions)):
+
+            if type(experiment) == list:
+                sub_experiments = experiment
+                sub_conditions = condition
+                experiment = experiment[0]
+                condition = condition[0]
+            else:
+                sub_experiments = [experiment]
+                sub_conditions = [condition]
+
+
+
+            # fill array with each mouse's data
+            for e, (experiment, condition) in enumerate(zip(sub_experiments, sub_conditions)):
+                for i, mouse in enumerate(analysis_dictionary[experiment][condition][start + '2center']):
+
+                    if not mouse in analysis_dictionary[experiment][condition][start + '2center']:
+                        continue
+
+                    print('')
+                    print(experiment, condition)
+                    print(mouse)
+
+
+                    path = np.array(analysis_dictionary[experiment][condition][start + '2center'][mouse][3])
+
+                    #limit to three trials TEMPORARY
+                    if path.shape[0] > 3: path = path[:3]
+
+                    for trial in range(path.shape[0]):
+                        x_idx = path[trial][0].astype(int)
+                        y_idx = path[trial][1].astype(int)
+
+                        time = len(x_idx) / 30
+                        dist = np.sum( np.sqrt( np.diff(x_idx)**2 + np.diff(y_idx)**2 ) ) * scaling_factor
+                        print(dist/time)
+                        speed = np.min((40, dist / time))
+
+                        speed_color = ((40 - speed) * slow_color + speed * fast_color) / 40
+
+                        # loop thru each point, drawing line segments
+                        mask_arena = np.zeros_like(arena)
+
+                        for j in range(len(x_idx)-1):
+                            x1, y1 = x_idx[j], y_idx[j]
+                            x2, y2 = x_idx[j+1], y_idx[j+1]
+                            cv2.line(mask_arena, (x1, y1), (x2, y2), 1, thickness = 1 + 1*(speed > 15) + 2*(speed > 25) + 1*(speed > 35))
+
+                        if c==0:
+                            arena0[mask_arena.astype(bool)] = arena0[mask_arena.astype(bool)] * speed_color
+                        elif c==1:
+                            arena1[mask_arena.astype(bool)] = arena1[mask_arena.astype(bool)] * speed_color
+
+                        cv2.imshow('traversals0', arena0)
+                        cv2.imshow('traversals1', arena1)
+                        cv2.waitKey(1)
+
+
+
+
+
+
+
+
+    '''
+    COMBINE THE RUNNING-TO-CENTER DIRECTIONALITY PLOTS PER CONDITION
+    '''
+
+    # # OBSTACLE VS NO OBSTACLE
+    # experiments = ['Circle wall up', ['Circle wall down', 'Circle lights on off (baseline)'] ]
+    # conditions = ['no obstacle', ['obstacle','obstacle']]
+
+    # # OBSTACLE VS OBSTACLE GONE
+    # experiments = ['Circle wall up', 'Circle wall down']
+    # conditions = ['no obstacle', 'no obstacle']
+
+    # LIGHT VS DARK
+    experiments = ['Circle wall down (dark)', ['Circle wall down', 'Circle lights on off (baseline)'] ]
+    conditions = ['obstacle', ['obstacle','obstacle']]
+
+    # VOID VS WALL
+    # experiments = ['Circle void up', ['Circle wall down', 'Circle lights on off (baseline)'] ]
+    # conditions = ['obstacle', ['obstacle','obstacle']]
+
+    side_bound = 0
+    x_ticks = [0, 1.5, .5, 2]
+
+
+
+    colors = [[1,0,0], [0,1,0]]
+    colors = [[1,0,0], 'cyan']
+    colors = [[.2,.6,.2], [0,1,0]]
+    colors = [[.2,.2,1], [0,1,0]]
+
+    fig0, ax0 = plt.subplots(figsize=(8, 12))
+
+    # ax0.set_xlabel('no obstacle                 obstacle   ')
+    # ax0.set_xlabel('   no obstacle              obstacle gone  ')
+    ax0.set_xlabel('dark                          light   ')
+    ax0.set_xlabel('hole                           walll')
+
+
+
+    ax0.set_ylabel('mean edginess from session')
+    ax0.set_title('Spontaneous edginess')
+    ax0.set_xticks(x_ticks)
+    labels = ['back', 'back', 'front','front']
+    ax0.set_xticklabels(labels)
+    ax0.set_xlim([-.75, 2.75])
+    # ax0.set_ylim([-.03, 1.03])
+
+    all_data = {}
+
+    for s, start in enumerate(['back', 'front']):
+
+        for c, (experiment, condition) in enumerate(zip(experiments, conditions)):
+
+            if type(experiment) == list:
+                sub_experiments = experiment
+                sub_conditions = condition
+                experiment = experiment[0]
+                condition = condition[0]
+            else:
+                sub_experiments = [experiment]
+                sub_conditions = [condition]
+
+            # get the number of trials
+            number_of_bouts = 0
+            number_of_mice = 0
+
+            for e, (experiment, condition) in enumerate(zip(sub_experiments, sub_conditions)):
+                for i, mouse in enumerate(analysis_dictionary[experiment][condition][start + '2center']):
+                    bout_data = np.array(analysis_dictionary[experiment][condition][start + '2center'][mouse][1])
+                    number_of_bouts += np.sum((bout_data > side_bound) * (bout_data < (100-side_bound)))
+                    number_of_mice += 1
+
+                # initialize array to fill in with each mouse's data
+            edginess_all = np.zeros(number_of_bouts)
+            edginess_mice = np.zeros(number_of_mice)
+
+            speed_all = np.zeros(number_of_bouts)
+            speed_mice = np.zeros(number_of_mice)
+
+            bouts_idx = 0
+            mouse_idx = 0
+
+            # fill array with each mouse's data
+            for e, (experiment, condition) in enumerate(zip(sub_experiments, sub_conditions)):
+                for i, mouse in enumerate(analysis_dictionary[experiment][condition][start + '2center']):
+
+                    if not mouse in analysis_dictionary[experiment][condition][start + '2center']:
+                        continue
+
+                    print('')
+                    print(experiment, condition)
+                    print(mouse)
+
+                    x_pos_end = np.array(analysis_dictionary[experiment][condition][start + '2center'][mouse][1])
+                    x_pos_start = np.array(analysis_dictionary[experiment][condition][start + '2center'][mouse][0])
+                    speed = np.array(analysis_dictionary[experiment][condition][start + '2center'][mouse][2])
+
+                    # print(x_pos_end)
+                    # print(x_pos_start)
+
+                    # flip so all on one side
+                    x_pos_start[x_pos_end > 50] = 2 * 50 - x_pos_start[x_pos_end > 50]
+                    x_pos_end[x_pos_end > 50] = 2 * 50 - x_pos_end[x_pos_end > 50]
+
+
+                    # print(x_pos_end)
+                    # print(x_pos_start)
+                    # data = data[data > 10]
+                    speed = speed[x_pos_end > side_bound]
+                    x_pos_start = x_pos_start[x_pos_end > side_bound]
+                    x_pos_end = x_pos_end[x_pos_end > side_bound]
+
+
+                    reflection_point = 20
+                    x_pos_end[x_pos_end < reflection_point] = 2 * reflection_point - x_pos_end[x_pos_end < reflection_point]
+
+                    # start point
+
+                    x_pos_shelter = 50
+                    if start == 'back': y_pos_start = 30; y_pos_shelter = 86.5
+                    elif start == 'front': y_pos_start = 70; y_pos_shelter = 13.5
+                    y_edge = 50
+                    x_edge = 25
+                    y_loc = 40 #- 5*('void' in experiment)
+
+                    slope = (y_pos_shelter - y_pos_start) / (x_pos_shelter - x_pos_start)
+                    intercept = y_pos_start - x_pos_start * slope
+                    distance_to_line = abs(y_loc   - slope * x_pos_end - intercept) / np.sqrt((-slope) ** 2 + (1) ** 2)
+                    # print(slope, intercept, distance_to_line)
+
+                    # do line from starting position to edge position
+                    slope = (y_edge - y_pos_start) / (x_edge - x_pos_start)
+                    intercept = y_pos_start - x_pos_start * slope
+                    distance_to_edge = abs(y_loc - slope * x_pos_end - intercept) / np.sqrt((-slope) ** 2 + (1) ** 2)
+                    # print(slope, intercept, distance_to_line)
+
+                    # distance_to_line = 50 - data
+                    # distance_to_edge = abs(data - 25)
+
+                    # add data to array
+                    mouses_bouts = len(x_pos_end)
+
+                    edginess_array = np.ones((len(distance_to_line), 2))
+                    edginess_array[:, 0] = (distance_to_line - distance_to_edge + 25) / 50
+                    edginess_all[bouts_idx:bouts_idx+mouses_bouts] = np.min(edginess_array, 1)
+                    edginess_mice[mouse_idx] = np.mean(edginess_all[bouts_idx:bouts_idx+mouses_bouts])
+
+                    speed_all[bouts_idx:bouts_idx+mouses_bouts] = speed
+                    speed_mice[mouse_idx] = np.mean(speed)
+
+                    # print(edginess_all[bouts_idx:bouts_idx + mouses_bouts])
+                    print(np.mean(edginess_all[bouts_idx:bouts_idx + mouses_bouts]))
+
+                    # print(speed_all[bouts_idx:bouts_idx+mouses_bouts])
+                    print(np.mean(speed))
+
+                    bouts_idx += mouses_bouts
+                    mouse_idx += 1
+
+            all_data[start + experiment] = edginess_mice[~np.isnan(edginess_mice)]
+
+            # make a boxplot
+            x = 1.5 * c + .5 * s
+
+            end_data = edginess_mice[~np.isnan(edginess_mice)]
+            # end_data = speed_mice
+
+            median = np.median(end_data)
+            lower = np.percentile(end_data, 25)
+            upper = np.percentile(end_data, 75)
+
+            # plot the median and IQR
+            ax0.errorbar(x - .1, median, yerr=np.array([[median - lower], [upper - median]]), color=colors[c], capsize=8, capthick=1, alpha=1, linewidth=1)
+            ax0.scatter(x - .1, median, color=colors[c], s=150, alpha=1)
+
+            # plot each trial
+            ax0.scatter(np.ones_like(end_data) * x, end_data, color=colors[c], s=30, alpha=1, edgecolors='black', linewidth=1)  # [.2,.2,.2])
+
+            kde = fit_kde(end_data, bw=.03)  # .04
+            plot_kde(ax0, kde, end_data, z=x + .01, vertical=True, normto=.3, color=colors[c], violin=False, clip=True)  # True)
+
+        ax0.plot([-10, 10], [0.5, 0.5], color='white', linestyle='--', alpha=.2)
+
+
+    # do statistical test
+    tests = [[0,1], [0,2], [1,3], [2,3]]
+    number_of_tests = len(tests)
+    for i, (experiment1start1) in enumerate(all_data):
+        for j, (experiment2start2) in enumerate(all_data):
+
+            if [i ,j] in tests:
+                # do t test
+                t, p = scipy.stats.ttest_ind(all_data[experiment1start1], all_data[experiment2start2], equal_var=False)
+                print(i, j, p)
+
+                # Bony Ferroni correction
+                p *= number_of_tests
+
+                # plot line
+                y_limit = ax0.get_ylim()[1]
+                if p < 0.05:
+                    ax0.plot([x_ticks[i], x_ticks[j]], [y_limit, y_limit], color = 'white', alpha = .8, linewidth = 3)
+                    ax0.scatter(np.mean([x_ticks[i], x_ticks[j]]),1.01*y_limit, color = 'white', marker = '*' )
+                    if p < 0.001:
+                        ax0.scatter(np.mean([x_ticks[i], x_ticks[j]])-.1, 1.01 * y_limit, color='white', marker='*')
+                        if p < 0.0001:
+                            ax0.scatter(np.mean([x_ticks[i], x_ticks[j]])+.1, 1.01 * y_limit, color='white', marker='*')
+
+    ax0.set_ylim([-.03, 1.06])
+
+
+    # plt.show()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     '''
     LOOP ACROSS ALL EXPERIMENTS AND CONDITIONS
     '''
     experiments = ['Circle wall down', 'Circle wall down (no baseline)', 'Circle wall down (no shelter)']
     experiments = ['Circle (no shelter)', 'Circle wall (no shelter)', 'Circle void (no shelter)', 'Circle wall up', 'Circle wall down']
+    experiments = ['Circle wall up', 'Circle wall down']
     experiments = []
 
     # experiments = ['Circle void (shelter on side)', 'Circle wall (shelter on side)']
@@ -145,6 +560,9 @@ def summary_plots(save_folder):
 
             # save results
             imageio.imwrite(os.path.join(experiment_save_folder, experiment + '_direction_' + condition + '.tif'), direction_merge[:, :, ::-1])
+
+
+
 
     '''
     LOOP ACROSS ALL EXPERIMENTS AND CONDITIONS
@@ -297,88 +715,6 @@ def summary_plots(save_folder):
     trial = 0
 
 
-    '''
-    FIT AND PLOT THE KERNEL DENSITY ESTIMATE
-    '''
-    def fit_kde(x, **kwargs):
-        """ Fit a KDE using StatsModels.
-            kwargs is useful to pass stuff to the fit, e.g. the binwidth (bw)"""
-        x = np.array(x).astype(np.float)
-        kde = sm.nonparametric.KDEUnivariate(x)
-        kde.fit(**kwargs)  # Estimate the densities
-        return kde
-
-    def plot_shaded_withline(ax, x, y, z=None, label=None, violin = True, **kwargs):
-        """[Plots a curve with shaded area and the line of the curve clearly visible]
-
-        Arguments:
-            ax {[type]} -- [matplotlib axis]
-            x {[np.array, list]} -- [x data]
-            y {[np.array, list]} -- [y data]
-
-        Keyword Arguments:
-            z {[type]} -- [description] (default: {None})
-            label {[type]} -- [description] (default: {None})
-            alpha {float} -- [description] (default: {.15})
-        """
-        # if z is not None:
-        fill_alpha = .2
-        line_alpha = .4
-
-        redness = kwargs['color'][0]
-        if type(redness) != str:
-            if redness > .5: fill_alpha += .1
-
-        ax.fill_betweenx(y, z+x, z, alpha=fill_alpha, **kwargs)
-        ax.plot(z+x, y, alpha=line_alpha, label=label, **kwargs)
-        if violin:
-            ax.fill_betweenx(y, z-x, z, alpha=fill_alpha, **kwargs)
-            ax.plot(z-x, y, alpha=line_alpha, label=label, **kwargs)
-        # else:
-        #     ax.fill_between(x, y, alpha=alpha, **kwargs)
-
-
-
-    def plot_kde(ax, kde, z, vertical=False, normto=None, label=None, violin = True, clip = False, **kwargs):
-        """[Plots a KDE distribution. Plots first the shaded area and then the outline.
-           KDE can be oriented vertically, inverted, normalised...]
-
-        Arguments:
-            ax {[plt.axis]} -- [ax onto which to plot]
-            kde {[type]} -- [KDE fitted with statsmodels]
-            z {[type]} -- [value used to shift the plotted curve. e.g for a horizzontal KDE if z=0 the plot will lay on the X axis]
-
-        Keyword Arguments:
-            invert {bool} -- [mirror the KDE plot relative to the X or Y axis, depending on ortentation] (default: {False})
-            vertical {bool} -- [plot KDE vertically] (default: {False})
-            normto {[float]} -- [normalise the KDE so that the peak of the distribution is at a certain value] (default: {None})
-            label {[string]} -- [label for the legend] (default: {None})
-
-        Returns:
-            ax, kde
-        """
-        if vertical:
-            x = kde.density
-            y = kde.support
-        else:
-            x, y = kde.support, kde.density
-
-        if clip:
-            x = x[(y > 0)]# * (y < 1)]
-            y = y[(y > 0)]# * (y < 1)]
-
-            # x = x[(y>0) * (y<1)]
-            # y = y[(y>0) * (y<1)]
-
-        if normto is not None:
-            if not vertical:
-                y = y / np.max(y) * normto
-            else:
-                x = x / np.max(x) * normto
-
-        plot_shaded_withline(ax, x, y, z=z, violin = violin, **kwargs)
-
-        return ax, kde
 
     if False:
         experiments = ['Circle wall up', 'Circle wall up_control', 'Circle (no shelter)', 'Circle (no shelter)_control', 'Circle wall (no shelter)',
@@ -438,7 +774,7 @@ def summary_plots(save_folder):
             ax2.set_xticks(np.arange(len(experiments)))
             ax2.set_xticklabels(x_labels)
             ax2.set_xlim([-.5, len(experiments)])
-            plt.xticks(rotation=30)
+            # plt.xticks(rotation=30)
 
             legend = []
 
@@ -626,16 +962,24 @@ def summary_plots(save_folder):
 
 
 
-    # experiments = ['Circle wall up', 'Circle wall down (no shelter)', ['Circle wall down', 'Circle wall down (no baseline)'] , 'Circle wall down']
-    experiments = ['Circle wall up', 'Circle wall down (no shelter)', 'Circle wall down (no baseline no naive)', 'Circle wall down']
+    experiments = ['Circle wall up', 'Circle wall down (no shelter)', ['Circle wall down', 'Circle wall down (no baseline)'] , ['Circle wall down','Circle lights on off (baseline)']]
+
+    experiments = ['Circle wall up', 'Circle void up', 'Circle wall down (dark)',['Circle wall down', 'Circle lights on off (baseline)']]
+    # experiments = [['Circle wall down', 'Circle wall down (no baseline)']]
+
+    # experiments = ['Circle wall up', 'Circle wall down (no shelter)', 'Circle wall down (no baseline no naive)', 'Circle wall down']
     # experiments = ['Circle wall down (no shelter)', ['Circle wall down', 'Circle wall down (no baseline)']]
     # experiments = [['Circle wall down', 'Circle wall down (no baseline)']] #'Circle wall down (no shelter)',
-    experiments = ['Circle wall down']
+    # experiments = [['Circle wall down', 'Circle lights on off (baseline)']]
 
-    # conditions = ['no obstacle', 'no obstacle', ['no obstacle','no obstacle'], 'obstacle']
-    conditions = ['no obstacle', 'no obstacle', 'no obstacle', 'obstacle']
+
+    conditions = ['no obstacle', 'no obstacle', ['no obstacle','no obstacle'], ['obstacle', 'obstacle']]
+    conditions = ['no obstacle', 'obstacle', 'obstacle', ['obstacle', 'obstacle']]
+
+    # conditions = [['no obstacle', 'no obstacle']]
+    # conditions = ['no obstacle', 'no obstacle', 'no obstacle', 'obstacle']
     # conditions = [ ['no obstacle', 'no obstacle'] ] #'no obstacle',
-    conditions = ['obstacle']
+    # conditions = [['obstacle','obstacle']]
 
 
 
@@ -648,9 +992,13 @@ def summary_plots(save_folder):
     # x_labels = ['Lights on', 'Lights off']
 
     x_labels = ['No obstacle', 'OR (no shelter)', 'Obstacle removed', 'Obstacle']
+    x_labels = ['No obstacle', 'hole', 'wall dark', 'wall']
+
+
+    # x_labels = ['Obstacle removed']
     # x_labels = ['Obstacle removed (no shelter)', 'Obstacle removed']
     # x_labels = ['Obstacle removed'] #'Obstacle removed (no shelter)',
-    x_labels = ['Obstacle']
+    # x_labels = ['Obstacle']
 
 
 
@@ -660,15 +1008,16 @@ def summary_plots(save_folder):
     # metrics = ['speed', 'peak speed', 'RT', 'linearity']
     # metrics = ['exploration']
     metrics = ['SR'] #, 'OM linearity']#, 'edginess']
-    metrics = ['linearity']
+    # metrics = ['linearity']
 
-    metrics = ['escape speed', 'speed', 'peak speed', 'RT', 'path length']
-    metrics = ['escape speed', 'path length']
+    # metrics = ['escape speed', 'speed', 'peak speed', 'RT', 'path length']
+    # metrics = ['peak speed', 'speed', 'RT'] #, 'escape speed', 'path length']
+    # metrics = ['escape speed','path length']
 
     # experiments = ['Circle wall down', 'Circle wall up', 'Circle wall down', 'Circle wall up']
     # conditions = ['no obstacle', 'no obstacle', 'obstacle', 'obstacle']
     mode = 'path' #lunge or path
-    traj_loc = 40 #44.75 #45 #44.75 #43?
+    traj_loc = 40 #40 #44.75 #45 #44.75 #43?
     # PM = 8
     ETD = 7 # 7
     RT_speed = 15 #15
@@ -678,9 +1027,14 @@ def summary_plots(save_folder):
 
 
     colors = [[1, .1, .3], [.9, 0, 1], 'cyan', [0, 1, 0]]
-    colors = [[1, 0, 0], [1, 0, 1], 'cyan', [0, 1, 0]]
-    # colors = [ 'cyan',[.1, .6, 1], [.8, .1, .85], 'cyan', 'green']
+    # colors = ['cyan']
+    # colors = [[1, 0, 0], [1, 0, 1], 'cyan', [0, 1, 0]]
+    # colors = [[0, 1, 0]]
+    # colors = [[1, 0, 0]]
+    # colors = [ , [.8, .1, .85], 'cyan', 'green'] #[.1, .6, 1]
     # colors = [[.9, 0, 1], 'cyan', [.9, 0, 1],  [0, 1, 0]]  # [.1, .6, 1] 'cyan', [0, .8, 1]
+
+
 
 
     '''
@@ -693,22 +1047,42 @@ def summary_plots(save_folder):
         # x_labels = ['No obstacle', 'OR (no shelter)', 'Obstacle removed', 'Obstacle']
         print('PLOTTING ' + what_to_plot)
 
+        # make figures
+        fig1, ax1 = plt.subplots(figsize=(9, 13))
+        fig2, ax2 = plt.subplots(figsize=(11, 17))
+        fig3, ax3 = plt.subplots(figsize=(15, 15))
+        fig4, ax4 = plt.subplots(figsize=(7, 13))
+        fig5, ax5 = plt.subplots(figsize=(7, 13))
+
         # name things things
         if what_to_plot == 'escape speed':
-            title = 'Homing speed'
+            title = 'Homing speed (obstacle present)'
             y_label = 'geodesic distance to shelter / time to shelter (cm/s)'
+            ax1.set_ylim([-1, 61]); ax4.set_ylim([-1, 61]); ax5.set_ylim([-1, 61])
+            ax1.set_xlim([.5, 3.5]); ax4.set_xlim([-.5, 1.5]); ax5.set_xlim([-.5, 1.5])
         elif what_to_plot == 'path length':
-            title = 'Path efficiency'
+            title = 'Path efficiency (obstacle present)'
             y_label = 'optimal path length / actual path length'
+            ax1.set_ylim([-.1, 1.1]); ax4.set_ylim([-.1, 1.1]); ax5.set_ylim([-.1, 1.1])
+            ax1.set_xlim([.5, 3.5]); ax4.set_xlim([-.5, 1.5]); ax5.set_xlim([-.5, 1.5])
+            ax1.plot([-1,4],[1,1],color=[.4,.4,.4], linestyle = '--')
+            ax4.plot([-1, 4], [1, 1], color=[.4, .4, .4], linestyle='--')
+            ax5.plot([-1, 4], [1, 1], color=[.4, .4, .4], linestyle='--')
         elif what_to_plot == 'RT':
             title = 'Reaction time'
             y_label = 'reaction time (s)'
+            ax1.set_ylim([-.1, 3.55]); ax4.set_ylim([-.1, 3.55]); ax5.set_ylim([-.1, 3.55])
+            ax1.set_xlim([.5, 3.5]); ax4.set_xlim([-.5, 1.5]); ax5.set_xlim([-.5, 1.5])
         elif what_to_plot == 'speed':
-            title = 'Speed during escape'
+            title = 'Avg speed during escape'
             y_label = 'speed (cm/s)'
+            ax1.set_ylim([-.1, 81]); ax4.set_ylim([-.1, 81]); ax5.set_ylim([-.1, 81])
+            ax1.set_xlim([.5, 3.5]); ax4.set_xlim([-.5, 1.5]); ax5.set_xlim([-.5, 1.5])
         elif what_to_plot == 'peak speed':
-            title = 'Peak speed during escape'
+            title = 'Peak speed during escape (obstacle present)'
             y_label = 'speed (cm/s)'
+            ax1.set_ylim([-.1, 141]); ax4.set_ylim([-.1, 141]); ax5.set_ylim([-.1, 141])
+            ax1.set_xlim([.5, 3.5]); ax4.set_xlim([-.5, 1.5]); ax5.set_xlim([-.5, 1.5])
         elif what_to_plot == 'linearity':
             title = 'Escape strategy'
             y_label = 'Closer to homing vector (cm)                               Closer to wall-edge vector (cm)'
@@ -729,29 +1103,47 @@ def summary_plots(save_folder):
             title = 'Edginess of all homings'
             y_label = 'deviation from subgoal - deviation from homing vector, 5 cm before the wall (cm)'
 
-
         # set up plot for escape duration across session
-        fig1, ax1 = plt.subplots(figsize=(8, 8))
         ax1.set_title(title)
         ax1.set_xlabel('trial')  #'time since session start (mins)')
         ax1.set_ylabel(y_label)
+        ax1.set_xticks(np.arange(3)+1)
 
         # set up plot for escape duration boxplot
-        fig2, ax2 = plt.subplots(figsize=(11, 17))
         ax2.set_title(title)# + ' (' + str(time_limit[0]) + ' - ' + str(time_limit[1]) + ' mins)')
         ax2.set_ylabel(y_label)
         ax2.set_xticks(np.arange(len(experiments)))
         ax2.set_xticklabels(x_labels)
         ax2.set_xlim([-.5,len(experiments)])
-        plt.xticks(rotation=30)
+        # plt.xticks(rotation=30)
         # ax2.set_ylim([-22, 32])
         ax2.set_ylim([-.03,1.03])
 
         # # set up plot for escape duration across session
-        fig3, ax3 = plt.subplots(figsize=(15, 15))
         ax3.set_title('Correlation between prior homing paths and evoked escape paths') # + ' (' + mode + ')')
         ax3.set_xlabel('average prior homing edginess')
         ax3.set_ylabel('evoked escape edginess')
+
+        # set up plot for escape duration boxplot
+        ax4.set_title(title)
+        # ax4.set_xlabel('Strategy')
+        ax4.set_ylabel(y_label)
+        # ax4.set_xticks(np.arange(3))
+        # x_labels = ['Path learning', 'Homing vector', 'Other']
+        ax4.set_xticks(np.arange(2))
+        # x_labels = ['Path learning', 'Other strategies']
+        ax4.set_xticklabels(x_labels)
+
+        # set up plot for escape duration boxplot
+        ax5.set_title(title)
+        # ax4.set_xlabel('Strategy')
+        ax5.set_ylabel(y_label)
+        # ax4.set_xticks(np.arange(3))
+        # x_labels = ['Path learning', 'Homing vector', 'Other']
+        ax5.set_xticks(np.arange(2))
+        # x_labels = ['Trial 1', 'Trial 3']
+        ax5.set_xticklabels(x_labels)
+
 
 
 
@@ -807,8 +1199,6 @@ def summary_plots(save_folder):
                     mouse_trials = 0
 
                     for trial in range(len(analysis_dictionary[experiment][condition]['speed'][mouse])):
-
-
 
                         '''
                         FILTER BY TRIALS
@@ -888,7 +1278,7 @@ def summary_plots(save_folder):
 
                                     # skip if no previous homings
                                     SR = np.array(analysis_dictionary[experiment][condition]['SR'][mouse][trial][0])
-                                    if len(SR) <= 2: # 2
+                                    if len(SR) <= 2: # and False: # False is TEMPORARY?
                                         quantity[trial_num] = np.nan
                                         trial_num += 1
                                         mouse_trials += 1
@@ -1098,6 +1488,7 @@ def summary_plots(save_folder):
 
                                     # get the stored exploration plot - proportion of time at each location
                                     SR = np.array(analysis_dictionary[experiment][condition]['SR'][mouse][trial][0])
+                                    # print(SR)
                                     edge_proximity = 50 - np.array(analysis_dictionary[experiment][condition]['SR'][mouse][trial][1])
                                     thru_center = np.array(analysis_dictionary[experiment][condition]['SR'][mouse][trial][2])
                                     SR_time = np.array(analysis_dictionary[experiment][condition]['SR'][mouse][trial][3])
@@ -1120,12 +1511,10 @@ def summary_plots(save_folder):
                                         thru_center = thru_center[-ETD:]
                                         edge_proximity = edge_proximity[-ETD:]
 
-
                                     # get line to the closest edge, exclude escapes to other edge
-                                    MOE = 10.2 #14 #10.2 # 10.1
+                                    MOE = 10.2 #20 #10.2
                                     if x_pos[mouse_at_center] > 50: edge_proximity = edge_proximity[SR > 25+MOE]; thru_center = thru_center[SR > 25+MOE]; SR = SR[SR > 25+MOE]  #35
                                     else: edge_proximity = edge_proximity[SR < 75-MOE]; thru_center = thru_center[SR < 75-MOE]; SR = SR[SR < 75-MOE]  #65
-
 
                                     if SR.size:
                                         # if previously went to that edge, then predict going again to that edge
@@ -1181,7 +1570,10 @@ def summary_plots(save_folder):
                                 # arena, _, shelter_roi = model_arena((720, 720), True, False, 'wall', simulate=True)
                                 # cv2.circle(arena, (int(x_pos_start / scaling_factor), int(y_pos_start / scaling_factor)), 5, 0)
                                 # cv2.circle(arena, (int(x_pos[mouse_at_center] / scaling_factor), int(traj_loc / scaling_factor)), 5, 0)
-
+                                if mouse_trials:
+                                    if not np.isnan(quantity[trial_num - 1]):
+                                        ax1.plot([time[trial_num-1], time[trial_num]], [quantity[trial_num-1], quantity[trial_num]],
+                                                    color = colors[c], alpha = .2)
 
                                 mouse_trials += 1
                         trial_num += 1
@@ -1221,9 +1613,9 @@ def summary_plots(save_folder):
             # print(np.median(quantity_for_box_plot))
             # print('')
 
-            kde = fit_kde(quantity_for_box_plot, bw=.04)
+            kde = fit_kde(quantity_for_box_plot, bw=.04) #.04
             # plot_kde(ax2, kde, z=exp, vertical=True, normto=.5, color=colors[c], violin = True)
-            plot_kde(ax2, kde, z=exp+.01, vertical=True, normto=.6, color=colors[c], violin=False, clip = True)
+            plot_kde(ax2, kde, quantity_for_box_plot, z=exp+.01, vertical=True, normto=.6, color=colors[c], violin=False, clip = what_to_plot == 'linearity') #True)
 
 
 
@@ -1250,7 +1642,7 @@ def summary_plots(save_folder):
             print(r, p)
             if p > .0005:
                 x_labels[exp] = x_labels[exp] + '    r = ' + str(np.round(r,2)) + ', p = ' +  str(np.round(p,3)) + ''
-                # x_labels[exp] = x_labels[exp] + '    r = ' + str(np.round(r, 2)) + ', p = ' + str(np.round(p, 3)) + ''
+                # x_labels[0] = x_labels[0] + '    r = ' + str(np.round(r, 2)) + ', p = ' + str(np.round(p, 3)) + ''
             else:
                 if 'baseline' in experiment:
                     x_labels[exp] = x_labels[exp] + '         r = ' + str(np.round(r, 2)) + ', p < .001'
@@ -1290,13 +1682,129 @@ def summary_plots(save_folder):
             # ax1.plot( time_of_stim, prediction['Pred'].values, color=colors[c], linewidth=2, linestyle = '--', alpha = .5)
             # ax1.fill_between( time_of_stim[:,0], prediction['lower'].values, prediction['upper'].values, color=colors[c], alpha = .1)
 
+            '''
+            Do a plot comparing PL trials with other strategies
+            '''
+
+            if False:
+                # strategy_colors = [[.2, .7, 1], [1, .6, .1], [1, .4, 1] ]
+                strategy_colors = [[.2, .7, 1], [1, .6, .1] ]
+
+                # extract the relevant trials
+                PL_idx = [1,6,9,10,11,12,14,15,16,17,18,20,23,25,26,29,32]
+                HV_idx = [0,2,3,7,13,21,22,23,24,27,28,29,30]
+                SP_idx = [4,5,8,19]
+                OT_idx = [0,2,3,7,13,4,5,8,19,21,22,24,27,28,30,31]
+
+                PL = quantity_for_box_plot[PL_idx]
+                HV = quantity_for_box_plot[HV_idx]
+                SP = quantity_for_box_plot[SP_idx]
+                OT = quantity_for_box_plot[OT_idx]
+
+                for i, data in enumerate([PL, OT]): #HV, SP]): #
+
+                    # plot it
+                    # ax4.scatter(np.ones_like(data) * i, data, color=strategy_colors[i], alpha=.5)
+                    ax4.scatter(np.ones_like(data)*i, data, color= strategy_colors[i], s = 30, alpha=1, edgecolors= 'black', linewidth=1)
+
+                    # error bar
+                    median = np.median(data)
+                    lower = np.percentile(data, 25)
+                    upper = np.percentile(data, 75)
+
+                    ax4.errorbar(i - .1, median, yerr=np.array([[median - lower], [upper - median]]), color=strategy_colors[i], capsize=8, capthick=1, alpha=1, linewidth=1)
+                    ax4.scatter(i - .1, median, color=strategy_colors[i], s=100, alpha=1)
+
+                    # kde
+                    if 'path' in what_to_plot:
+                        bw = np.mean(quantity_for_box_plot) * .08
+                    elif 'RT' in what_to_plot:
+                        bw = np.mean(quantity_for_box_plot) * .15
+                    else:
+                        bw = np.mean(quantity_for_box_plot) * .1
+                    kde = fit_kde(data, bw=bw)
+
+                    plot_kde(ax4, kde, data, z=i + .01, vertical=True, normto=.4, color= strategy_colors[i], violin=False, clip=(what_to_plot=='path length' or what_to_plot == 'RT'))
+
+                # do t test
+                t, p = scipy.stats.ttest_ind(PL, OT, equal_var=False)
+
+                # plot line
+                y_limit = ax4.get_ylim()[1]
+                if p < 0.05:
+                    ax4.plot([0, 1], [y_limit, y_limit], color='white', alpha=.8, linewidth=3)
+                    ax4.scatter(np.mean([0, 1]), 1.01 * y_limit, color='white', marker='*')
+                    if p < 0.001:
+                        ax4.scatter(np.mean([0, 1]) - .1, 1.01 * y_limit, color='white', marker='*')
+                        if p < 0.0001:
+                            ax4.scatter(np.mean([0, 1]) + .1, 1.01 * y_limit, color='white', marker='*')
+                ax4.set_ylim(np.array(ax4.get_ylim())*1.05)
+
+
+
+
+                '''
+                Do a plot comparing trial 1 and 3
+                '''
+
+
+                # strategy_colors = [[.2, .7, 1], [1, .6, .1], [1, .4, 1] ]
+                strategy_colors = [[.2, .7, 1], [1, .6, .1] ]
+                strategy_colors = [[.5, .8, .5], [.1, 1, .1]]
+
+                # extract the relevant trials
+                T1_idx = np.where(time[~np.isnan(quantity)]==1)[0]
+                T3_idx =np.where(time[~np.isnan(quantity)]==3)[0]
+
+
+                T1 = quantity_for_box_plot[T1_idx]
+                T3 = quantity_for_box_plot[T3_idx]
+
+                for i, data in enumerate([T1,T3]): #HV, SP]): #
+
+                    # plot it
+                    # ax5.scatter(np.ones_like(data) * i, data, color=strategy_colors[i], alpha=.5)
+                    ax5.scatter(np.ones_like(data)*i, data, color= strategy_colors[i], s = 30, alpha=1, edgecolors= 'black', linewidth=1)
+
+                    # error bar
+                    median = np.median(data)
+                    lower = np.percentile(data, 25)
+                    upper = np.percentile(data, 75)
+
+                    ax5.errorbar(i - .1, median, yerr=np.array([[median - lower], [upper - median]]), color=strategy_colors[i], capsize=8, capthick=1, alpha=1, linewidth=1)
+                    ax5.scatter(i - .1, median, color=strategy_colors[i], s=100, alpha=1)
+
+                    # kde
+                    if 'path' in what_to_plot:
+                        bw = np.mean(quantity_for_box_plot) * .08
+                    elif 'RT' in what_to_plot:
+                        bw = np.mean(quantity_for_box_plot) * .15
+                    else:
+                        bw = np.mean(quantity_for_box_plot) * .1
+                    kde = fit_kde(data, bw=bw)
+
+                    plot_kde(ax5, kde, data, z=i + .01, vertical=True, normto=.4, color= strategy_colors[i], violin=False, clip=(what_to_plot=='path length' or what_to_plot == 'RT'))
+
+                # do t test
+                t, p = scipy.stats.ttest_ind(T1, T3, equal_var=False)
+
+                # plot line
+                y_limit = ax5.get_ylim()[1]
+                if p < 0.05:
+                    ax5.plot([0, 1], [y_limit, y_limit], color='white', alpha=.8, linewidth=3)
+                    ax5.scatter(np.mean([0, 1]), 1.01 * y_limit, color='white', marker='*')
+                    if p < 0.001:
+                        ax5.scatter(np.mean([0, 1]) - .1, 1.01 * y_limit, color='white', marker='*')
+                        if p < 0.0001:
+                            ax5.scatter(np.mean([0, 1]) + .1, 1.01 * y_limit, color='white', marker='*')
+                ax5.set_ylim(np.array(ax5.get_ylim())*1.05)
 
 
             c+=1
             x += 1
 
-        leg1 = ax1.legend(legend)
-        leg1.draggable(True)
+        # leg1 = ax1.legend(legend)
+        # leg1.draggable(True)
 
         if 'linearity' in what_to_plot or what_to_plot == 'gravity' or what_to_plot == 'SR': ax2.plot(np.arange(-1, len(experiments) + 1), np.zeros(len(experiments) + 2)+.5, color='white', linestyle='--', alpha=.25)
         if what_to_plot == 'exploration': ax2.plot(np.arange(-1, len(experiments) + 1), np.ones(len(experiments) + 2), color='white', linestyle='--', alpha=.4)
@@ -1307,6 +1815,16 @@ def summary_plots(save_folder):
         # leg1.draggable(True)
         leg1 = ax3.legend(x_labels)
         leg1.draggable(True)
+
+
+
+
+
+
+
+
+
+
 
         # do statistical test
         # number_of_tests = factorial(len(experiments)) / (factorial(2) * factorial(len(experiments) - 2))
@@ -1334,9 +1852,17 @@ def summary_plots(save_folder):
         #                         ax2.scatter(np.mean([i, j])+.1, 1.01 * y_limit, color='white', marker='*')
 
 
+
+
+
     plt.show()
     print('hi')
     plt.close('all')
+
+
+
+
+
 
 
 

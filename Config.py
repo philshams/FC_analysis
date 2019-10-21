@@ -19,11 +19,12 @@ def setup():
 
     selector_type = 'experiment'                  # selects which sessions to analyze ('all', 'experiment', 'session', 'date', 'mouse', 'number')
 
-    selector = ['Circle wall down'] #, 'Circle lights on off (baseline)'] #
-    # selector = ['Circle wall up']
+    selector = [ 'Circle wall down (no baseline)' ]#,  'Circle wall down (dark)'] # 'Circle lights on off (baseline)','Circle void up',
+    selector = ['Circle wall down']
+
 
     selector_type = 'number'                  # selects which sessions to analyze ('all', 'experiment', 'session', 'date', 'mouse', 'number')
-    selector = [ x for x in [1,3,4,5] ] #[65,94] ] # [49, 53] ]
+    selector = [ x for x in range(156,165) ] #[65,94] ] # [49, 53] ]
 
 
     return excel_path, save_folder, DLC_folder, load_database, update_database, load_name, save_name, selector_type, selector
@@ -36,13 +37,14 @@ def tracking_options():
     '''
     track_options = {
 
-        'run DLC': False,                  # Use DLC to analyze the raw videos
+        'run DLC': True,                  # Use DLC to analyze the raw videos
 
         'register arena': True,            # Register arena to model arena for tracking
 
         'track session': False,              # Track the mouse for the entire session using DLC
 
         'parallel processes': 1 }          # Number of sessions to analyze simultaneously
+
 
 
 
@@ -59,17 +61,16 @@ def tracking_options():
 
         'exploration': False,               # Analyze exploration
 
-        'proper analysis': True,           # exploration, speed, reaction time
+        'proper analysis': False,           # exploration, speed, reaction time
 
         'simulate': False,                   # Simulate each strategy
 
-        'summary': True }                   # Make the moon-like summary plots
-
+        'summary': False }                   # Make the moon-like summary plots
 
 
     fisheye_map_location = 'C:\\Drive\\DLC\\transforms\\fisheye_maps.npy'
 
-    video_analysis_settings = {'seconds pre stimulus': 1,
+    video_analysis_settings = {'seconds pre stimulus': 3,
                                'seconds post stimulus': 10 }
 
     return track_options, analysis_options, fisheye_map_location, video_analysis_settings

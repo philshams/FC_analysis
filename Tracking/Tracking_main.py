@@ -162,7 +162,6 @@ class Tracking():
                 setup_session_video(self, vid_num, stims_video, height, width, stims, save_folder, self.x_offset, self.y_offset,
                                 self.obstacle_changes, video_analysis_settings, analysis_options, trial_types, number_of_trials)
 
-
             # Loop over each video in the session
             for vid_num, stims_video in enumerate(stims):
 
@@ -190,7 +189,9 @@ class Tracking():
 
                 for trial_num, stim_frame in enumerate(stims_video):
 
-                    # if trial_num > 6: break
+                    if trial_num > 2: break
+                    if not trial_num: continue
+
                     if str(self.session['Metadata'].mouse_id) == 'CA6161':
                        if (stim_frame / 60 / 30) < 19:
                            continue
@@ -207,7 +208,6 @@ class Tracking():
                     #     continue
                     # else: trials_completed = trial_num
                     # trial_types[0] = 2
-
 
                     # get the trial details
                     start_frame, end_frame, self.videoname = get_trial_details(self, stim_frame, trials_completed, video_analysis_settings, stim_type, sum(stims,[]), previous_vid_duration)
@@ -250,6 +250,7 @@ class Tracking():
 
                     # analyze exploration
                     if analysis_options['exploration']:
+                        session_trials_plot_background = session_trials_plot_background * 0  # TEMPORARY
                         exploration(session_trials_plot_background, border_size, self.coordinates,
                                                         previous_stim_frame, stim_frame, self.videoname, save_folder, self.arena)
                         # self.coordinates['SR'][trial_num] = successor_from_stimulus

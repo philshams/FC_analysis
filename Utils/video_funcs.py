@@ -6,7 +6,7 @@ from termcolor import colored
 from tqdm import tqdm
 import glob
 from Utils.registration_funcs import register_frame, model_arena, invert_fisheye_map
-from Utils.obstacle_funcs import get_trial_types, initialize_wall_analysis, initialize_wall_analysis, set_up_colors, set_up_speed_colors
+# from Utils.obstacle_funcs import set_up_colors, set_up_speed_colors #TEMPORARY ...?
 import matplotlib.pyplot as plt
 import os
 import glob
@@ -212,7 +212,7 @@ def peri_stimulus_analysis(coordinates, vidpath = '', videoname = '', savepath =
 #    else:
         # session_trials_plot = ((session_trials_plot_workspace.astype(float) * 1 + arena.copy().astype(float) * 4) / 5).astype(np.uint8)
         # session_trials_plot = ((session_trials_plot_workspace.astype(float) * 1 + arena.copy().astype(float) * 1) / 2).astype(np.uint8)
-    if trial_type<=0 and 'down' in videoname:
+    if trial_type<=0 and 'down' in videoname and False: #False for Tiago
         old_arena, _, _ = model_arena((height, width), True, False, obstacle_type, shelter = not 'no shelter' in videoname)
         old_arena = cv2.cvtColor(old_arena, cv2.COLOR_GRAY2RGB)
 

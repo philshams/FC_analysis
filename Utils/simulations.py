@@ -72,18 +72,18 @@ class simulate():
         self.degrees = np.linspace(0, 2 * np.pi, 360)
 
         self.strategy_colors = {}
-        self.strategy_colors['homing vector'] = (70, 70, 150)
-        self.strategy_colors['obstacle guidance'] = (70, 70, 150)
-        self.strategy_colors['repetition'] = (150, 70, 70)
-        self.strategy_colors['spatial planning'] = (70, 150, 70)
+        self.strategy_colors['homing vector'] = (0, 0, 250) #(70, 70, 150)
+        self.strategy_colors['obstacle guidance'] = (0, 0, 250) #(70, 70, 150)
+        self.strategy_colors['repetition'] = (250, 0, 0)
+        self.strategy_colors['spatial planning'] = (0, 250, 0)
         self.strategy_colors['exploration'] = (120, 120, 120)
 
         self.strategies = [strategy]
 
         # set parameters
         self.trial_duration = 300
-        self.dist_to_whiskers = 20
-        self.whisker_radius = 50
+        self.dist_to_whiskers = 50 #20
+        self.whisker_radius = 150 #50
         self.body_length = 16
         self.large_body_length = 40
         self.max_shelter_proximity = 190
@@ -111,6 +111,11 @@ class simulate():
         # loop across post-stimulus frames
         for self.bout in range(len(self.TS_starting_indices)):
 
+            if self.bout == len(self.TS_starting_indices) - 1:
+                self.last_bout = True
+            else:
+                self.last_bout = False
+
             # initialize bout data
             self.initialize_bout()
 
@@ -131,6 +136,8 @@ class simulate():
             # initialize the movie data
             self.initialize_movie()
 
+            self.background = np.zeros((760,720,3),np.uint8)
+
             # loop across frames to show
             for self.frame_num in range(self.start_frame, self.TS_end_indices[self.bout]):
 
@@ -148,7 +155,8 @@ class simulate():
                 if self.strategy == 'exploration':          self.show_random_representation()
 
                 # add text
-                cv2.putText(self.rep_arena, self.strategy, (20,30), 0, .75, self.strategy_colors[self.strategy], thickness = 1 )
+                if self.strategy == 'obstacle guidance': text = 'Instinctive obstacle avoidance'
+                else: text = self.strategy
 
 
                 if self.frame_num == self.TS_starting_indices[self.bout] or \
@@ -180,14 +188,18 @@ class simulate():
                         else: rep_arena_show = self.rep_arena
 
                         # show the previous frame
-                        cv2.imshow('strategy cam', rep_arena_show)
-                        self.vid.write(rep_arena_show)
+                        self.background[40:, :, :] = rep_arena_show
+                        cv2.putText(self.background, text, (20, 40), 0, 1.25, self.strategy_colors[self.strategy], thickness=2)
+                        cv2.imshow('strategy cam', self.background)
+                        self.vid.write(self.background)
                         if cv2.waitKey(1) & 0xFF == ord('q'):
                             break
 
                 # show the previous frame
-                cv2.imshow('strategy cam', self.rep_arena)
-                self.vid.write(self.rep_arena)
+                self.background[40:,:,:] = self.rep_arena
+                cv2.putText(self.background, text, (20, 40), 0, 1.25, self.strategy_colors[self.strategy], thickness=2)
+                cv2.imshow('strategy cam', self.background)
+                self.vid.write(self.background)
                 if cv2.waitKey(1) & 0xFF == ord('q'):
                     break
 
@@ -209,7 +221,9 @@ class simulate():
     def homing_vector(self):
         '''        SIMULATE THE homing vector STRATEGY        '''
 
-        self.spatial_blurring = 1
+        self.spatial_blurring_x = 0
+        self.spatial_blurring_y = 0
+        self.gaussian_blur = 19 #18
 
         # check if there is an obstacle in the way and adjust accordingly
         self.obstacle_guidance()
@@ -224,6 +238,7 @@ class simulate():
             self.transition = self.transition_HV  #self.get_random_transition()
 
             # get the resulting functional successor representation
+            self.time_discount = .99 # .99 ~ 1 sec is .74 // 5 sec is .2 // 10 sec is .05
             self.get_successor_arena()
 
             # go from SR to likelihood across angles
@@ -243,12 +258,15 @@ class simulate():
     def repetition(self):
         '''        SIMULATE THE repetition STRATEGY        '''
 
-        self.spatial_blurring = 2
+        self.spatial_blurring_x = np.max((10 - self.y_bin_body, 2)) #SUPER TEMPORARY
+        self.spatial_blurring_y = 2
+        self.gaussian_blur = 25 # 20
 
         # get the transition matrix for random exploration
         self.get_repetition_transition()
 
         # get the resulting functional successor representation
+        self.time_discount = .995  # .99 ~ 1 sec is .74 // 5 sec is .2 // 10 sec is .05
         self.get_successor_arena()
         self.repetition_representation = self.color_successor.copy()
 
@@ -264,7 +282,9 @@ class simulate():
     def spatial_planning(self):
         '''        SIMULATE THE spatial planning STRATEGY        '''
 
-        self.spatial_blurring = 1
+        self.spatial_blurring_x = 1
+        self.spatial_blurring_y = 1
+        self.gaussian_blur = 19 # 18
 
         # get the transition matrix for random exploration
         angle_from_obstacle = self.angle_arena[int(self.TS_start_position[1][self.bout]), int(self.TS_start_position[0][self.bout])]
@@ -276,6 +296,7 @@ class simulate():
             self.planning_strategy = 'homing vector'
 
         # get the resulting functional successor representation
+        self.time_discount = .95  # .99 ~ 1 sec is .74 // 5 sec is .2 // 10 sec is .05
         self.get_successor_arena()
 
         # store this representation
@@ -289,6 +310,10 @@ class simulate():
         if not int(self.intended_angle - self.innate_response): self.same_as_HV = 1
         else: self.same_as_HV = 0
 
+        #TEMPORARY
+        if self.last_bout:
+            self.same_as_HV = 1
+
         # plot the SPATIAL PLANNING likelihood
         self.ax.fill_between(self.degrees * 180 / np.pi, self.likelihood_across_angles, color='mediumspringgreen', linewidth=4 - 3*self.same_as_HV, alpha=.3-.15*self.same_as_HV)
 
@@ -296,7 +321,9 @@ class simulate():
     def not_escape(self):
         '''        SIMULATE THE not escape STRATEGY        '''
 
-        self.spatial_blurring = 2
+        self.spatial_blurring_x = 2
+        self.spatial_blurring_y = 2
+        self.gaussian_blur = 25
 
         # get the resulting functional successor representation
         self.get_successor_arena()
@@ -304,6 +331,7 @@ class simulate():
 
         # go from SR to likelihood across angles
         self.get_likelihood()
+        self.likelihood_across_angles[self.current_path_idx] = 0 #TEMPORARY FOR TIAGO
 
         # plot the REPETITION likelihood
         self.ax.fill_between(self.degrees * 180 / np.pi, self.likelihood_across_angles, color='grey', linewidth=2, linestyle='--', alpha=.2)
@@ -369,7 +397,7 @@ class simulate():
         self.likelihood_across_angles = likelihood_across_angles / np.sum(likelihood_across_angles)
 
         # show the values use
-        cv2.imshow('values used', successor_copy)
+        # cv2.imshow('values used', successor_copy)
 
 
 
@@ -416,8 +444,7 @@ class simulate():
     def get_successor_arena(self):
 
         # get the SR
-        time_discount = .99  # .99 ~ 1 sec is .74 // 5 sec is .2 // 10 sec is .05
-        successor_representation = np.linalg.inv(np.identity(self.bins_per_side ** 2) - time_discount * self.transition)
+        successor_representation = np.linalg.inv(np.identity(self.bins_per_side ** 2) - self.time_discount * self.transition)
 
         # define shelter location
         shelter_indices = [(x, y) for x in range(8, 12) for y in range(15, 20)]
@@ -430,8 +457,8 @@ class simulate():
         obstacle_angle_body = self.angle_arena[int(self.bin_size * (self.y_bin_body + .5)), int(self.bin_size * (self.x_bin_body + .5))]
 
         # also use nearby points
-        for x_shift in tqdm(range(-self.spatial_blurring, self.spatial_blurring + 1)):
-            for y_shift in range(-self.spatial_blurring, self.spatial_blurring + 1):
+        for x_shift in tqdm(range(-self.spatial_blurring_x, self.spatial_blurring_x + 1 )): #TEMPORARY
+            for y_shift in range(-self.spatial_blurring_y, self.spatial_blurring_y + 1 ):
 
                 # initialize SR arenaq
                 curr_successor_arena = np.zeros(self.arena.shape)
@@ -467,17 +494,20 @@ class simulate():
                             distance_change = np.max(((distance_body - distance_bin), (distance_body_euclid - distance_bin_euclid)))
 
                             if np.mean(successor_representation[end_bin_idx, shelter_bin_idx]) > np.mean(successor_representation[start_bin_idx, shelter_bin_idx]) \
-                                    and distance_change > 60 and not self.strategy == 'exploration' :
+                                    and distance_change > 60 and not self.strategy == 'exploration' \
+                                    and y_bin > 8 and (y_bin < 11 or self.y_bin_body > 6) \
+                                    and (y_bin > 10 or self.y_bin_body < 8) \
+                                    and (y_bin > 15 or not self.last_bout) and (abs(x_bin - 9.5)<2 or not self.last_bout): #>= 9 TEMPORARY
                                 curr_successor_arena[int(self.bin_size * (y_bin + .5)), int(self.bin_size * (x_bin + .5))] = \
                                     np.mean(successor_representation[end_bin_idx, shelter_bin_idx]) * successor_representation[start_bin_idx, end_bin_idx]
                             elif self.strategy == 'exploration':
                                 curr_successor_arena[int(self.bin_size * (y_bin + .5)), int(self.bin_size * (x_bin + .5))] = \
                                     successor_representation[start_bin_idx, end_bin_idx]
 
-                successor_arena = successor_arena + (curr_successor_arena / np.max((1, 4 * np.sqrt(x_shift ** 2 + y_shift ** 2))))
+                successor_arena = successor_arena + (curr_successor_arena)# / np.max((1, 4 * np.sqrt(x_shift ** 2 + y_shift ** 2))))
 
         # gaussian blur
-        self.successor_arena = cv2.GaussianBlur(successor_arena, ksize=(181, 181), sigmaX=20, sigmaY=20)
+        self.successor_arena = cv2.GaussianBlur(successor_arena, ksize=(181, 181), sigmaX=self.gaussian_blur, sigmaY=self.gaussian_blur) # = 20
         # if (self.innate_strategy == 'obstacle guidance' and self.strategy == 'homing vector'):
         #     self.successor_arena[int(self.arena.shape[0]/2):, :] = 0
 
@@ -492,8 +522,10 @@ class simulate():
             if self.strategy == 'homing vector': self.color_successor[:,:,[0,1,2]] = self.color_successor[:,:,[2,1,0]]
             elif self.strategy == 'spatial planning': self.color_successor[:,:,[0,1,2]] = self.color_successor[:,:,[1,0,2]]
 
+            # self.color_successor[(np.mean(self.color_successor,2)==0) * ~(self.arena==0)] = 120
+
         # merge the arena and the SR
-        alpha = .2
+        alpha = .1
         cv2.addWeighted(self.color_arena, alpha, self.color_successor, 1 - alpha, 0, self.color_successor)
         cv2.imshow('SR', self.color_successor)
         cv2.waitKey(1)
@@ -501,7 +533,6 @@ class simulate():
 
 
     def format_plot(self):
-
 
         self.ax.set_title('Likelihood of this Orientation Movement for Each Strategy');
         self.ax.set_xlabel('allocentric head direction (degrees)');
@@ -552,7 +583,7 @@ class simulate():
             os.makedirs(self.new_save_folder)
 
         fourcc = cv2.VideoWriter_fourcc(*"XVID")
-        self.vid = cv2.VideoWriter(os.path.join(self.new_save_folder, self.video_name + '_classifier.avi'), fourcc, 30, (self.width, self.height), True)
+        self.vid = cv2.VideoWriter(os.path.join(self.new_save_folder, self.video_name + '_classifier.mp4'), fourcc, 30, (self.width, self.height+40), True)
         plt.style.use('dark_background');
         plt.rcParams.update({'font.size': 22})
 
@@ -562,7 +593,13 @@ class simulate():
         # select the winning strategy
         self.strategies[0] = self.innate_strategy
         self.strategy = self.strategies[np.argmax(self.likelihoods)]
-        if self.strategy == 'spatial planning' and self.same_as_HV: self.strategy = 'homing vector'
+        # if self.strategy == 'spatial planning' and self.same_as_HV:
+        #     self.strategy = 'homing vector'
+
+        #temporary
+        if self.last_bout: #and (self.strategy == 'spatial planning' or self.strategy == 'obstacle guidance')
+            self.strategy = 'homing vector'
+
 
         # display the mouse running around with this representation in mind
         if not self.bout:
@@ -745,7 +782,7 @@ class simulate():
 
         # get the vector direction of the previous path
         self.TS_path_direction = np.angle((self.TS_end_position[0] - self.TS_start_position[0]) + (-self.TS_end_position[1] + self.TS_start_position[1]) * 1j, deg=True)
-        self.TS_head_direction = self.coordinates['body_angle'][self.TS_starting_indices]
+        self.TS_head_direction = self.coordinates['body_angle'][self.TS_starting_indices + 10] #TEMPORARY
 
     def initialize_bout(self):
         '''         SET THE CURRENT POSITION AND ANGLE AS THAT OF THE BEGINNING OF THE CURRENT BOUT         '''
@@ -856,11 +893,11 @@ class simulate():
 
         # add dark mouse if applicable
         if (np.sum(self.large_mouse_mask * self.model_mouse_mask_previous) == 0) or self.frame_num < self.TS_starting_indices[0]:
-            self.color_arena[self.model_mouse_mask.astype(bool)] = self.color_arena[self.model_mouse_mask.astype(bool)] * speed_color_dark
+            self.color_arena[self.model_mouse_mask.astype(bool)] = self.color_arena[self.model_mouse_mask.astype(bool)] * speed_color_dark**1.4
             self.model_mouse_mask_previous = self.model_mouse_mask
         # otherwise, shade in the current mouse position
         else:
-            self.color_arena[self.model_mouse_mask.astype(bool)] = self.color_arena[self.model_mouse_mask.astype(bool)] * speed_color_light
+            self.color_arena[self.model_mouse_mask.astype(bool)] = self.color_arena[self.model_mouse_mask.astype(bool)] * speed_color_light**.4
 
 
 
