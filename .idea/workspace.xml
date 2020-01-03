@@ -5,88 +5,19 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="36dcc5b0-5218-49de-b8f2-a9b45ae6b8e1" name="Default" comment="">
-      <change beforePath="" afterPath="$PROJECT_DIR$/.idea/DLC.iml" />
-      <change beforePath="" afterPath="$PROJECT_DIR$/helper_code/processing_funcs.py" />
-      <change beforePath="" afterPath="$PROJECT_DIR$/important_code/exploration.py" />
-      <change beforePath="" afterPath="$PROJECT_DIR$/important_code/homing_decomposition.py" />
-      <change beforePath="" afterPath="$PROJECT_DIR$/important_code/homing_extraction.py" />
-      <change beforePath="" afterPath="$PROJECT_DIR$/important_code/plot_analysis.py" />
-      <change beforePath="" afterPath="$PROJECT_DIR$/run_analysis.py" />
-      <change beforePath="" afterPath="$PROJECT_DIR$/run_main.py" />
-      <change beforePath="" afterPath="$PROJECT_DIR$/setup.py" />
-      <change beforePath="$PROJECT_DIR$/.gitignore" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/.idea/FC_analysis.iml" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/.idea/vcs.xml" afterPath="$PROJECT_DIR$/.idea/vcs.xml" />
+      <change beforePath="" afterPath="$PROJECT_DIR$/helper_code/analysis_funcs.py" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
-      <change beforePath="$PROJECT_DIR$/.vscode/launch.json" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/.vscode/settings.json" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/Analysis/Four_panel_plot.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/Analysis/find_w.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/Analysis/successor.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/Analysis/summary.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/Analysis/summary_cat.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/Config.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/Installation/setupenv.txt" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/Installation/setupenv.yml" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/LICENSE" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/Label_and_Save_Video.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/README.md" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/Start_analysis.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/Tracking/Tracking_main.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/Tracking/Tracking_utils.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/Utils/Data_rearrange_funcs.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/Utils/Image_processing.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/Utils/Setup_funcs.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/Utils/dlc_funcs.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/Utils/imports.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/Utils/loadsave_funcs.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/Utils/obstacle_funcs.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/Utils/proper_analysis.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/Utils/registration_funcs.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/Utils/simulations.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/Utils/simulations_each.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/Utils/simulations_part2.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/Utils/strategy_funcs.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/Utils/tdms_to_video_converter.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/Utils/test_space.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/Utils/utils_classes.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/Utils/video_funcs.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/dlc_manager.py" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/junk_code.txt" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/transforms/angle_arena_11 wall.npy" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/transforms/angle_arena_Circle.npy" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/transforms/angle_arena_U wall.npy" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/transforms/angle_arena_center void.npy" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/transforms/angle_arena_center wall.npy" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/transforms/angle_arena_longer wall.npy" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/transforms/angle_arena_none.npy" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/transforms/angle_arena_other side wall.npy" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/transforms/angle_arena_side wall 14.npy" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/transforms/angle_arena_side wall 32.npy" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/transforms/angle_arena_side wall.npy" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/transforms/angle_arena_void.npy" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/transforms/angle_arena_wall.npy" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/transforms/distance_arena_11 wall.npy" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/transforms/distance_arena_Circle.npy" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/transforms/distance_arena_U wall.npy" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/transforms/distance_arena_center void.npy" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/transforms/distance_arena_center wall.npy" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/transforms/distance_arena_longer wall.npy" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/transforms/distance_arena_none.npy" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/transforms/distance_arena_other side wall.npy" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/transforms/distance_arena_side wall 14.npy" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/transforms/distance_arena_side wall 32.npy" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/transforms/distance_arena_side wall.npy" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/transforms/distance_arena_void.npy" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/transforms/distance_arena_wall.npy" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/transforms/feature_values_wall.npy" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/transforms/fisheye_maps.npy" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/transforms/inverse_fisheye_maps.npy" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/transforms/regression_wall" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/transforms/transition_HV_wall.npy" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/transforms/transition_planning_left_block_wall.npy" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/transforms/transition_planning_right_block_wall.npy" afterPath="" />
-      <change beforePath="$PROJECT_DIR$/transforms/transition_planning_wall.npy" afterPath="" />
+      <change beforePath="$PROJECT_DIR$/helper_code/loadsave_funcs.py" afterPath="$PROJECT_DIR$/helper_code/loadsave_funcs.py" />
+      <change beforePath="$PROJECT_DIR$/helper_code/processing_funcs.py" afterPath="$PROJECT_DIR$/helper_code/processing_funcs.py" />
+      <change beforePath="$PROJECT_DIR$/helper_code/registration_funcs.py" afterPath="$PROJECT_DIR$/helper_code/registration_funcs.py" />
+      <change beforePath="$PROJECT_DIR$/helper_code/setup_funcs.py" afterPath="$PROJECT_DIR$/helper_code/setup_funcs.py" />
+      <change beforePath="$PROJECT_DIR$/important_code/do_analysis.py" afterPath="$PROJECT_DIR$/important_code/do_analysis.py" />
+      <change beforePath="$PROJECT_DIR$/important_code/escape_visualization.py" afterPath="$PROJECT_DIR$/important_code/escape_visualization.py" />
+      <change beforePath="$PROJECT_DIR$/important_code/homing_decomposition.py" afterPath="$PROJECT_DIR$/important_code/homing_decomposition.py" />
+      <change beforePath="$PROJECT_DIR$/important_code/plot_analysis.py" afterPath="$PROJECT_DIR$/important_code/plot_analysis.py" />
+      <change beforePath="$PROJECT_DIR$/run_analysis.py" afterPath="$PROJECT_DIR$/run_analysis.py" />
+      <change beforePath="$PROJECT_DIR$/run_processing.py" afterPath="$PROJECT_DIR$/run_processing.py" />
+      <change beforePath="$PROJECT_DIR$/setup.py" afterPath="$PROJECT_DIR$/setup.py" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="TRACKING_ENABLED" value="true" />
@@ -99,11 +30,12 @@
     <SUITE FILE_PATH="coverage/DLC$DLC_train.coverage" NAME="DLC_train Coverage Results" MODIFIED="1537888639284" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/DeepLabCut" />
     <SUITE FILE_PATH="coverage/DLC$Save_Video.coverage" NAME="Save_Video Coverage Results" MODIFIED="1568040278548" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/../xold/Video Analysis/code (1)/video-preprocessing" />
     <SUITE FILE_PATH="coverage/DLC$video_funcs.coverage" NAME="video_funcs Coverage Results" MODIFIED="1547208517647" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/Utils" />
-    <SUITE FILE_PATH="coverage/DLC$run_main.coverage" NAME="run_main Coverage Results" MODIFIED="1574093151502" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/DLC$run_main.coverage" NAME="run_main Coverage Results" MODIFIED="1576861181193" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/DLC$Label_and_Save_Video__1_.coverage" NAME="Label_and_Save_Video (1) Coverage Results" MODIFIED="1550188736881" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/../DLC video test" />
     <SUITE FILE_PATH="coverage/DLC$scratch_2.coverage" NAME="scratch_2 Coverage Results" MODIFIED="1552385406479" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$APPLICATION_CONFIG_DIR$/scratches" />
     <SUITE FILE_PATH="coverage/DLC$perceptron_catdog.coverage" NAME="perceptron_catdog Coverage Results" MODIFIED="1553905116362" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$APPLICATION_CONFIG_DIR$/scratches" />
     <SUITE FILE_PATH="coverage/DLC$perceptron_multiclass.coverage" NAME="perceptron_multiclass Coverage Results" MODIFIED="1553907792177" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$APPLICATION_CONFIG_DIR$/scratches" />
+    <SUITE FILE_PATH="coverage/DLC$save_video.coverage" NAME="save_video Coverage Results" MODIFIED="1575892320258" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/helper_code" />
     <SUITE FILE_PATH="coverage/DLC$run_analysis.coverage" NAME="run_analysis Coverage Results" MODIFIED="1572960757392" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/DLC$Step4_GenerateTrainingFileFromLabelledData.coverage" NAME="Step4_GenerateTrainingFileFromLabelledData Coverage Results" MODIFIED="1537887454084" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/DeepLabCut/Generating_a_Training_Set" />
     <SUITE FILE_PATH="coverage/DLC$Label_and_Save_Video.coverage" NAME="Label_and_Save_Video Coverage Results" MODIFIED="1550188643131" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
@@ -125,48 +57,18 @@
       <content type="file-editors">
         <state>
           <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
-            <file leaf-file-name="setup.py" pinned="false" current-in-tab="false">
+            <file leaf-file-name="setup.py" pinned="false" current-in-tab="true">
               <entry file="file://$PROJECT_DIR$/setup.py">
                 <provider selected="true" editor-type-id="text-editor">
-                  <state relative-caret-position="765">
-                    <caret line="75" column="9" lean-forward="false" selection-start-line="75" selection-start-column="9" selection-end-line="75" selection-end-column="9" />
+                  <state relative-caret-position="74">
+                    <caret line="67" column="33" lean-forward="true" selection-start-line="67" selection-start-column="33" selection-end-line="67" selection-end-column="33" />
                     <folding>
-                      <marker date="1574093496285" expanded="true" signature="19:2148" ph="..." />
-                      <marker date="1574093496285" expanded="true" signature="2256:2826" ph="..." />
-                      <marker date="1574093496285" expanded="true" signature="2861:2862" ph="..." />
-                      <marker date="1574093496285" expanded="true" signature="2862:3338" ph="..." />
-                      <marker date="1574093496285" expanded="true" signature="3155:3194" ph="..." />
-                    </folding>
-                  </state>
-                </provider>
-              </entry>
-            </file>
-            <file leaf-file-name="processing_funcs.py" pinned="false" current-in-tab="false">
-              <entry file="file://$PROJECT_DIR$/helper_code/processing_funcs.py">
-                <provider selected="true" editor-type-id="text-editor">
-                  <state relative-caret-position="735">
-                    <caret line="40" column="32" lean-forward="true" selection-start-line="40" selection-start-column="32" selection-end-line="40" selection-end-column="32" />
-                    <folding>
-                      <marker date="1573828533679" expanded="true" signature="215:1559" ph="..." />
-                      <marker date="1573828533679" expanded="true" signature="1770:2601" ph="..." />
-                      <marker date="1573828533679" expanded="true" signature="6193:6389" ph="..." />
-                      <marker date="1573828533679" expanded="true" signature="6194:6388" ph="..." />
-                      <marker date="1573828533679" expanded="true" signature="11542:11680" ph="..." />
-                      <marker date="1573828533679" expanded="true" signature="14968:16199" ph="..." />
-                    </folding>
-                  </state>
-                </provider>
-              </entry>
-            </file>
-            <file leaf-file-name="plot_analysis.py" pinned="false" current-in-tab="true">
-              <entry file="file://$PROJECT_DIR$/important_code/plot_analysis.py">
-                <provider selected="true" editor-type-id="text-editor">
-                  <state relative-caret-position="498">
-                    <caret line="181" column="62" lean-forward="false" selection-start-line="181" selection-start-column="62" selection-end-line="181" selection-end-column="62" />
-                    <folding>
-                      <marker date="1574091031337" expanded="true" signature="2140:3895" ph="..." />
-                      <marker date="1574091031337" expanded="true" signature="12527:12636" ph="..." />
-                      <marker date="1574091031337" expanded="true" signature="19102:19321" ph="..." />
+                      <marker date="1576860583561" expanded="true" signature="19:2203" ph="..." />
+                      <marker date="1576860583561" expanded="true" signature="2515:2954" ph="..." />
+                      <marker date="1576860583561" expanded="true" signature="2996:7746" ph="..." />
+                      <marker date="1576860583561" expanded="true" signature="3009:7419" ph="..." />
+                      <marker date="1576860583561" expanded="true" signature="7513:7551" ph="..." />
+                      <marker date="1576860583561" expanded="true" signature="7621:7669" ph="..." />
                     </folding>
                   </state>
                 </provider>
@@ -186,24 +88,37 @@
               <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
               <folding>
                 <element signature="e#0#23#0" expanded="true" />
-                <marker date="1572960977529" expanded="true" signature="0:23" ph="import ..." />
                 <marker date="1572960977529" expanded="true" signature="148:5130" ph="..." />
               </folding>
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="do_analysis.py" pinned="false" current-in-tab="true">
-        <entry file="file://$PROJECT_DIR$/important_code/do_analysis.py">
+      <file leaf-file-name="plot_analysis.py" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/important_code/plot_analysis.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="304">
-              <caret line="22" column="41" lean-forward="false" selection-start-line="22" selection-start-column="41" selection-end-line="22" selection-end-column="41" />
+            <state relative-caret-position="494">
+              <caret line="217" column="39" lean-forward="true" selection-start-line="217" selection-start-column="39" selection-end-line="217" selection-end-column="39" />
               <folding>
-                <marker date="1574093496255" expanded="true" signature="222:1918" ph="..." />
-                <marker date="1574093496255" expanded="true" signature="222:8355" ph="..." />
-                <marker date="1574093496255" expanded="true" signature="222:20267" ph="..." />
-                <marker date="1574093496255" expanded="true" signature="289:1656" ph="..." />
-                <marker date="1574093496255" expanded="true" signature="7771:8355" ph="..." />
+                <element signature="e#0#18#0" expanded="true" />
+                <marker date="1576861181145" expanded="true" signature="0:566" ph="..." />
+                <marker date="1576861181145" expanded="true" signature="5172:7016" ph="..." />
+                <marker date="1576861181145" expanded="true" signature="12342:14369" ph="..." />
+                <marker date="1576861181145" expanded="true" signature="15837:16917" ph="..." />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="analysis_funcs.py" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/helper_code/analysis_funcs.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="1041">
+              <caret line="545" column="44" lean-forward="true" selection-start-line="545" selection-start-column="44" selection-end-line="545" selection-end-column="44" />
+              <folding>
+                <marker date="1576861181169" expanded="true" signature="22185:23279" ph="..." />
+                <marker date="1576861181169" expanded="true" signature="23574:28690" ph="..." />
+                <marker date="1576861181169" expanded="true" signature="25429:25587" ph="..." />
               </folding>
             </state>
           </provider>
@@ -212,48 +127,31 @@
       <file leaf-file-name="run_analysis.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/run_analysis.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="399">
-              <caret line="21" column="63" lean-forward="false" selection-start-line="21" selection-start-column="63" selection-end-line="21" selection-end-column="63" />
-              <folding>
-                <element signature="e#0#23#0" expanded="true" />
-                <marker date="1574093496309" expanded="true" signature="1326:1944" ph="..." />
-                <marker date="1574093496309" expanded="true" signature="3922:4190" ph="..." />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="run_processing.py" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/run_processing.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="1470">
-              <caret line="74" column="68" lean-forward="false" selection-start-line="74" selection-start-column="68" selection-end-line="74" selection-end-column="68" />
-              <folding>
-                <marker date="1574085038615" expanded="true" signature="305:4716" ph="..." />
-                <marker date="1574085038615" expanded="true" signature="3579:3580" ph="..." />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="exploration.py" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/important_code/exploration.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="756">
-              <caret line="39" column="0" lean-forward="false" selection-start-line="39" selection-start-column="0" selection-end-line="39" selection-end-column="0" />
+            <state relative-caret-position="1155">
+              <caret line="59" column="0" lean-forward="false" selection-start-line="59" selection-start-column="0" selection-end-line="59" selection-end-column="0" />
               <folding />
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="plot_analysis_cache.py" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/important_code/plot_analysis_cache.py">
+      <file leaf-file-name="do_analysis.py" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/important_code/do_analysis.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="944">
-              <caret line="1495" column="38" lean-forward="false" selection-start-line="1495" selection-start-column="38" selection-end-line="1495" selection-end-column="38" />
+            <state relative-caret-position="340">
+              <caret line="292" column="19" lean-forward="true" selection-start-line="292" selection-start-column="19" selection-end-line="292" selection-end-column="19" />
               <folding>
-                <element signature="e#0#10#0" expanded="true" />
+                <marker date="1576684502580" expanded="true" signature="11214:13158" ph="..." />
               </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="homing_extraction.py" pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/important_code/homing_extraction.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="-567">
+              <caret line="21" column="4" lean-forward="false" selection-start-line="21" selection-start-column="4" selection-end-line="21" selection-end-column="4" />
+              <folding />
             </state>
           </provider>
         </entry>
@@ -269,46 +167,38 @@
   </component>
   <component name="FindInProjectRecents">
     <findStrings>
-      <find>distance_map</find>
-      <find>scaling_factor</find>
-      <find>start_idx</find>
-      <find>stimulus_started</find>
-      <find>frame_</find>
-      <find>previous_stim_frame</find>
-      <find>frame_n</find>
-      <find>first_frame</find>
-      <find>front</find>
-      <find>][0] &gt; 40 or (not np</find>
-      <find>x_edge</find>
-      <find>correlat</find>
+      <find>kde</find>
+      <find>axis</find>
+      <find>median</find>
+      <find>'off</find>
+      <find>test</find>
       <find>stats</find>
-      <find>TS TOO LOW, OR NEV</find>
-      <find>RT[t</find>
-      <find>edge_proximity</find>
-      <find>_edge</find>
-      <find>thru_center</find>
-      <find>x_repetition</find>
-      <find>LRPI(</find>
+      <find>model_arena</find>
+      <find>shelter_roi</find>
+      <find>self.arena_with_prev_trials</find>
+      <find>pre_stim_video_arena</find>
+      <find>&lt; 100</find>
       <find>print(</find>
-      <find>mouse_at_wall</find>
-      <find>y_eval_point</find>
-      <find>y_wall_point</find>
-      <find>explorat</find>
-      <find>scaling</find>
-      <find>'control</find>
-      <find>silhouette_map</find>
-      <find>silhouette_map</find>
-      <find>RT'</find>
+      <find>trial_types</find>
+      <find>start time</find>
+      <find>self.start_points[</find>
+      <find>self.start_points</find>
+      <find>first_frame</find>
+      <find>stim</find>
+      <find>and</find>
+      <find>and Fal</find>
+      <find>stim_frame</find>
+      <find>prev movements</find>
+      <find>edginess</find>
+      <find>edgines</find>
+      <find>flatt</find>
+      <find>edge_vector_color</find>
+      <find>bar</find>
+      <find>bar</find>
+      <find>line</find>
+      <find>edgin</find>
     </findStrings>
     <replaceStrings>
-      <replace>.1</replace>
-      <replace>'lunge'</replace>
-      <replace>traj_loc</replace>
-      <replace>ax5</replace>
-      <replace>self.trial_types</replace>
-      <replace>file_name</replace>
-      <replace>trial_num</replace>
-      <replace>analysis</replace>
       <replace>self.analysis</replace>
       <replace>coordinates</replace>
       <replace>self.arena_with_prev_trials</replace>
@@ -331,6 +221,14 @@
       <replace>skew</replace>
       <replace>escapes</replace>
       <replace>HV_cutoff</replace>
+      <replace>analysis.analysis</replace>
+      <replace>self</replace>
+      <replace>plot_data</replace>
+      <replace>self.experiments</replace>
+      <replace>plot_data_corr</replace>
+      <replace>analysis_types</replace>
+      <replace>'prev homings'</replace>
+      <replace>self.shelter_roi</replace>
     </replaceStrings>
   </component>
   <component name="Git.Settings">
@@ -342,8 +240,6 @@
   <component name="IdeDocumentHistory">
     <option name="CHANGED_PATHS">
       <list>
-        <option value="$APPLICATION_CONFIG_DIR$/scratches/perceptron_catdog.py" />
-        <option value="$APPLICATION_CONFIG_DIR$/scratches/perceptron_multiclass.py" />
         <option value="$PROJECT_DIR$/Tracking/Tracking_utils.py" />
         <option value="$PROJECT_DIR$/Four_panel_plot.py" />
         <option value="$PROJECT_DIR$/find_w.py" />
@@ -378,21 +274,23 @@
         <option value="$PROJECT_DIR$/important_code/Four_panel_plot.py" />
         <option value="$PROJECT_DIR$/helper_code/obstacle_funcs.py" />
         <option value="$PROJECT_DIR$/important_code/plot_analysis_cache.py" />
-        <option value="$PROJECT_DIR$/helper_code/loadsave_funcs.py" />
         <option value="$PROJECT_DIR$/run_main.py" />
         <option value="$PROJECT_DIR$/important_code/exploration.py" />
         <option value="$PROJECT_DIR$/helper_code/strategy_funcs.py" />
-        <option value="$PROJECT_DIR$/helper_code/registration_funcs.py" />
-        <option value="$PROJECT_DIR$/helper_code/setup_funcs.py" />
-        <option value="$PROJECT_DIR$/important_code/escape_visualization.py" />
-        <option value="$PROJECT_DIR$/helper_code/processing_funcs.py" />
-        <option value="$PROJECT_DIR$/important_code/homing_decomposition.py" />
         <option value="$PROJECT_DIR$/important_code/homing_extraction.py" />
-        <option value="$PROJECT_DIR$/run_processing.py" />
-        <option value="$PROJECT_DIR$/important_code/plot_analysis.py" />
         <option value="$PROJECT_DIR$/run_analysis.py" />
-        <option value="$PROJECT_DIR$/setup.py" />
+        <option value="$PROJECT_DIR$/helper_code/loadsave_funcs.py" />
+        <option value="$PROJECT_DIR$/helper_code/registration_funcs.py" />
+        <option value="$PROJECT_DIR$/helper_code/save_video.py" />
+        <option value="$PROJECT_DIR$/important_code/escape_visualization.py" />
+        <option value="$PROJECT_DIR$/run_processing.py" />
+        <option value="$PROJECT_DIR$/helper_code/setup_funcs.py" />
+        <option value="$PROJECT_DIR$/important_code/homing_decomposition.py" />
+        <option value="$PROJECT_DIR$/helper_code/processing_funcs.py" />
         <option value="$PROJECT_DIR$/important_code/do_analysis.py" />
+        <option value="$PROJECT_DIR$/setup.py" />
+        <option value="$PROJECT_DIR$/important_code/plot_analysis.py" />
+        <option value="$PROJECT_DIR$/helper_code/analysis_funcs.py" />
       </list>
     </option>
   </component>
@@ -403,9 +301,9 @@
     <sorting>DEFINITION_ORDER</sorting>
   </component>
   <component name="ProjectFrameBounds" extendedState="6">
-    <option name="x" value="2825" />
-    <option name="y" value="-697" />
-    <option name="width" value="1060" />
+    <option name="x" value="-8" />
+    <option name="y" value="-8" />
+    <option name="width" value="1409" />
     <option name="height" value="782" />
   </component>
   <component name="ProjectInspectionProfilesVisibleTreeState">
@@ -604,25 +502,6 @@
       <option name="EMULATE_TERMINAL" value="false" />
       <option name="MODULE_MODE" value="false" />
     </configuration>
-    <configuration name="perceptron_multiclass" type="PythonConfigurationType" factoryName="Python" temporary="true">
-      <option name="INTERPRETER_OPTIONS" value="" />
-      <option name="PARENT_ENVS" value="true" />
-      <envs>
-        <env name="PYTHONUNBUFFERED" value="1" />
-      </envs>
-      <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$APPLICATION_CONFIG_DIR$/scratches" />
-      <option name="IS_MODULE_SDK" value="false" />
-      <option name="ADD_CONTENT_ROOTS" value="true" />
-      <option name="ADD_SOURCE_ROOTS" value="true" />
-      <module name="DLC" />
-      <EXTENSION ID="PythonCoverageRunConfigurationExtension" enabled="false" sample_coverage="true" runner="coverage.py" />
-      <option name="SCRIPT_NAME" value="$APPLICATION_CONFIG_DIR$/scratches/perceptron_multiclass.py" />
-      <option name="PARAMETERS" value="" />
-      <option name="SHOW_COMMAND_LINE" value="true" />
-      <option name="EMULATE_TERMINAL" value="false" />
-      <option name="MODULE_MODE" value="false" />
-    </configuration>
     <configuration name="run_analysis" type="PythonConfigurationType" factoryName="Python" temporary="true">
       <option name="INTERPRETER_OPTIONS" value="" />
       <option name="PARENT_ENVS" value="true" />
@@ -661,20 +540,39 @@
       <option name="EMULATE_TERMINAL" value="false" />
       <option name="MODULE_MODE" value="false" />
     </configuration>
+    <configuration name="save_video" type="PythonConfigurationType" factoryName="Python" temporary="true">
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/helper_code" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <module name="DLC" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" enabled="false" sample_coverage="true" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/helper_code/save_video.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="true" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+    </configuration>
     <list size="5">
       <item index="0" class="java.lang.String" itemvalue="Python.Start_analysis (1)" />
       <item index="1" class="java.lang.String" itemvalue="Python.Save_Video" />
-      <item index="2" class="java.lang.String" itemvalue="Python.perceptron_multiclass" />
-      <item index="3" class="java.lang.String" itemvalue="Python.run_analysis" />
-      <item index="4" class="java.lang.String" itemvalue="Python.run_main" />
+      <item index="2" class="java.lang.String" itemvalue="Python.run_analysis" />
+      <item index="3" class="java.lang.String" itemvalue="Python.run_main" />
+      <item index="4" class="java.lang.String" itemvalue="Python.save_video" />
     </list>
     <recent_temporary>
       <list size="5">
         <item index="0" class="java.lang.String" itemvalue="Python.run_main" />
-        <item index="1" class="java.lang.String" itemvalue="Python.run_analysis" />
-        <item index="2" class="java.lang.String" itemvalue="Python.Start_analysis (1)" />
-        <item index="3" class="java.lang.String" itemvalue="Python.Save_Video" />
-        <item index="4" class="java.lang.String" itemvalue="Python.perceptron_multiclass" />
+        <item index="1" class="java.lang.String" itemvalue="Python.save_video" />
+        <item index="2" class="java.lang.String" itemvalue="Python.run_analysis" />
+        <item index="3" class="java.lang.String" itemvalue="Python.Start_analysis (1)" />
+        <item index="4" class="java.lang.String" itemvalue="Python.Save_Video" />
       </list>
     </recent_temporary>
   </component>
@@ -695,7 +593,7 @@
     <servers />
   </component>
   <component name="ToolWindowManager">
-    <frame x="2552" y="-689" width="1456" height="2536" extended-state="6" />
+    <frame x="-8" y="-8" width="2576" height="1416" extended-state="6" />
     <editor active="true" />
     <layout>
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
@@ -707,9 +605,9 @@
       <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.12916666" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
       <window_info id="Docker" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="false" weight="0.33" sideWeight="0.5" order="10" side_tool="false" content_ui="tabs" />
       <window_info id="Database" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="5" side_tool="false" content_ui="tabs" />
-      <window_info id="SciView" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="FLOATING" visible="false" show_stripe_button="false" weight="0.34097221" sideWeight="0.5" order="4" side_tool="true" content_ui="tabs" x="208" y="121" width="1240" height="991" />
+      <window_info id="SciView" active="false" anchor="right" auto_hide="false" internal_type="SLIDING" type="FLOATING" visible="false" show_stripe_button="false" weight="0.34097221" sideWeight="0.5" order="4" side_tool="true" content_ui="tabs" x="738" y="373" width="1161" height="940" />
       <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
-      <window_info id="Debug" active="true" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="WINDOWED" visible="true" show_stripe_button="true" weight="0.15337424" sideWeight="0.7875" order="3" side_tool="false" content_ui="tabs" x="1430" y="31" width="1129" height="1368" />
+      <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="WINDOWED" visible="true" show_stripe_button="true" weight="0.15337424" sideWeight="0.7875" order="3" side_tool="false" content_ui="tabs" x="1254" y="31" width="1305" height="1368" />
       <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="true" content_ui="tabs" />
       <window_info id="Cvs" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
       <window_info id="Message" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
@@ -834,72 +732,27 @@
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/helper_code/loadsave_funcs.py</url>
-          <line>42</line>
+          <line>41</line>
           <option name="timeStamp" value="1997" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/important_code/plot_analysis.py</url>
-          <line>596</line>
-          <option name="timeStamp" value="2082" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/important_code/plot_analysis.py</url>
-          <line>255</line>
-          <option name="timeStamp" value="2091" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/important_code/plot_analysis.py</url>
-          <line>371</line>
-          <option name="timeStamp" value="2103" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/important_code/plot_analysis.py</url>
-          <line>777</line>
-          <option name="timeStamp" value="2119" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/important_code/plot_analysis.py</url>
-          <line>738</line>
-          <option name="timeStamp" value="2147" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/important_code/plot_analysis_cache.py</url>
           <option name="timeStamp" value="2150" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/run_analysis.py</url>
-          <line>15</line>
-          <option name="timeStamp" value="2155" />
+          <url>file://$PROJECT_DIR$/important_code/plot_analysis.py</url>
+          <line>286</line>
+          <option name="timeStamp" value="2303" />
         </line-breakpoint>
       </breakpoints>
       <breakpoints-dialog>
         <breakpoints-dialog />
       </breakpoints-dialog>
-      <option name="time" value="2156" />
+      <option name="time" value="2304" />
     </breakpoint-manager>
     <watches-manager />
   </component>
   <component name="editorHistoryManager">
-    <entry file="file://$PROJECT_DIR$/helper code/dlc_funcs.py" />
-    <entry file="file://$PROJECT_DIR$/helper code/imports.py" />
-    <entry file="file://$PROJECT_DIR$/helper code/Image_processing.py" />
-    <entry file="file://$PROJECT_DIR$/helper code/setup_funcs.py" />
-    <entry file="file://$PROJECT_DIR$/helper code/video_funcs.py" />
-    <entry file="file://$PROJECT_DIR$/unorganized code/summary_cat.py" />
-    <entry file="file://$USER_HOME$/Anaconda3/envs/analysis/Lib/site-packages/nptdms/tdms.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="806">
-          <caret line="310" column="0" lean-forward="false" selection-start-line="310" selection-start-column="0" selection-end-line="310" selection-end-column="0" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$APPLICATION_HOME_DIR$/helpers/typeshed/stdlib/3/types.pyi">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-29">
-          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$APPLICATION_HOME_DIR$/helpers/pydev/_pydev_bundle/pydev_import_hook.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="42">
@@ -940,13 +793,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$USER_HOME$/Anaconda3/envs/analysis/Lib/site-packages/pandas/core/generic.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="799">
-          <caret line="4371" column="0" lean-forward="false" selection-start-line="4371" selection-start-column="0" selection-end-line="4371" selection-end-column="0" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$USER_HOME$/Anaconda3/envs/analysis/Lib/site-packages/numpy/lib/npyio.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="799">
@@ -984,38 +830,10 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/helper_code/strategy_funcs.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1690">
-          <caret line="111" column="0" lean-forward="false" selection-start-line="111" selection-start-column="0" selection-end-line="111" selection-end-column="0" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$USER_HOME$/Anaconda3/envs/analysis/Lib/site-packages/IPython/core/interactiveshell.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="806">
-          <caret line="2846" column="0" lean-forward="false" selection-start-line="2846" selection-start-column="0" selection-end-line="2846" selection-end-column="0" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/helper_code/obstacle_funcs.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="504">
           <caret line="28" column="0" lean-forward="false" selection-start-line="28" selection-start-column="0" selection-end-line="28" selection-end-column="0" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/DLC_code/dlc_funcs.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1877">
-          <caret line="220" column="4" lean-forward="false" selection-start-line="220" selection-start-column="4" selection-end-line="220" selection-end-column="32" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$USER_HOME$/Anaconda3/envs/analysis/Lib/multiprocessing/pool.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="806">
-          <caret line="427" column="0" lean-forward="false" selection-start-line="427" selection-start-column="0" selection-end-line="427" selection-end-column="0" />
         </state>
       </provider>
     </entry>
@@ -1026,64 +844,10 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$USER_HOME$/Anaconda3/envs/analysis/Lib/pickle.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="806">
-          <caret line="734" column="0" lean-forward="false" selection-start-line="734" selection-start-column="0" selection-end-line="734" selection-end-column="0" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$USER_HOME$/Anaconda3/envs/analysis/Lib/site-packages/pandas/core/indexing.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="806">
           <caret line="1784" column="0" lean-forward="false" selection-start-line="1784" selection-start-column="0" selection-end-line="1784" selection-end-column="0" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$USER_HOME$/Anaconda3/envs/analysis/Lib/site-packages/skfmm/pfmm.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1071">
-          <caret line="54" column="0" lean-forward="false" selection-start-line="54" selection-start-column="0" selection-end-line="54" selection-end-column="0" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/helper_code/loadsave_funcs.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="882">
-          <caret line="47" column="24" lean-forward="true" selection-start-line="47" selection-start-column="24" selection-end-line="47" selection-end-column="24" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/helper_code/setup_funcs.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="2061">
-          <caret line="248" column="0" lean-forward="false" selection-start-line="248" selection-start-column="0" selection-end-line="248" selection-end-column="0" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/important_code/escape_visualization.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="357">
-          <caret line="24" column="51" lean-forward="true" selection-start-line="24" selection-start-column="51" selection-end-line="24" selection-end-column="51" />
-          <folding>
-            <marker date="1573817640782" expanded="true" signature="6983:7104" ph="..." />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/helper_code/registration_funcs.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="399">
-          <caret line="228" column="147" lean-forward="true" selection-start-line="228" selection-start-column="4" selection-end-line="228" selection-end-column="147" />
-          <folding>
-            <marker date="1573727738870" expanded="true" signature="2692:3092" ph="..." />
-            <marker date="1573727738870" expanded="true" signature="13676:13996" ph="..." />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -1091,6 +855,195 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="806">
           <caret line="303" column="0" lean-forward="false" selection-start-line="303" selection-start-column="0" selection-end-line="303" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/important_code/plot_analysis_cache.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="944">
+          <caret line="1495" column="38" lean-forward="false" selection-start-line="1495" selection-start-column="38" selection-end-line="1495" selection-end-column="38" />
+          <folding>
+            <element signature="e#0#10#0" expanded="false" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/important_code/exploration.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="756">
+          <caret line="39" column="0" lean-forward="false" selection-start-line="39" selection-start-column="0" selection-end-line="39" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/Anaconda3/envs/analysis/Lib/site-packages/IPython/core/interactiveshell.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="806">
+          <caret line="2846" column="0" lean-forward="false" selection-start-line="2846" selection-start-column="0" selection-end-line="2846" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/Anaconda3/envs/analysis/Lib/genericpath.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="2231">
+          <caret line="148" column="0" lean-forward="false" selection-start-line="148" selection-start-column="0" selection-end-line="148" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/helper_code/strategy_funcs.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="2079">
+          <caret line="111" column="0" lean-forward="false" selection-start-line="111" selection-start-column="0" selection-end-line="111" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/Anaconda3/envs/analysis/Lib/site-packages/numpy/linalg/linalg.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="2016">
+          <caret line="96" column="0" lean-forward="false" selection-start-line="96" selection-start-column="0" selection-end-line="96" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/Anaconda3/envs/analysis/Lib/site-packages/sklearn/utils/multiclass.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="806">
+          <caret line="170" column="0" lean-forward="false" selection-start-line="170" selection-start-column="0" selection-end-line="170" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/Anaconda3/envs/analysis/Lib/site-packages/sklearn/utils/validation.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="1893">
+          <caret line="767" column="0" lean-forward="false" selection-start-line="767" selection-start-column="0" selection-end-line="767" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/Anaconda3/envs/analysis/Lib/pickle.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="806">
+          <caret line="216" column="0" lean-forward="false" selection-start-line="216" selection-start-column="0" selection-end-line="216" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/Anaconda3/envs/analysis/Lib/site-packages/matplotlib/axes/_axes.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="806">
+          <caret line="4242" column="0" lean-forward="false" selection-start-line="4242" selection-start-column="0" selection-end-line="4242" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/Anaconda3/envs/analysis/Lib/site-packages/matplotlib/colors.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="1051">
+          <caret line="264" column="0" lean-forward="false" selection-start-line="264" selection-start-column="0" selection-end-line="264" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/helper_code/save_video.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="378">
+          <caret line="19" column="14" lean-forward="true" selection-start-line="19" selection-start-column="14" selection-end-line="19" selection-end-column="14" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/Anaconda3/envs/analysis/Lib/site-packages/nptdms/tdms.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="302">
+          <caret line="286" column="27" lean-forward="true" selection-start-line="286" selection-start-column="27" selection-end-line="286" selection-end-column="27" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/helper_code/registration_funcs.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="1428">
+          <caret line="125" column="0" lean-forward="false" selection-start-line="125" selection-start-column="0" selection-end-line="125" selection-end-column="0" />
+          <folding>
+            <marker date="1575649396695" expanded="true" signature="2692:3092" ph="..." />
+            <marker date="1575649396695" expanded="true" signature="11920:12259" ph="..." />
+            <marker date="1575649396695" expanded="true" signature="14047:14367" ph="..." />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/DLC_code/dlc_funcs.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="189">
+          <caret line="18" column="49" lean-forward="true" selection-start-line="18" selection-start-column="49" selection-end-line="18" selection-end-column="59" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/important_code/escape_visualization.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="306">
+          <caret line="22" column="35" lean-forward="false" selection-start-line="22" selection-start-column="35" selection-end-line="22" selection-end-column="35" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/Anaconda3/envs/analysis/Lib/multiprocessing/pool.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="806">
+          <caret line="427" column="0" lean-forward="false" selection-start-line="427" selection-start-column="0" selection-end-line="427" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/Anaconda3/envs/analysis/Lib/site-packages/pandas/core/generic.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="806">
+          <caret line="3006" column="0" lean-forward="false" selection-start-line="3006" selection-start-column="0" selection-end-line="3006" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/helper_code/loadsave_funcs.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="903">
+          <caret line="48" column="0" lean-forward="false" selection-start-line="48" selection-start-column="0" selection-end-line="48" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/Anaconda3/envs/analysis/Lib/site-packages/skfmm/pfmm.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="2268">
+          <caret line="111" column="0" lean-forward="false" selection-start-line="111" selection-start-column="0" selection-end-line="111" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/important_code/homing_decomposition.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="147">
+          <caret line="15" column="21" lean-forward="false" selection-start-line="15" selection-start-column="21" selection-end-line="15" selection-end-column="21" />
+          <folding>
+            <marker date="1576084664078" expanded="true" signature="8686:8989" ph="..." />
+            <marker date="1576084664078" expanded="true" signature="8686:8993" ph="..." />
+            <marker date="1576084664078" expanded="true" signature="12458:12591" ph="..." />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/run_processing.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="1113">
+          <caret line="57" column="0" lean-forward="false" selection-start-line="57" selection-start-column="0" selection-end-line="57" selection-end-column="0" />
+          <folding>
+            <marker date="1576080288957" expanded="true" signature="305:4901" ph="..." />
+            <marker date="1576080288957" expanded="true" signature="3579:3580" ph="..." />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/helper_code/processing_funcs.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="789">
+          <caret line="117" column="106" lean-forward="false" selection-start-line="117" selection-start-column="106" selection-end-line="117" selection-end-column="106" />
+          <folding>
+            <marker date="1576084664096" expanded="true" signature="215:1559" ph="..." />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/helper_code/setup_funcs.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="1113">
+          <caret line="123" column="86" lean-forward="false" selection-start-line="123" selection-start-column="86" selection-end-line="123" selection-end-column="86" />
           <folding />
         </state>
       </provider>
@@ -1103,137 +1056,81 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/important_code/homing_extraction.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="2352">
-          <caret line="112" column="16" lean-forward="false" selection-start-line="112" selection-start-column="16" selection-end-line="112" selection-end-column="16" />
-          <folding>
-            <element signature="e#0#9#0" expanded="false" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$USER_HOME$/Anaconda3/envs/analysis/Lib/site-packages/matplotlib/axes/_axes.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="806">
-          <caret line="4242" column="0" lean-forward="false" selection-start-line="4242" selection-start-column="0" selection-end-line="4242" selection-end-column="0" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/helper_code/processing_funcs.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="735">
-          <caret line="40" column="32" lean-forward="true" selection-start-line="40" selection-start-column="32" selection-end-line="40" selection-end-column="32" />
-          <folding>
-            <marker date="1573828533679" expanded="true" signature="215:1559" ph="..." />
-            <marker date="1573828533679" expanded="true" signature="1770:2601" ph="..." />
-            <marker date="1573828533679" expanded="true" signature="6193:6389" ph="..." />
-            <marker date="1573828533679" expanded="true" signature="6194:6388" ph="..." />
-            <marker date="1573828533679" expanded="true" signature="11542:11680" ph="..." />
-            <marker date="1573828533679" expanded="true" signature="14968:16199" ph="..." />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/run_main.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="0">
           <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
           <folding>
             <element signature="e#0#23#0" expanded="true" />
-            <marker date="1572960977529" expanded="true" signature="0:23" ph="import ..." />
             <marker date="1572960977529" expanded="true" signature="148:5130" ph="..." />
           </folding>
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/important_code/homing_decomposition.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1405">
-          <caret line="119" column="0" lean-forward="true" selection-start-line="119" selection-start-column="0" selection-end-line="119" selection-end-column="0" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/important_code/plot_analysis_cache.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="944">
-          <caret line="1495" column="38" lean-forward="false" selection-start-line="1495" selection-start-column="38" selection-end-line="1495" selection-end-column="38" />
-          <folding>
-            <element signature="e#0#10#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/run_processing.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1470">
-          <caret line="74" column="68" lean-forward="false" selection-start-line="74" selection-start-column="68" selection-end-line="74" selection-end-column="68" />
-          <folding>
-            <marker date="1574085038615" expanded="true" signature="305:4716" ph="..." />
-            <marker date="1574085038615" expanded="true" signature="3579:3580" ph="..." />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/important_code/exploration.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="756">
-          <caret line="39" column="0" lean-forward="false" selection-start-line="39" selection-start-column="0" selection-end-line="39" selection-end-column="0" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/run_analysis.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="399">
-          <caret line="21" column="63" lean-forward="false" selection-start-line="21" selection-start-column="63" selection-end-line="21" selection-end-column="63" />
-          <folding>
-            <element signature="e#0#23#0" expanded="true" />
-            <marker date="1574093496309" expanded="true" signature="1326:1944" ph="..." />
-            <marker date="1574093496309" expanded="true" signature="3922:4190" ph="..." />
-          </folding>
+        <state relative-caret-position="1155">
+          <caret line="59" column="0" lean-forward="false" selection-start-line="59" selection-start-column="0" selection-end-line="59" selection-end-column="0" />
+          <folding />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/setup.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="765">
-          <caret line="75" column="9" lean-forward="false" selection-start-line="75" selection-start-column="9" selection-end-line="75" selection-end-column="9" />
+        <state relative-caret-position="74">
+          <caret line="67" column="33" lean-forward="true" selection-start-line="67" selection-start-column="33" selection-end-line="67" selection-end-column="33" />
           <folding>
-            <marker date="1574093496285" expanded="true" signature="19:2148" ph="..." />
-            <marker date="1574093496285" expanded="true" signature="2256:2826" ph="..." />
-            <marker date="1574093496285" expanded="true" signature="2861:2862" ph="..." />
-            <marker date="1574093496285" expanded="true" signature="2862:3338" ph="..." />
-            <marker date="1574093496285" expanded="true" signature="3155:3194" ph="..." />
+            <marker date="1576860583561" expanded="true" signature="19:2203" ph="..." />
+            <marker date="1576860583561" expanded="true" signature="2515:2954" ph="..." />
+            <marker date="1576860583561" expanded="true" signature="2996:7746" ph="..." />
+            <marker date="1576860583561" expanded="true" signature="3009:7419" ph="..." />
+            <marker date="1576860583561" expanded="true" signature="7513:7551" ph="..." />
+            <marker date="1576860583561" expanded="true" signature="7621:7669" ph="..." />
           </folding>
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/important_code/do_analysis.py">
+    <entry file="file://$PROJECT_DIR$/helper_code/analysis_funcs.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="304">
-          <caret line="22" column="41" lean-forward="false" selection-start-line="22" selection-start-column="41" selection-end-line="22" selection-end-column="41" />
+        <state relative-caret-position="1041">
+          <caret line="545" column="44" lean-forward="true" selection-start-line="545" selection-start-column="44" selection-end-line="545" selection-end-column="44" />
           <folding>
-            <marker date="1574093496255" expanded="true" signature="222:1918" ph="..." />
-            <marker date="1574093496255" expanded="true" signature="222:8355" ph="..." />
-            <marker date="1574093496255" expanded="true" signature="222:20267" ph="..." />
-            <marker date="1574093496255" expanded="true" signature="289:1656" ph="..." />
-            <marker date="1574093496255" expanded="true" signature="7771:8355" ph="..." />
+            <marker date="1576861181169" expanded="true" signature="22185:23279" ph="..." />
+            <marker date="1576861181169" expanded="true" signature="23574:28690" ph="..." />
+            <marker date="1576861181169" expanded="true" signature="25429:25587" ph="..." />
           </folding>
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/important_code/plot_analysis.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="498">
-          <caret line="181" column="62" lean-forward="false" selection-start-line="181" selection-start-column="62" selection-end-line="181" selection-end-column="62" />
+        <state relative-caret-position="494">
+          <caret line="217" column="39" lean-forward="true" selection-start-line="217" selection-start-column="39" selection-end-line="217" selection-end-column="39" />
           <folding>
-            <marker date="1574091031337" expanded="true" signature="2140:3895" ph="..." />
-            <marker date="1574091031337" expanded="true" signature="12527:12636" ph="..." />
-            <marker date="1574091031337" expanded="true" signature="19102:19321" ph="..." />
+            <element signature="e#0#18#0" expanded="true" />
+            <marker date="1576861181145" expanded="true" signature="0:566" ph="..." />
+            <marker date="1576861181145" expanded="true" signature="5172:7016" ph="..." />
+            <marker date="1576861181145" expanded="true" signature="12342:14369" ph="..." />
+            <marker date="1576861181145" expanded="true" signature="15837:16917" ph="..." />
           </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/important_code/do_analysis.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="340">
+          <caret line="292" column="19" lean-forward="true" selection-start-line="292" selection-start-column="19" selection-end-line="292" selection-end-column="19" />
+          <folding>
+            <marker date="1576684502580" expanded="true" signature="11214:13158" ph="..." />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/important_code/homing_extraction.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-567">
+          <caret line="21" column="4" lean-forward="false" selection-start-line="21" selection-start-column="4" selection-end-line="21" selection-end-column="4" />
+          <folding />
         </state>
       </provider>
     </entry>

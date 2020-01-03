@@ -20,8 +20,8 @@ def visualize_escape(self):
     # load fisheye mapping
     maps = np.load(self.folders['fisheye_map_location']); map1 = maps[:, :, 0:2]; map2 = maps[:, :, 2] * 0
     # set up model arena
-    arena, _, shelter_roi = model_arena((self.height, self.width), self.trial_type > 0, registration = False,
-                                        obstacle_type = self.obstacle_type, shelter = 'down' in self.videoname or not 'no shelter' in self.videoname, dark = self.dark_theme)
+    arena, _, _ = model_arena((self.height, self.width), self.trial_type > 0, registration = False,
+                                        obstacle_type = self.obstacle_type, shelter = ('down' in self.videoname or not 'no shelter' in self.videoname) and not 'food' in self.videoname, dark = self.dark_theme)
     arena = cv2.cvtColor(arena, cv2.COLOR_GRAY2RGB)
     # initialize arenas for mouse mask
     model_mouse_mask_previous = np.zeros(arena.shape[0:2]).astype(np.uint8)
@@ -38,13 +38,11 @@ def visualize_escape(self):
     # set up background arena with previous obstacle dulled out
     if self.trial_type<=0 and (('down' in self.videoname) or ('up' in self.videoname and 'void' in self.videoname)):
         former_arena, _, _ = model_arena((self.height, self.width), 1, registration = False,
-                                         obstacle_type = self.obstacle_type, shelter = not 'no shelter' in self.videoname, dark = self.dark_theme)
+                                         obstacle_type = self.obstacle_type, shelter = not 'no shelter' in self.videoname and not 'food' in self.videoname, dark = self.dark_theme)
         former_arena = cv2.cvtColor(former_arena, cv2.COLOR_GRAY2RGB)
         discrepancy = ~((arena - former_arena)==0)
         self.arena_with_prev_trials[discrepancy] = ((former_arena[discrepancy] * 1 + arena[discrepancy].astype(float) * 9) / 10).astype(np.uint8)
         trial_plot[discrepancy] =                    ((former_arena[discrepancy] * 1 + arena[discrepancy].astype(float) * 9) / 10).astype(np.uint8)
-    # set up pre-stimulus session trials plot
-    pre_stim_video_arena = self.arena_with_prev_trials.copy()
 
     '''     Loop over each frame, making the video and images       '''
     # loop over each frame
@@ -61,14 +59,14 @@ def visualize_escape(self):
         frame = register_frame(frame, self.x_offset, self.y_offset, self.session.Registration, map1, map2)
         # prior to stimulus onset, refresh frame to initialized frame
         if frames_past_stimulus < 0:
-            video_arena = pre_stim_video_arena.copy()
+            video_arena = self.arena_with_prev_trials.copy()
             model_mouse_mask_previous = 0
         # extract DLC coordinates and make a model mouse mask
         model_mouse_mask, large_mouse_mask, body_location = make_model_mouse_mask(self.coordinates, frame_num, model_mouse_mask_initial)
         # use speed to determine model mouse coloration
         speed_color_light, speed_color_dark = speed_colors(smoothed_speed[frame_num - 1])
         # at the stimulus onset
-        if frame_num == self.stim_frame:
+        if (frame_num+1) == self.stim_frame:
             # get a contour of the mouse mask
             _, contours, _ = cv2.findContours(model_mouse_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
             # and store the position of the mouse
@@ -83,7 +81,7 @@ def visualize_escape(self):
         # continuous shading, after stimulus onset
         elif frames_past_stimulus >= 0:
             # once at shelter, end it
-            if np.sum(shelter_roi * large_mouse_mask) and (not 'no shelter' in self.videoname or 'down' in self.videoname):
+            if np.sum(self.shelter_roi * large_mouse_mask) and (not 'no shelter' in self.videoname or 'down' in self.videoname):
                 if not arrived_at_shelter:
                     # end video in 2 seconds
                     arrived_at_shelter = True
@@ -140,7 +138,7 @@ def visualize_escape(self):
             alpha = .3
             cv2.addWeighted(frame, alpha, loom_frame, 1 - alpha, 0, frame)
             cv2.addWeighted(video_arena, alpha, loom_arena, 1 - alpha, 0, session_trials_plot_show)
-            cv2.addWeighted(trial_plot, alpha, loom_arena, 1 - alpha, 0, trial_plot_show)
+            cv2.addWeighted(trial_plot, alpha, loom_arena2, 1 - alpha, 0, trial_plot_show)
 
         # invert colors for opencv display
         arena_with_prev_trials_show = cv2.cvtColor(self.arena_with_prev_trials, cv2.COLOR_BGR2RGB)
@@ -165,10 +163,13 @@ def visualize_escape(self):
     cv2.drawContours(self.arena_with_prev_trials, contours, 0, (0,0,0), thickness=1)
     # draw purple silhouette for wall change
     if (self.trial_type == 1 or self.trial_type == -1):
-        cv2.drawContours(video_arena, contours_wall_change, 0, (220, 0, 220), thickness=-1)
-        cv2.drawContours(trial_plot_show, contours_wall_change, 0, (220, 0, 220), thickness=-1)
+        try:
+            cv2.drawContours(video_arena, contours_wall_change, 0, (220, 0, 220), thickness=-1)
+            cv2.drawContours(trial_plot, contours_wall_change, 0, (220, 0, 220), thickness=-1)
+        except:
+            print('Obstacle change not picked up for' + self.videoname)
     # save trial images
-    scipy.misc.imsave(os.path.join(self.save_folder, self.videoname + ' image.tif'), trial_plot_show)
+    scipy.misc.imsave(os.path.join(self.save_folder, self.videoname + ' image.tif'), trial_plot)
     scipy.misc.imsave(os.path.join(self.save_folder, self.videoname + ' image with history.tif'), video_arena)
     # after the last trial, save the session workspace image
     if self.trial_num == self.number_of_trials:
@@ -180,8 +181,6 @@ def visualize_escape(self):
         self.session_video.release()
         self.session_video.release()
         cv2.destroyAllWindows()
-
-
 
     # cv2.drawContours(trial_plot_show, contours, 0, (255, 255, 255), thickness=1)
 

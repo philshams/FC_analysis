@@ -134,8 +134,8 @@ def get_arena_details(self, experiment = 'experiment'):
         subgoal_location['region'] = [(0, 0),(0, 500), (1000, 500), (1000, 0)] # contour of where sub-goal is relevant
         subgoal_location['sub-goals'] = [(250, 500),(750, 500)] # (x, y) for each sub-goal
 
-        if 'food' in experiment:
-            obstacle_type = 'none'
+        # if 'food' in experiment:
+        #     obstacle_type = 'none'
 
     elif 'day' in experiment:
         x_offset = 300
@@ -268,6 +268,7 @@ def model_arena(size, trial_type, registration = False, obstacle_type = 'wall', 
     elif obstacle_type == '11 wall':
         # arena outline
         cv2.circle(model_arena, (500, 500), 460, 245, -1)
+        if not dark: cv2.circle(model_arena, (500, 500), 460, 0, 1, lineType=16)
         cv2.rectangle(model_arena, (int(250 - 6 / 2), int(250)), (int(250 + 6 / 2), int(500)), 90, thickness=-1)
         cv2.rectangle(model_arena, (int(750 - 6 / 2), int(250)), (int(750 + 6 / 2), int(500)), 90, thickness=-1)
 
@@ -294,15 +295,18 @@ def model_arena(size, trial_type, registration = False, obstacle_type = 'wall', 
         # add wall - down
         cv2.rectangle(model_arena, (int(200), int(420 - 6 / 2)), (int(200 + 420), int(420 + 6 / 2)), 90, thickness=-1)
 
-    elif (obstacle_type == 'side wall 14' and trial_type == 0) or (obstacle_type == 'side wall 32' and trial_type):
-        # arena outline
-        cv2.rectangle(model_arena, (100, 100), (900, 900), 245, -1)
+    # elif (obstacle_type == 'side wall 14' and trial_type == 0) or (obstacle_type == 'side wall 32' and trial_type):
+    #     # arena outline
+    #     if not dark:  cv2.rectangle(model_arena, (100, 100), (900, 900), 0, 2, lineType = 16)
+    #     cv2.rectangle(model_arena, (100, 100), (900, 900), 245, -1)
+    #
+    #     # add wall
+    #     cv2.rectangle(model_arena, (int(100), int(500 - 6 / 2)), (int(100 + 660), int(500 + 6 / 2)), 90, thickness=-1)
 
-        # add wall
-        cv2.rectangle(model_arena, (int(100), int(500 - 6 / 2)), (int(100 + 660), int(500 + 6 / 2)), 90, thickness=-1)
-
-    elif (obstacle_type == 'side wall 32' and trial_type == 0) or (obstacle_type == 'side wall 14' and trial_type):
+    # elif (obstacle_type == 'side wall 32' and trial_type == 0) or (obstacle_type == 'side wall 14' and trial_type):
+    elif (obstacle_type == 'side wall 14') or (obstacle_type == 'side wall 32'):
         # arena outline
+        if not dark:  cv2.rectangle(model_arena, (100, 100), (900, 900), 0, 2, lineType=16)
         cv2.rectangle(model_arena, (100, 100), (900, 900), 245, -1)
 
         # add wall

@@ -33,7 +33,6 @@ def save_data(save_folder, file_name, object=None, backup = True):
 
 def setup_database(analysis):
     """    Creating a new database from scratch using experiments.csv or load a database from a pre-existing file    """
-
     try:
        # Load existing database, if it exists
         db = pd.read_pickle(os.path.join(analysis.folders['save_folder'], analysis.file_name))

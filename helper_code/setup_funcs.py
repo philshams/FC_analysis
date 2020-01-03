@@ -103,10 +103,10 @@ def create_database(excelpath, database=None):
                                             print(colored('Couldnt load stim correctly','yellow'))
                         # Now use the AI channels to find the *real* stimulus onset times and replace them
                         if audio_rec_stims:
-                            stimulus_on_idx = np.where(tdms.group_channels('AI')[2].data > .55)[0] # .55 #in first data sets this is AI 1
+                            stimulus_on_idx = np.where(tdms.group_channels('AI')[3].data > .55)[0] #in first data sets this is AI 1, later AI 2
                             idx_since_last_stimulus_on = np.diff(stimulus_on_idx)
                             if stimulus_on_idx.size:
-                                stimulus_start_idx = stimulus_on_idx[np.append(np.ones(1).astype(bool),idx_since_last_stimulus_on>10*10000)] #30
+                                stimulus_start_idx = stimulus_on_idx[np.append(np.ones(1).astype(bool),idx_since_last_stimulus_on>2*10000)] #usually 10 or 30
                                 stimulus_start_frame = np.ceil(stimulus_start_idx / 10000 / (33 + 1 / 3) * 1000).astype(int)
                                 stimulus_start_frame = stimulus_start_frame[stimulus_start_frame > 300]
                             else:
@@ -121,10 +121,9 @@ def create_database(excelpath, database=None):
                                     print('audio AI channel does not match values of timestamps')
                                 else:
                                     print(discrepancy)
-
                             # for conditioning experiment, just use what the tdms says
-                            if 'food' in line['Experiment']:
-                                stimulus_start_frame = np.array(audio_rec_stims)
+                            # if 'food' in line['Experiment']:
+                            #     stimulus_start_frame = np.array(audio_rec_stims)
                             audio_rec_stims = list(stimulus_start_frame)
 
                         session_stimuli['stimuli']['visual'].append(visual_rec_stims)

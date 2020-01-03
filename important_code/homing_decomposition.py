@@ -40,6 +40,7 @@ def decompose_homings(self):
     thresholds_passed[-(skip_frames + 10):-skip_frames] = False
 
     # get vectors from the first phase of all homings
+    print(self.stim_frame)
     group_idx, distance_from_start, end_idx = multi_phase_phinder(self, thresholds_passed, minimum_distance, max_shelter_proximity, critical_turn)
     thresholds_passed_idx = np.where(group_idx)[0]
 
@@ -132,6 +133,10 @@ def multi_phase_phinder(self, thresholds_passed, minimum_distance_spont, max_she
     distance_from_start = np.zeros(len(thresholds_passed))
     stim_on = self.frame_nums > self.stim_frame
     first_frame = self.previous_stim_frame + self.skip_frames
+    print(self.previous_stim_frame)
+    print(self.skip_frames)
+    print(first_frame)
+    print('')
 
     for k, g in itertools.groupby(thresholds_passed):
         groups.append(list(g))
@@ -177,7 +182,9 @@ def multi_phase_phinder(self, thresholds_passed, minimum_distance_spont, max_she
                 angle_turned = np.zeros((idx-start_index, 2))
                 if stim_on[start_index]:
                     angle_turned[:,0] = (self.body_angles[start_index:idx] - angle_for_comparison) #body_angles[start_index + traveled_far_enough[0]])
-                    angle_turned[:, 1] = (self.body_angles[start_index:idx] - self.body_angles[start_index - 15:idx - 15])
+                    try:
+                        angle_turned[:, 1] = (self.body_angles[start_index:idx] - self.body_angles[start_index - 15:idx - 15]) #15
+                    except: break
                 else:
                     angle_turned[:,0] = (gaussian_filter1d(self.body_angles[start_index:idx],3) - angle_for_comparison)
                     try: angle_turned[:, 1] = (gaussian_filter1d(self.body_angles[start_index:idx],3) - gaussian_filter1d(self.body_angles[start_index - 15:idx - 15],3))
@@ -247,3 +254,5 @@ def multi_phase_phinder(self, thresholds_passed, minimum_distance_spont, max_she
                     break
 
     return group_idx, distance_from_start, end_idx
+
+

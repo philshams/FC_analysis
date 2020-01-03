@@ -47,14 +47,18 @@ def set_up_processing_variables(self, session):
 def set_up_arena_visualizations(self):
     '''     set up arena images for visualizations      '''
     # Set up arena for visualizations
+    experiment = self.session['Metadata']['experiment']
     arena, _, _ = model_arena((self.height, self.width), self.trial_types[0], registration = False, obstacle_type = self.obstacle_type, \
-                              shelter=not 'no shelter' in self.session['Metadata']['experiment'], dark = self.dark_theme)
+                              shelter=not 'no shelter' in experiment and not 'food' in experiment, dark = self.dark_theme)
+    _, _, shelter_roi = model_arena((self.height, self.width), self.trial_types[0], registration=False, obstacle_type=self.obstacle_type, shelter=not 'no shelter' in experiment, dark=self.dark_theme)
     # set up for homing extraction
     if self.processing_options['spontaneous homings']: self.homing_arena = cv2.cvtColor(arena.copy(), cv2.COLOR_GRAY2RGB)
     # set up for homing decomposition
     if self.processing_options['decompose homings']: self.decompose_arena = cv2.cvtColor(arena.copy(), cv2.COLOR_GRAY2RGB)
     # set up for escapes
-    if self.processing_options['visualize escapes']: self.arena_with_prev_trials = cv2.cvtColor(arena.copy(), cv2.COLOR_GRAY2RGB)
+    if self.processing_options['visualize escapes']:
+        self.arena_with_prev_trials = cv2.cvtColor(arena.copy(), cv2.COLOR_GRAY2RGB)
+        self.shelter_roi = shelter_roi
     # set up for exploration
     if self.processing_options['exploration']:
         arena, _, _ = model_arena((self.height, self.width), self.trial_types[0], registration=False, obstacle_type=self.obstacle_type, dark=self.dark_theme, shift_wall = True)
@@ -111,7 +115,7 @@ def get_trial_types(self, stims_all):
         if not ('Trial Types' in self.session['Tracking']):
             self.session['Tracking']['Trial Types'] = [[] for x in range(number_of_vids)]
         # If trial types are already saved correctly, just use those
-        if len(list(flatten(self.session['Tracking']['Trial Types']))) == len(list(flatten(stims_all))) and False:
+        if len(list(flatten(self.session['Tracking']['Trial Types']))) == len(list(flatten(stims_all))): # and False:
             self.trial_types = self.session['Tracking']['Trial Types'][vid_num]
         else: # Otherwise, compute them de novo
             arena_specific_trial_types(self, stims_video, vid)
@@ -147,7 +151,7 @@ def arena_specific_trial_types(self, stims_video, vid):
                 self.trial_types.append(trial_type)
             # If all trials are the same, just add a 2 (obstacle) or 0 (no obstacle) to trial type list
             elif len(self.trial_types) < len(stims_video):
-                if self.obstacle_type == 'none':
+                if self.obstacle_type == 'none' or not 'wall' in self.session['Metadata']['experiment']:
                     self.trial_types.append(0)
                 else:
                     self.trial_types.append(2)
@@ -333,16 +337,18 @@ def initialize_wall_analysis(self, stim_frame, vid):
     wall_darkness_pre = np.min(wall_darkness[0:int(len(frames_to_check) / 2), 0:2])
     wall_darkness_post = np.min(wall_darkness[int(len(frames_to_check) / 2):len(frames_to_check), 0:2])
     # use these darkness levels to detect whether wall is up, down, rising, or falling:
+    # print(wall_darkness_pre)
+    # print(wall_darkness_post)
     if 'void' in experiment and 'up' in experiment: experiment = 'void down'
-    if (wall_darkness_pre - wall_darkness_post) < -30:
+    if (wall_darkness_pre - wall_darkness_post) < -30 and wall_darkness_pre < 200:
         # print(colored('Wall rising trial!', 'green'))
         wall_height_timecourse = [0]
         trial_type = 1
-    elif (wall_darkness_pre - wall_darkness_post) > 30:
+    elif (wall_darkness_pre - wall_darkness_post) > 30 and wall_darkness_post < 200:
         # print(colored('Wall falling trial', 'green'))
         wall_height_timecourse = [1]
         trial_type = -1
-    elif 'down' in experiment and -1 in self.trial_types:
+    elif ('down' in experiment and -1 in self.trial_types) or wall_darkness_post < 200:
         trial_type = 0
         wall_height_timecourse = 0
     elif 'down' in experiment and not (-1 in self.trial_types):
