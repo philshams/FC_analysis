@@ -19,8 +19,9 @@ def initialize_arena(self, sub_experiments, sub_conditions):
     '''     initialize arena        '''
     shape = self.analysis[sub_experiments[0]]['obstacle']['shape']
     obstacle_type = self.analysis[sub_experiments[0]]['obstacle']['type']
-    # (for side wall, just look at wall=left for now)
-    arena, _, _ = model_arena(shape, not sub_conditions[0]=='no obstacle' and not '32' in sub_experiments[0], False, obstacle_type, simulate=False, dark=self.dark_theme)
+    show_obstacle = not (('left' in sub_experiments[0] and sub_conditions[0]=='obstacle') \
+                    or ('right' in sub_experiments[0] and sub_conditions[0]=='no obstacle')) or ('lights' in sub_experiments[0])
+    arena, _, _ = model_arena(shape,not show_obstacle, False, obstacle_type, simulate=False, dark=self.dark_theme)
     scaling_factor = 100 / arena.shape[0]
     arena_color = cv2.cvtColor(arena, cv2.COLOR_GRAY2RGB)
     return arena, arena_color, scaling_factor
@@ -83,10 +84,16 @@ def initialize_variables_efficiency(number_of_trials, self, sub_experiments):
     time = np.ones(number_of_trials) * np.nan
     trials = np.ones(number_of_trials) * np.nan
     end_idx = np.ones(number_of_trials) * np.nan
+    avg_speed = np.ones(number_of_trials) * np.nan
+    avg_speed_RT = np.ones(number_of_trials) * np.nan
+    peak_speed = np.ones(number_of_trials) * np.nan
+    RT = np.ones(number_of_trials) * np.nan
+    escape_speed = np.ones(number_of_trials) * np.nan
+    strategy = np.ones(number_of_trials) * np.nan
     trial_num = -1
     shape = self.analysis[sub_experiments[0]]['obstacle']['shape']
     scaling_factor = 100 / shape[0]
-    return efficiency, efficiency_RT, end_idx, num_prev_homings, scaling_factor, time, trial_num, trials, edginess
+    return efficiency, efficiency_RT, end_idx, num_prev_homings, scaling_factor, time, trial_num, trials, edginess, avg_speed, avg_speed_RT, peak_speed, RT, escape_speed, strategy
 
 
 def fill_in_trial_data(RT, condition, end_idx, experiment, mouse, scaling_factor, self, speed_traces, subgoal_speed_traces, time, trial, trial_num):
@@ -123,6 +130,7 @@ def fill_in_trial_data_efficiency(ETD, condition, efficiency, efficiency_RT, exp
         if len(SR) >= (ETD + 1): SR = SR[-ETD:]
         # num_prev_homings[trial_num] = int(np.min((4, np.sum(abs(SR - x_edge) < 6))))
         num_prev_homings[trial_num] = int(np.sum(abs(SR - x_edge) < 10))
+        # num_prev_homings[trial_num] = int(np.sum(abs(SR - x_edge) < 5))
     except:
         num_prev_homings[trial_num] = 0
 
@@ -292,7 +300,7 @@ def plot_kde(ax, kde, data, z, vertical=False, normto=None, label=None, violin=T
 
     if clip:
 
-        if np.max(data) > 1:
+        if np.max(data) > 1: #0.8
             x = x[(y > 0)]  # * (y < 1)]
             y = y[(y > 0)]  # * (y < 1)]
         else:
@@ -318,8 +326,8 @@ def scatter_the_axis(c, data_for_plot):
         difference[i] = np.inf
         # if np.min(difference) == 0:
         #     scatter_axis[i] = np.random.normal(3 * c - .15, 0.25)
-        if np.min(difference) < .008:
-            scatter_axis[i] = np.random.normal(3 * c - .2, 0.15)
+        if np.min(difference) < .01:
+            scatter_axis[i] = np.random.normal(3 * c - .2, 0.1) #.15
     return scatter_axis
 
 def scatter_the_axis_efficiency(plot_data, plot_data_x):
@@ -329,7 +337,7 @@ def scatter_the_axis_efficiency(plot_data, plot_data_x):
         difference = abs(plot_data[j] - plot_data)
         difference[j] = np.inf
         if np.min(difference) < (.01 * np.max(plot_data)): # .001
-            scatter_axis[j] = scatter_axis[j] + np.random.normal(0, 0.025)
+            scatter_axis[j] = scatter_axis[j] + np.random.normal(0, 0.02)
     return scatter_axis
 
 def do_linear_regression(plot_data, plot_data_x):
@@ -348,7 +356,7 @@ def do_linear_regression(plot_data, plot_data_x):
 def get_prev_edginess(ETD, condition, experiment, mouse, prev_edginess, scaling_factor, self, traj_loc, trial, trial_num):
     SH_data = self.analysis[experiment][condition]['prev homings'][mouse][trial]
     SR = np.array(SH_data[0])
-    x_edge = np.array(SH_data[4])
+    x_edge = self.analysis[experiment][condition]['x edge'][mouse][trial]
     SR_time = np.array(SH_data[3])
     time_to_shelter = np.array(SH_data[2])
     RT = self.analysis[experiment][condition]['RT'][mouse][trial]
@@ -394,16 +402,42 @@ def get_prev_edginess(ETD, condition, experiment, mouse, prev_edginess, scaling_
         line_to_edge_offset = abs(homing_vector_at_center - edge_vector_at_center)  # + 5
         # get index at center point (wall location)
         prev_edginess[trial_num] = (distance_to_line - distance_to_edge + line_to_edge_offset) / (2 * line_to_edge_offset)
+        # print(prev_edginess[trial_num])
+        # num_edge_vectors, x_edge = get_num_edge_vectors(self, experiment, condition, mouse, trial, ETD = ETD)
+        # prev_edginess[trial_num] = num_edge_vectors #- (SR.size - num_edge_vectors)
+        # print('ev')
+        # print(num_edge_vectors)
+        # print(SR.size)
+
     else: prev_edginess[trial_num] = 0
 
     return time_to_shelter, SR
 
+def get_num_edge_vectors(self, experiment, condition, mouse, trial, ETD = False):
+    SH_data = self.analysis[experiment][condition]['prev homings'][mouse][trial]
+    SR = np.array(SH_data[0])
+    if ETD:
+        if len(SR) >= (ETD + 1): SR = SR[-ETD:]
+
+    x_edge = self.analysis[experiment][condition]['x edge'][mouse][trial]
+
+    homings_dist_from_edge = abs(SR - x_edge)
+    num_edge_vectors = np.sum(homings_dist_from_edge < 5) #4
+
+    return num_edge_vectors, x_edge
+
 
 def initialize_figures(self, traversals = 1):
-    # fig, ax = plt.subplots(figsize=(9, 6))
-    fig, ax = plt.subplots(figsize=(6*traversals, 6))
-    ax.set_xlim([-1, traversals * 3 * len(self.experiments) - 1])
-    ax.set_ylim([-.1, 1.15])
+
+    if 'Square' in self.experiments[0]:
+        fig, ax = plt.subplots(figsize=(6 * traversals + 3+4, 6+3))
+        ax.set_xlim([-1, traversals * 3 * len(self.experiments) - 1])
+        ax.set_ylim([-.7, 1.7]) #1.15
+    else:
+        # fig, ax = plt.subplots(figsize=(9, 6))
+        fig, ax = plt.subplots(figsize=(6*traversals+3, 6+3))
+        ax.set_xlim([-1, traversals * 3 * len(self.experiments) - 1])
+        ax.set_ylim([-.1, 1.15])
     # plot dotted lines
     ax.plot([-1, traversals * 3 * len(self.experiments) - 1], [0, 0], linestyle='--', color=[.5, .5, .5, .5])
     ax.plot([-1, traversals * 3 * len(self.experiments) - 1], [1, 1], linestyle='--', color=[.5, .5, .5, .5])
@@ -419,6 +453,39 @@ def initialize_figures(self, traversals = 1):
 
 
     return fig, fig2, fig3, ax, ax2, ax3
+
+def initialize_figures_traversals(self, types = 1):
+    # fig, ax = plt.subplots(figsize=(9, 6))
+    fig, ax = plt.subplots(figsize=(6, 6))
+    # ax.set_xlim([-1, types * 4 * len(self.experiments) - 1])
+    ax.set_ylim([-1, 25])
+    # plot dotted lines
+    ax.plot([-1, 4 * len(self.experiments) - 1], [0, 0], linestyle='--', color=[.5, .5, .5, .5])
+    # ax.plot([-1, 4 * len(self.experiments) - 1], [5, 5], linestyle='--', color=[.5, .5, .5, .5])
+    ax.plot([-1, 4 * len(self.experiments) - 1], [10, 10], linestyle='--', color=[.5, .5, .5, .5])
+    # ax.plot([-1, 4 * len(self.experiments) - 1], [15, 15], linestyle='--', color=[.5, .5, .5, .5])
+    ax.plot([-1, 4 * len(self.experiments) - 1], [20, 20], linestyle='--', color=[.5, .5, .5, .5])
+    ax.plot([-1, 4 * len(self.experiments) - 1], [30, 30], linestyle='--', color=[.5, .5, .5, .5])
+
+    plt.axis('off')
+    ax.margins(0, 0)
+    ax.xaxis.set_major_locator(plt.NullLocator())
+    ax.yaxis.set_major_locator(plt.NullLocator())
+
+    fig2, ax2 = plt.subplots(figsize=(6, 6))
+    # ax2.set_xlim([-1, types * 4 * len(self.experiments) - 1])
+    ax2.set_ylim([-.1, 5])
+    # plot dotted lines
+    ax2.plot([0, types *4 * len(self.experiments) - 6], [0, 0], linestyle='--', color=[.5, .5, .5, .5])
+    ax2.plot([0, types *4 * len(self.experiments) - 6], [2, 2], linestyle='--', color=[.5, .5, .5, .5])
+    ax2.plot([0, types *4 * len(self.experiments) - 6], [4, 4], linestyle='--', color=[.5, .5, .5, .5])
+
+    plt.axis('off')
+    ax2.margins(0, 0)
+    ax2.xaxis.set_major_locator(plt.NullLocator())
+    ax2.yaxis.set_major_locator(plt.NullLocator())
+
+    return fig, fig2, ax, ax2
 
 def initialize_figures_prediction(self):
     fig1, ax1 = plt.subplots(figsize=(12, 6))
@@ -447,7 +514,7 @@ def initialize_figures_efficiency(self):
     ax2.yaxis.set_major_locator(plt.NullLocator())
     plt.axis('off')
     fig3, ax3 = plt.subplots(figsize=(9, 9))
-    ax3.set_ylim([-.1, 6.5])
+    # ax3.set_ylim([-.1, 6.5])
     ax3.set_xlim([-.5, len(self.experiments)-.5])
     ax3.plot([-10,10],[6,6], color = [.5,.5,.5], linestyle = '--')
     ax3.plot([-10, 10], [3, 3], color=[.5, .5, .5], linestyle='--')
@@ -473,7 +540,7 @@ def show_speed_traces(colormap, condition, end_idx, experiment, number_of_trials
         z = speed_traces[:, order].T
     # separate out the escapes and non-escapes (here, under 6 seconds)
     gap_size = 2
-    num_non_escapes = np.sum(np.isnan(end_idx)) + np.sum(end_idx > 6 * 30)
+    num_non_escapes = np.sum(np.isnan(end_idx)) + np.sum(end_idx > 9 * 30)
     z_with_gap = np.ones((z.shape[0] + gap_size, z.shape[1])) * np.nan
     z_with_gap[:num_non_escapes, :] = z[:num_non_escapes, :]
     z_with_gap[num_non_escapes + gap_size:, :] = z[num_non_escapes:, :]
@@ -526,12 +593,13 @@ def display_traversal(arena, arena_color, fast_color, scaling_factor, slow_color
 
 
 def show_escape_paths(HV_cutoff, arena, arena_color, arena_reference, c, condition, edge_vector_color, escape_duration, experiment, fps, homing_vector_color,
-        min_distance_to_shelter, mouse, non_escape_color, scaling_factor, self, shelter_location, strategies):
+        min_distance_to_shelter, mouse, non_escape_color, scaling_factor, self, shelter_location, strategies, determine_strategy = False):
     '''     show escape paths       '''
     # find all the paths across the arena
     paths = self.analysis[experiment][condition]['path'][mouse]
     # loop over all paths
     t = 0
+    x_edges_used = []
     for trial in range(len(paths)):
         if 'food' in experiment:
             # select the number of successful trials
@@ -540,10 +608,22 @@ def show_escape_paths(HV_cutoff, arena, arena_color, arena_reference, c, conditi
             if self.analysis[experiment][condition]['start time'][mouse][trial] < 20 and condition == 'no obstacle': continue
         else:
             # select the number of trials
-            if trial > 2 and not 'Square' in experiment: continue
+            # if trial > 2 and not 'Square' in experiment: continue
+            # if trial != 1 and trial !=2: continue
+            if t > 2: continue
+            # if t: continue
+            # if not trial: continue
+
+            # if trial != 2 and condition == 'no obstacle': continue
+
+            # if trial !=3 and trial !=4: continue
+            # if not trial: continue
             # if condition == 'obstacle' and trial != 2: continue
 
-            # if condition == 'obstacle': continue
+            # if 'dark' in experiment and condition == 'obstacle':
+            #     if t>999: continue
+            # pass
+
         # t += 1
         # get the x and y coordinates of the path
         x_idx = paths[trial][0][:fps * escape_duration].astype(int)
@@ -554,46 +634,64 @@ def show_escape_paths(HV_cutoff, arena, arena_color, arena_reference, c, conditi
             if abs(x_idx[0] * scaling_factor - 50) < 25: continue
             if abs(y_idx[0] * scaling_factor - 50) > 25: continue
         elif 'Square' in experiment:
-            # only three trials
-            if t > 2: continue
-            # get where the mouse is in the center
-            y_center_idx = np.argmin(abs(y_idx * scaling_factor - 50))
-            # only do wall-left trials (this captures all of them only for this particular dataset!)
-            if x_idx[y_center_idx] * scaling_factor > 72: continue
-            # only ones that start to the left of the obstacle edge
-            if x_idx[0] * scaling_factor > 64: continue
+            if x_idx[0] * scaling_factor > 75: continue
             # not the one HV, for the edge-vector-only plot
-            if y_idx[0] * scaling_factor < 11: continue
+            # if y_idx[0] * scaling_factor < 9: continue #11
         else:
             # needs to start at top
-            if y_idx[0] * scaling_factor > 25: continue
+            if y_idx[0] * scaling_factor > 25: continue #23.5
             if abs(x_idx[0] * scaling_factor - 50) > 25: continue #20
+            # if abs(self.analysis[experiment][condition]['start angle'][mouse][trial]) < 45:
+            #     print(abs(self.analysis[experiment][condition]['start angle'][mouse][trial])); continue
 
         # if abs(x_idx[0] * scaling_factor-50) < 25: continue
         # if abs(y_idx[0] * scaling_factor-50) > 35: continue
         # categorize the escape
         time_to_shelter = self.analysis[experiment][condition]['end time'][mouse][trial]
+        # determine prev edgy homings or escapes
+
+        if determine_strategy:
+            num_prev_edge_vectors, x_edge = get_num_edge_vectors(self, experiment, condition, mouse, trial)
+            if num_prev_edge_vectors and condition == 'obstacle': # and not 'U shaped' in experiment:
+                print('prev edgy homing')
+                continue
+            if x_edge in x_edges_used: print('prev edgy escape'); continue
+
+        # non-escapes
         if np.isnan(time_to_shelter) or time_to_shelter > (escape_duration * fps):
             path_color = non_escape_color
-            strategies[2] = strategies[2] + 1 - 1
+            strategies[2] = strategies[2] + 1
             continue
         else:
-            if abs(self.analysis[experiment][condition]['edginess'][mouse][trial]) < HV_cutoff:
+            # determine if edge vector or HV
+            # for u-shaped obstacle
+            if 'U shaped' in experiment:
+                # if descends into the cup, then HV, otherwise EV
+                if np.sum( (abs(x_idx* scaling_factor - 50) < 25) * (abs(y_idx* scaling_factor - 40) < 10) ):
+                    self.analysis[experiment][condition]['edginess'][mouse][trial] = 0
+                else: self.analysis[experiment][condition]['edginess'][mouse][trial] = 1
+
+            # print(abs(self.analysis[experiment][condition]['edginess'][mouse][trial]))
+            if self.analysis[experiment][condition]['edginess'][mouse][trial] <= -HV_cutoff:
+                print('HV')
+                continue
+
+            if self.analysis[experiment][condition]['edginess'][mouse][trial] <= HV_cutoff:
                 path_color = homing_vector_color
                 strategies[0] = strategies[0] + 1
             else:
                 path_color = edge_vector_color
                 strategies[1] = strategies[1] + 1
-            # print(mouse)
-            # print(trial)
-            # print(self.analysis[experiment][condition]['edginess'][mouse][trial])
-            # print(y_idx[0] * scaling_factor)
-        # color by mouse
-        # path_color = homing_vector_color
+                # edgy trial has occurred
+                if determine_strategy:
+                    if 'dark' in experiment and condition == 'obstacle': # and not 'U shaped' in experiment:
+                        print('EDGY TRIAL ' + str(trial))
+                        x_edges_used.append(x_edge)
 
         # get reaction time for starting the traces
         if 'Square' in experiment:
-            RT = int(self.analysis[experiment][condition]['RT'][mouse][trial] * 30)
+            RT = int(self.analysis[experiment][condition]['RT'][mouse][trial] * 30 / 3)
+            # RT = 0
         elif 'food' in experiment:
             RT = int(self.analysis[experiment][condition]['RT'][mouse][trial] * 30 / 3)
         else:
@@ -646,5 +744,6 @@ def plot_strategies(strategies, homing_vector_color, non_escape_color, edge_vect
     ax.bar(1, normed_strategies[2], .5, bottom=normed_strategies[1] + normed_strategies[0], color=non_escape_color[::-1]**5)
     # print data
     print(np.sum(strategies))
+    print(strategies)
     print(normed_strategies)
     return fig

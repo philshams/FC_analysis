@@ -13,7 +13,7 @@ def registration(session, fisheye_map_location):
     '''
     get_arena_details(session)
 
-    if not np.array(session['Registration']).shape:
+    if not np.array(session['Registration']).shape: # or True:
         print(colored(' - Registering session', 'green'))
 
         # Get background
@@ -290,34 +290,32 @@ def model_arena(size, trial_type, registration = False, obstacle_type = 'wall', 
     elif obstacle_type == 'side wall':
         # arena outline
         cv2.rectangle(model_arena, (200, 200), (800, 800), 245, -1)
-        if not dark: cv2.circle(model_arena, (500, 500), 460, 0, 1, lineType=16)
+        if not dark: cv2.rectangle(model_arena, (200, 200), (800, 800), 0, 1, lineType=16)
 
         # add wall - down
         cv2.rectangle(model_arena, (int(200), int(420 - 6 / 2)), (int(200 + 420), int(420 + 6 / 2)), 90, thickness=-1)
 
-    # elif (obstacle_type == 'side wall 14' and trial_type == 0) or (obstacle_type == 'side wall 32' and trial_type):
-    #     # arena outline
-    #     if not dark:  cv2.rectangle(model_arena, (100, 100), (900, 900), 0, 2, lineType = 16)
-    #     cv2.rectangle(model_arena, (100, 100), (900, 900), 245, -1)
-    #
-    #     # add wall
-    #     cv2.rectangle(model_arena, (int(100), int(500 - 6 / 2)), (int(100 + 660), int(500 + 6 / 2)), 90, thickness=-1)
-
-    # elif (obstacle_type == 'side wall 32' and trial_type == 0) or (obstacle_type == 'side wall 14' and trial_type):
-    elif (obstacle_type == 'side wall 14') or (obstacle_type == 'side wall 32'):
+    elif obstacle_type == 'side wall 14':
         # arena outline
         if not dark:  cv2.rectangle(model_arena, (100, 100), (900, 900), 0, 2, lineType=16)
         cv2.rectangle(model_arena, (100, 100), (900, 900), 245, -1)
 
         # add wall
-        cv2.rectangle(model_arena, (int(100), int(500 - 6 / 2)), (int(100 + 480), int(500 + 6 / 2)), 90, thickness=-1)
+        if not trial_type:
+            cv2.rectangle(model_arena, (int(100), int(500 - 6 / 2)), (int(100 + 480 + 180 - 20), int(500 + 6 / 2)), 90, thickness=-1)
+        else:
+            cv2.rectangle(model_arena, (int(100), int(500 - 6 / 2)), (int(100 + 480 - 20), int(500 + 6 / 2)), 90, thickness=-1)
 
-    elif obstacle_type == 'side wall':
+    elif obstacle_type == 'side wall 32':
         # arena outline
-        cv2.rectangle(model_arena, (200, 200), (800, 800), 245, -1)
+        if not dark:  cv2.rectangle(model_arena, (100, 100), (900, 900), 0, 2, lineType=16)
+        cv2.rectangle(model_arena, (100, 100), (900, 900), 245, -1)
 
-        # add wall - down
-        cv2.rectangle(model_arena, (int(200), int(420 - 6 / 2)), (int(200 + 420), int(420 + 6 / 2)), 90, thickness=-1)
+        # add wall
+        if not trial_type:
+            cv2.rectangle(model_arena, (int(100), int(500 - 6 / 2)), (int(100 + 480 + 180 - 20), int(500 + 6 / 2)), 90, thickness=-1)
+        else:
+            cv2.rectangle(model_arena, (int(100), int(500 - 6 / 2)), (int(100 + 480 - 20), int(500 + 6 / 2)), 90, thickness=-1)
 
     elif obstacle_type == 'side wall':
         # arena outline
@@ -413,10 +411,15 @@ def model_arena(size, trial_type, registration = False, obstacle_type = 'wall', 
             shelter_roi = cv2.rectangle(shelter_roi, (int(800 - 200), int(800 - 100)), (int(800 - 200 + 108), int(800 - 100 - 108)), 1, thickness=-1)
 
         elif obstacle_type == 'side wall' or obstacle_type == 'T wall':
-            cv2.rectangle(model_arena_shelter, (int(200 + 50), int(800 - 50)), (int(200 + 50 + 108), int(800 - 50 - 108)), (0, 0, 255),thickness=-1)
+            # cv2.rectangle(model_arena_shelter, (int(200 + 50), int(800 - 50)), (int(200 + 50 + 108), int(800 - 50 - 108)), (0, 0, 255),thickness=-1)
+            # cv2.addWeighted(model_arena, alpha, model_arena_shelter, 1 - alpha, 0, model_arena)
+            #
+            # shelter_roi = cv2.rectangle(shelter_roi, (int(200 + 50), int(800 - 50)), (int(200 + 50 + 108), int(800 - 50 - 108)), 1, thickness=-1)
+
+            cv2.rectangle(model_arena_shelter, (int(200 + 50 + 270), int(800 - 50)), (int(200 + 50 + 108 + 270), int(800 - 50 - 108)), (0, 0, 255), thickness=-1)
             cv2.addWeighted(model_arena, alpha, model_arena_shelter, 1 - alpha, 0, model_arena)
 
-            shelter_roi = cv2.rectangle(shelter_roi, (int(200 + 50), int(800 - 50)), (int(200 + 50 + 108), int(800 - 50 - 108)), 1, thickness=-1)
+            shelter_roi = cv2.rectangle(shelter_roi, (int(200 + 50 + 270), int(800 - 50)), (int(200 + 50 + 108+ 270), int(800 - 50 - 108)), 1, thickness=-1)
 
         elif obstacle_type == 'side wall 14' or obstacle_type == 'side wall 32':
             cv2.rectangle(model_arena_shelter, (int(396), int(792)), (int(396 + 108), int(900)), (0, 0, 255), thickness=-1)
@@ -571,7 +574,7 @@ def register_arena(background, fisheye_map_location, x_offset, y_offset, obstacl
     '''
 
     # create model arena and background
-    arena, arena_points, _ = model_arena(background.shape, 1, True, obstacle_type)
+    arena, arena_points, _ = model_arena(background.shape[::-1], 1, True, obstacle_type)
 
     # load the fisheye correction
     try:
@@ -640,7 +643,7 @@ def register_arena(background, fisheye_map_location, x_offset, y_offset, obstacl
 
 
     # REGISTER BACKGROUND, BE IT WITH LOADED OR CREATED TRANSFORM
-    registered_background = cv2.warpAffine(background_copy, M, background.shape)
+    registered_background = cv2.warpAffine(background_copy, M, background.shape[::-1])
 
     # --------------------------------------------------
     # overlay images
@@ -701,7 +704,7 @@ def register_arena(background, fisheye_map_location, x_offset, y_offset, obstacl
         if update_transform:
             update_transform_data[3] = M
 
-            registered_background = cv2.warpAffine(background_copy, M, background.shape)
+            registered_background = cv2.warpAffine(background_copy, M, background.shape[::-1])
             registered_background_color = (cv2.cvtColor(registered_background, cv2.COLOR_GRAY2RGB)
                                            * np.squeeze(color_array[:, :, :, 0])).astype(np.uint8)
             overlaid_arenas = cv2.addWeighted(registered_background_color, alpha, arena_color, 1 - alpha, 0)

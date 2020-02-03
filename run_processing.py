@@ -68,7 +68,7 @@ class processing():
                     # if really the same trial, skip
                     if self.stim_frame - self.previous_stim_frame < 30*10: continue
 
-                    # if trial < 18: continue
+                    # if trial != 3 and trial != 5: continue
 
                     # extract spontaneous homings
                     if self.processing_options['spontaneous homings']: extract_homings(self, make_vid = False)

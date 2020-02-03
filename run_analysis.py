@@ -29,7 +29,7 @@ class analysis():
             if self.analysis_types['prediction']: plot_prediction(self)
             if self.analysis_types['edginess']: plot_edginess(self)
             if self.analysis_types['efficiency']: plot_efficiency(self)
-
+            if self.analysis_types['metrics']: plot_metrics_by_strategy(self)
 
     def load_analysis(self, analysis_type):
         '''     Load analysis that's been done      '''

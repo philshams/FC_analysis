@@ -1,3 +1,4 @@
+import numpy
 import pandas as pd
 import os
 from termcolor import colored

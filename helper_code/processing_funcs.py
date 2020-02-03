@@ -131,11 +131,18 @@ def arena_specific_trial_types(self, stims_video, vid):
     '''     determine trial types based on the obstacle type        '''
     # for the square arena, just do it based on time
     if self.obstacle_type == 'side wall 14' or self.obstacle_type == 'side wall 32':
-        self.trial_types = [2 * int(s > 20 * 30 * 60) for s in stims_video]
+        delayed_move_mice = ['CA7494']
+        if self.session.Metadata['mouse_id'] == 'CA7494': # moved later
+            self.trial_types = [2 * int(s > 30 * 30 * 60) for s in stims_video]
+        elif self.session.Metadata['mouse_id'] == 'CA6960': #moved back
+            self.trial_types = [0,2,2,1,1]
+        else:
+            self.trial_types = [2 * int(s > 19 * 30 * 60) for s in stims_video]
+
     # for the void arena, just do it based on time
     elif self.obstacle_type == 'void':
         void_up_mice = ['CA7505', 'CA7492', 'CA7502']
-        if np.any([mouse == self.session.Metadata.mouse_id for mouse in void_up_mice]):
+        if np.any([mouse == self.session.Metadata['mouse_id'] for mouse in void_up_mice]):
             self.trial_types = [2 * int(s < 36 * 30 * 60) for s in stims_video]
         else:
             self.trial_types = [2 for s in stims_video]
@@ -280,15 +287,17 @@ def register_frame(frame, x_offset, y_offset, registration, map1, map2):
     '''     go from a raw to a registered frame        '''
     # make into 2D
     frame_register = frame[:, :, 0]
-    # pad the frame
-    frame_register = cv2.copyMakeBorder(frame_register, y_offset, int((map1.shape[0] - frame.shape[0]) - y_offset),
-                                        x_offset, int((map1.shape[1] - frame.shape[1]) - x_offset), cv2.BORDER_CONSTANT, value=0)
-    # fisheye correct the frame
-    frame_register = cv2.remap(frame_register, map1, map2, interpolation=cv2.INTER_LINEAR,
-                               borderMode=cv2.BORDER_CONSTANT, borderValue=0)
-    # un-pad the frame
-    frame_register = frame_register[y_offset:-int((map1.shape[0] - frame.shape[0]) - y_offset),
-                     x_offset:-int((map1.shape[1] - frame.shape[1]) - x_offset)]
+    # fisheye correction
+    if registration[3]:
+        # pad the frame
+        frame_register = cv2.copyMakeBorder(frame_register, y_offset, int((map1.shape[0] - frame.shape[0]) - y_offset),
+                                            x_offset, int((map1.shape[1] - frame.shape[1]) - x_offset), cv2.BORDER_CONSTANT, value=0)
+        # fisheye correct the frame
+        frame_register = cv2.remap(frame_register, map1, map2, interpolation=cv2.INTER_LINEAR,
+                                   borderMode=cv2.BORDER_CONSTANT, borderValue=0)
+        # un-pad the frame
+        frame_register = frame_register[y_offset:-int((map1.shape[0] - frame.shape[0]) - y_offset),
+                         x_offset:-int((map1.shape[1] - frame.shape[1]) - x_offset)]
     # register the frame
     frame = cv2.cvtColor(cv2.warpAffine(frame_register, registration[0], frame.shape[0:2]),cv2.COLOR_GRAY2RGB)
     # make into 2D again
@@ -348,7 +357,7 @@ def initialize_wall_analysis(self, stim_frame, vid):
         # print(colored('Wall falling trial', 'green'))
         wall_height_timecourse = [1]
         trial_type = -1
-    elif ('down' in experiment and -1 in self.trial_types) or wall_darkness_post < 200:
+    elif ('down' in experiment and -1 in self.trial_types) or wall_darkness_post < 80: # TEMP ?
         trial_type = 0
         wall_height_timecourse = 0
     elif 'down' in experiment and not (-1 in self.trial_types):

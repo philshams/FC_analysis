@@ -1,6 +1,8 @@
-from setup import setup
-from helper_code.loadsave_funcs import print_plans, setup_database, save_data
 from termcolor import colored
+
+from helper_code.loadsave_funcs import print_plans, setup_database, save_data
+from setup import setup
+
 
 class master():
     def __init__(self):
@@ -54,7 +56,6 @@ class master():
             if new_registration:
                 self.db.loc[session_name]['Registration'] = session['Registration']
                 save_data(self.folders['save_folder'], self.file_name, object=self.db, backup=False)
-
 
     def run_tracking(self):
         '''     Track video with DLC network to get mouse position at each frame      '''

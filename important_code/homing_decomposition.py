@@ -40,7 +40,7 @@ def decompose_homings(self):
     thresholds_passed[-(skip_frames + 10):-skip_frames] = False
 
     # get vectors from the first phase of all homings
-    print(self.stim_frame)
+    # print(self.stim_frame)
     group_idx, distance_from_start, end_idx = multi_phase_phinder(self, thresholds_passed, minimum_distance, max_shelter_proximity, critical_turn)
     thresholds_passed_idx = np.where(group_idx)[0]
 
@@ -133,10 +133,10 @@ def multi_phase_phinder(self, thresholds_passed, minimum_distance_spont, max_she
     distance_from_start = np.zeros(len(thresholds_passed))
     stim_on = self.frame_nums > self.stim_frame
     first_frame = self.previous_stim_frame + self.skip_frames
-    print(self.previous_stim_frame)
-    print(self.skip_frames)
-    print(first_frame)
-    print('')
+    # print(self.previous_stim_frame)
+    # print(self.skip_frames)
+    # print(first_frame)
+    # print('')
 
     for k, g in itertools.groupby(thresholds_passed):
         groups.append(list(g))
